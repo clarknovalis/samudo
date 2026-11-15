@@ -1,0 +1,18 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c0a",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Rechnung ablegen",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b09",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "available": true,
+  "reasons": [],
+  "due": "none",
+  "today": false,
+  "inbox": true
+}

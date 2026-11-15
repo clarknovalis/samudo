@@ -1,0 +1,100 @@
+{
+  "from": "2026-11-09",
+  "to": "2026-11-15",
+  "by": "project",
+  "done": {
+    "rows": [
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+        "kind": "task",
+        "title": "Steuer abschicken",
+        "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+        "at": "2026-11-12T15:30:00Z",
+        "seconds": 3600,
+        "estimate": "PT45M"
+      }
+    ],
+    "groups": [
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+        "title": "Haus",
+        "seconds": 3600,
+        "rows": [
+          "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02"
+        ]
+      }
+    ]
+  },
+  "worked": {
+    "rows": [
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+        "kind": "task",
+        "title": "Steuer abschicken",
+        "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+        "at": "2026-11-12T15:30:00Z",
+        "reasons": [
+          {
+            "reason": "clocked",
+            "count": 2
+          },
+          {
+            "reason": "completed",
+            "count": 1
+          },
+          {
+            "reason": "commented",
+            "count": 1
+          }
+        ],
+        "seconds": 3600,
+        "estimate": "PT45M"
+      },
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b02",
+        "kind": "project",
+        "title": "Garten",
+        "folder": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a01",
+        "at": "2026-11-10T08:00:00Z",
+        "reasons": [
+          {
+            "reason": "child_completed",
+            "count": 1
+          }
+        ],
+        "seconds": 0
+      }
+    ],
+    "groups": [
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+        "title": "Haus",
+        "seconds": 3600,
+        "rows": [
+          "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02"
+        ]
+      },
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b02",
+        "title": "Garten",
+        "seconds": 0,
+        "rows": [
+          "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b02"
+        ]
+      }
+    ]
+  },
+  "time": {
+    "from": "2026-11-09",
+    "to": "2026-11-15",
+    "by": "project",
+    "seconds": 3600,
+    "rows": [
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+        "title": "Haus",
+        "seconds": 3600
+      }
+    ]
+  }
+}

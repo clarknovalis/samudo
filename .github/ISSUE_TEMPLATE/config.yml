@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://docs.samudo.de/
+    about: How to run and use samudo.
+  - name: Security problem
+    url: https://github.com/clarknovalis/samudo/blob/main/SECURITY.md
+    about: Please report vulnerabilities privately, as described here.

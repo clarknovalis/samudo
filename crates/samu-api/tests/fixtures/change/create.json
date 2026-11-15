@@ -1,0 +1,16 @@
+{
+  "op": "create",
+  "object": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+  "kind": "task",
+  "value": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Milch",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "hlc": {"wall": 1762502400000, "counter": 3, "device": "pixel"}
+}

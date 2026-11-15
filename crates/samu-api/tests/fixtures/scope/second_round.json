@@ -1,0 +1,57 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04",
+  "created": "2026-11-08T08:00:00Z",
+  "modified": "2026-11-08T10:00:00Z",
+  "title": "Arbeit, bald fällig",
+  "mode": "only",
+  "members": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01"
+  ],
+  "inbox": true,
+  "filter": [
+    {
+      "kind": "due",
+      "value": "7t"
+    },
+    {
+      "kind": "is",
+      "value": "markiert"
+    },
+    {
+      "kind": "tag",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d03",
+      "not": true
+    },
+    {
+      "kind": "state",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12"
+    }
+  ],
+  "capture": {
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "tags": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01"
+    ]
+  },
+  "schedule": [
+    {
+      "days": [
+        "mo",
+        "tu",
+        "we",
+        "th",
+        "fr"
+      ],
+      "from": "08:00:00",
+      "to": "17:00:00"
+    },
+    {
+      "days": [
+        "sa"
+      ],
+      "from": "22:00:00",
+      "to": "02:00:00"
+    }
+  ],
+  "position": 3
+}

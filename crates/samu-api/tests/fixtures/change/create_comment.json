@@ -1,0 +1,13 @@
+{
+  "op": "create",
+  "object": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f34",
+  "kind": "comment",
+  "value": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f34",
+    "created": "2026-11-08T18:00:00Z",
+    "modified": "2026-11-08T18:00:00Z",
+    "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+    "body": "Unterwegs aufgeschrieben."
+  },
+  "hlc": {"wall": 1762624800000, "counter": 0, "device": "pixel"}
+}

@@ -1,0 +1,27 @@
+name: Feature request
+description: Something samudo could do, or do better.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        samudo is a small project with one maintainer. Describing the
+        problem first helps more than a finished solution: there may be a
+        way to do it already, or one that fits the rest better.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you want to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: How it could work, in whichever interface you use.
+  - type: textarea
+    id: elsewhere
+    attributes:
+      label: Elsewhere
+      description: How another tool (OmniFocus, org-mode, …) does it, if you know.

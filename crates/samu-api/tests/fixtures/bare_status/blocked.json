@@ -1,0 +1,47 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "available": false,
+  "reasons": [
+    {
+      "reason": "deferred",
+      "until": {
+        "at": "2026-11-10T08:00:00+01:00[Europe/Berlin]"
+      }
+    },
+    {
+      "reason": "waiting_in_sequence",
+      "first": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03"
+    },
+    {
+      "reason": "tag_not_active",
+      "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d03"
+    },
+    {
+      "reason": "container_unavailable",
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c00"
+    },
+    {
+      "reason": "blocked_by",
+      "task": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03"
+    },
+    {
+      "reason": "project_not_active",
+      "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01"
+    },
+    {
+      "reason": "folder_dropped",
+      "folder": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a00"
+    },
+    {
+      "reason": "has_open_children"
+    },
+    {
+      "reason": "unknown_value"
+    },
+    {
+      "reason": "cycle"
+    }
+  ],
+  "due": "soon",
+  "today": true
+}

@@ -1,0 +1,18 @@
+{
+  "format": "org",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "at": { "start": 0, "end": 63 },
+      "content": [
+        {
+          "type": "link",
+          "at": { "start": 0, "end": 63 },
+          "target": "catastr:01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f00",
+          "class": "app",
+          "content": [{ "type": "text", "at": { "start": 49, "end": 61 }, "text": "das Angebot" }]
+        }
+      ]
+    }
+  ]
+}

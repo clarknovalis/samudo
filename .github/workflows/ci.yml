@@ -1,0 +1,61 @@
+# The checks every change on main and every pull request has to pass:
+# `make check-public` (formatting, clippy, tests, samu-api packaged on its
+# own, the web UI's and the Emacs package's tests) and a secret scan of the
+# committed tree. Nothing here needs anything but this repository.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # The release of gitleaks the secret scan runs, and its SHA-256 from the
+  # release's checksums file.
+  GITLEAKS_VERSION: "8.21.2"
+  GITLEAKS_SHA256: "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # rust-toolchain.toml names the channel and the components; rustup
+      # is in the image and installs them on first use.
+      - name: Rust
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Node.js is in the image; Emacs is not. The tests read time zones
+      # from the system's database, which the image has; named anyway.
+      - name: Emacs and tzdata
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends emacs-nox tzdata
+
+      - name: make check-public
+        run: make check-public
+
+      - name: gitleaks
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf gitleaks.tar.gz -C "$HOME/.local/bin" gitleaks
+          rm gitleaks.tar.gz
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: make secret-scan
+        run: make secret-scan

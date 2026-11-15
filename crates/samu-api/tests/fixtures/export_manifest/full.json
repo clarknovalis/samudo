@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "api": "0.1.33",
+  "account": "alice",
+  "exported_at": "2026-11-11T12:00:00Z",
+  "seq": 42,
+  "zone": "Europe/Berlin",
+  "due_soon": "P2D",
+  "remind_time": "09:00",
+  "observed": {
+    "wall": 1762506000000,
+    "counter": 1,
+    "device": "laptop"
+  },
+  "counts": {
+    "tags.json": 1,
+    "tasks.json": 1
+  }
+}

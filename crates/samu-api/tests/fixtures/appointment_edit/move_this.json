@@ -1,0 +1,14 @@
+{
+  "instance": {
+    "at": "2026-11-17T19:30:00+01:00[Europe/Berlin]"
+  },
+  "range": "this",
+  "patch": {
+    "start": {
+      "at": "2026-11-17T20:00:00+01:00[Europe/Berlin]"
+    },
+    "end": {
+      "at": "2026-11-17T21:30:00+01:00[Europe/Berlin]"
+    }
+  }
+}

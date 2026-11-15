@@ -1,0 +1,555 @@
+# Demo content for the account demo-en: the Disc meets the Galaxy.
+#
+# A tribute to Terry Pratchett and Douglas Adams, without quotations from
+# their books. Embedded in samu-server (src/demo.rs, ADR 0099 §6) and
+# written by `samu-server account add --demo en`; the format is described in
+# de.toml. The search language of perspectives and scopes is German for now
+# (docs/search.md), so their chips are too.
+
+inbox = [
+  "Where did the Luggage go? It has legs.",
+  "Rincewind asks whether you can run away from something without planning it",
+  "Idea: ask the dolphins what they knew !",
+  { line = "DEATH called. HE SAYS IT IS NOTHING URGENT. @Person/DEATH", comments = ["He hung up in capital letters."] },
+  "Note to self: do not buy plants that talk back",
+  "Book an appointment with the troll dentist d:+6d",
+]
+
+blocks = [
+  ["poem", "babelfish"],
+  ["reading", "publisher"],
+  ["broom", "hat"],
+]
+
+[settings]
+due-soon = "P3D"
+forecast-done = "on"
+
+[property_links]
+wiki = "https://en.wikipedia.org/wiki/{value}"
+lspace = "https://wiki.lspace.org/{value}"
+
+# --- Tags -------------------------------------------------------------------
+
+[[tags]]
+path = "Place"
+[[tags]]
+path = "Place/Unseen University"
+[[tags]]
+path = "Place/Home"
+[[tags]]
+path = "Place/Out and about"
+[[tags]]
+path = "Place/Mended Drum"
+[[tags]]
+path = "Place/Lancre"
+
+[[tags]]
+path = "Person"
+[[tags]]
+path = "Person/Librarian"
+[[tags]]
+path = "Person/Ford"
+[[tags]]
+path = "Person/Marvin"
+[[tags]]
+path = "Person/Granny Weatherwax"
+[[tags]]
+path = "Person/Nanny Ogg"
+[[tags]]
+path = "Person/Commander Vimes"
+[[tags]]
+path = "Person/DEATH"
+
+[[tags]]
+path = "Energy"
+[[tags]]
+path = "Energy/Needs tea"
+[[tags]]
+path = "Energy/Improbably good"
+
+[[tags]]
+path = "Clacks"
+[[tags]]
+path = "Towel"
+[[tags]]
+path = "Waiting"
+on_hold = true
+[[tags]]
+path = "Someday"
+on_hold = true
+
+# Two workflows: their children exclude each other.
+[[tags]]
+path = "Manuscript"
+exclusive = true
+[[tags]]
+path = "Manuscript/Idea"
+key = "i"
+[[tags]]
+path = "Manuscript/Draft"
+key = "d"
+[[tags]]
+path = "Manuscript/Editing"
+key = "e"
+ask_note = true
+[[tags]]
+path = "Manuscript/Printed"
+key = "p"
+
+[[tags]]
+path = "Investigation"
+exclusive = true
+[[tags]]
+path = "Investigation/Reported"
+key = "r"
+[[tags]]
+path = "Investigation/Clues"
+key = "c"
+[[tags]]
+path = "Investigation/Suspect"
+key = "s"
+[[tags]]
+path = "Investigation/Solved"
+key = "v"
+
+# --- Folders ----------------------------------------------------------------
+
+[[folders]]
+title = "Discworld"
+icon = "🐢"
+[[folders]]
+title = "Unseen University"
+parent = "Discworld"
+icon = "🎓"
+[[folders]]
+title = "Lancre"
+parent = "Discworld"
+icon = "🧹"
+[[folders]]
+title = "Galaxy"
+icon = "🌌"
+[[folders]]
+title = "Home"
+icon = "🏠"
+
+# --- Projects ---------------------------------------------------------------
+
+[[projects]]
+title = "Tidy up L-space"
+folder = "Unseen University"
+icon = "📚"
+review = "1w"
+reviewed = true
+note = """
+The Library is bigger on the inside than on the outside. **Much** bigger.
+
+- Rules: no monkey jokes, bananas are handed in at the entrance
+- Beyond shelf 7, do not go on without a string
+"""
+props = { lspace = "Library" }
+tasks = [
+  { line = "Restock bananas for the Librarian @Person/Librarian @\"Place/Out and about\" ! d:+1d ~15m", key = "bananas" },
+  { line = "Find the lost shelf 7b @\"Place/Unseen University\" ~2h !B", clocks = ["{-3} 14:00-16:30", "{-1} 10:00-11:15"], children = [
+    "Tie a string to the entrance ~5m",
+    "Pack chalk and food for three days ~10m",
+    "Write down the way back (if there is one) ~30m",
+  ] },
+  "Reclaim lent spell books @Clacks d:+5d ~30m !B",
+  { line = "Have a book that bites rebound @\"Place/Unseen University\" !A d:{-1}", comments = ["It nibbled the bookbinder again. Take **two** pairs of leather gloves."] },
+  "Switch the call numbers to Ook Decimal Classification ~3h s:+7d @\"Energy/Improbably good\"",
+  { line = "Replace the reading lamp in the octarine reading room x:{-2}" },
+  { line = "Send reminders to overdue wizards x:{-5}" },
+]
+
+[[projects]]
+title = "Keep the Bursar calm"
+folder = "Unseen University"
+icon = "🐸"
+kind = "single-actions"
+tasks = [
+  { line = "Give the Bursar his dried frog pills @\"Place/Unseen University\" p:today 08:00 every+:1d ~5m", remind = [{ before = "10m", of = "planned" }] },
+  "Budget: justify the item “explosions, unexplained” d:+9d ~1h @\"Energy/Needs tea\"",
+  "Stop the Archchancellor from shooting ducks in the Great Hall !",
+  { line = "Check the Alchemists' Guild invoice (another crater) @Waiting d:+12d", comments = ["The Guild says the crater was there before. Waiting for the surveyor."] },
+  { line = "Sort the receipts x:{-1} z:{-1} 1h" },
+]
+
+[[projects]]
+title = "Witch inventory"
+folder = "Lancre"
+icon = "🧙"
+review = "2w"
+note = """
+Granny Weatherwax needs **nothing**. So she says. Nanny Ogg started this
+list anyway, “just in case”.
+"""
+tasks = [
+  { line = "Granny Weatherwax buys a new pointy hat (black, very pointy, no sequins) @\"Person/Granny Weatherwax\" @Place/Lancre d:+4d", key = "hat", children = [
+    "Guess her head size (asking is pointless) ~5m",
+    "Find a hatter in Ankh-Morpork who does not giggle @\"Place/Out and about\" ~1h",
+    "Hatpins: two dozen, for emergencies ~10m",
+  ] },
+  { line = "Get the broom repaired (dwarfs, Copperhead) @\"Person/Granny Weatherwax\" @\"Place/Out and about\" d:+6d ~2h", key = "broom" },
+  "Restock headology: stern look, raised eyebrow @\"Person/Granny Weatherwax\" ~15m !C",
+  "Resole the witch boots ~30m @Place/Lancre",
+  { line = "Stop Nanny Ogg from singing the hedgehog song at the harvest fair @\"Person/Nanny Ogg\" ! d:+2d", comments = ["Attempt 1 failed. She'd already had two pints."] },
+  "Get the herb garden ready for winter @Place/Lancre ~1h30 s:+3d",
+  "Descale the cauldron (smells of frogspawn, but the wrong kind) ~45m",
+  { line = "Repaint the sign “I ATE'NT DEAD” x:{-6}", comments = ["For borrowing the minds of birds. The old sign had weathered."] },
+  { line = "Take Greebo the cat to the vet (protective gear!) @\"Person/Nanny Ogg\" @Waiting" },
+]
+
+[[projects]]
+title = "Case: The stolen swamp dragon"
+folder = "Discworld"
+icon = "🐉"
+kind = "sequential"
+workflow = "Investigation"
+note = """
+A swamp dragon has gone missing from Lady Sybil's sanctuary.
+Suspect: Cut-Me-Own-Throat Dibbler, selling “sausages, smoke flavoured”.
+"""
+tasks = [
+  { line = "Question witnesses at the Mended Drum @\"Place/Mended Drum\" @\"Person/Commander Vimes\" ~1h", state = "Solved", done = true },
+  { line = "Secure the soot marks at the scene @\"Person/Commander Vimes\" ~30m !A", state = "Clues" },
+  { line = "Search Dibbler's sausage stall @\"Place/Out and about\" d:+2d", state = "Suspect", key = "stall" },
+  { line = "Write the report for the Patrician d:+5d ~1h", state = "Reported" },
+]
+
+[[projects]]
+title = "Leave Earth (before Thursday)"
+folder = "Galaxy"
+icon = "🚀"
+kind = "sequential"
+review = "1w"
+note = """
+The bypass has been approved. The plans were on display for months.
+In the cellar. Behind a door marked “Beware of the Leopard”.
+
+**Don't panic.** See checklist.
+"""
+props = { wiki = "The_Hitchhiker's_Guide_to_the_Galaxy" }
+tasks = [
+  { line = "Pack a towel @Towel ! !A d:today ~2m", key = "towel" },
+  { line = "Get a Babel fish (don't ask where it goes) @Person/Ford d:+1d ~20m", key = "babelfish" },
+  { line = "Sit through a Vogon poem @\"Energy/Needs tea\" ~45m", key = "poem" },
+  { line = "Make tea that is almost, but not quite, entirely unlike tea ~10m" },
+  { line = "Stick out a thumb, flag down a spaceship @\"Place/Out and about\" @Person/Ford d:+3d" },
+]
+
+[[projects]]
+title = "Heart of Gold: maintenance"
+folder = "Galaxy"
+icon = "💛"
+review = "1mo"
+tasks = [
+  { line = "Calibrate the Improbability Drive (result: a sperm whale, again) @\"Energy/Improbably good\" ~2h d:+8d", clocks = ["{-4} 2h", "{-2} 09:30-11:00"] },
+  { line = "Cheer up Marvin @Person/Marvin ~30m every:1w p:fri", comments = ["Didn't help. He says he knew it wouldn't."] },
+  { line = "Ask the doors to sigh less contentedly ~15m" },
+  { line = "Check the stock of Pan Galactic Gargle Blasters @Someday" },
+  { line = "Order spare heads for Zaphod @Waiting d:+20d", comments = ["Delivery time: two weeks, or five hundred years, depending on the route."] },
+  { line = "Turn down Eddie the shipboard computer x:{-3}" },
+]
+
+[[projects]]
+title = "Find the question to the answer"
+folder = "Galaxy"
+icon = "❓"
+note = "The answer is 42. The question is still missing. Deep Thought recommends patience."
+tasks = [
+  { line = "Call the mice and ask how it's going @Clacks d:+10d ~15m !B" },
+  { line = "Shuffle the Scrabble tiles again ~10m" },
+  { line = "Work out six times nine (again) ~1m" },
+]
+
+[[projects]]
+title = "Compute the answer"
+folder = "Galaxy"
+icon = "🖥️"
+note = "Seven and a half million years. Done."
+tasks = [
+  { line = "Build a computer that finds the answer x:{-20}" },
+  { line = "Announce the answer x:{-19}" },
+]
+status = "completed"
+
+[[projects]]
+title = "Magrathea: order a luxury planet"
+folder = "Galaxy"
+icon = "🪐"
+note = "Someday. When the economy picks up."
+tasks = [
+  "Browse the catalogue: fjords with award-winning coastlines",
+  "Sort out the financing ~2h",
+]
+status = "on-hold"
+
+[[projects]]
+title = "Restaurant at the End of the Universe"
+folder = "Galaxy"
+icon = "🍽️"
+tasks = [
+  { line = "Book a table (time travel: pay the day before yesterday, eat tomorrow) d:+14d @Clacks ~10m !C", remind = [{ before = "1d" }] },
+  { line = "Put a penny in a savings account so it adds up x:{-14}" },
+  { line = "Find out which animal wants to be served" },
+]
+
+[[projects]]
+title = "Save Arthur's house"
+folder = "Home"
+icon = "🏡"
+tasks = [
+  { line = "Lie down in front of the bulldozer (bring a comfy mat) @Place/Home d:{-1} !" },
+  { line = "File an objection with the planning office d:+3d ~1h", comments = ["Form B-12 is in the cellar behind the leopard door."] },
+  { line = "Iron pyjamas and dressing gown for the trip ~20m x:today" },
+]
+status = "dropped"
+
+[[projects]]
+title = "Household"
+folder = "Home"
+icon = "🧺"
+kind = "single-actions"
+tasks = [
+  { line = "Wash the towel @Towel @Place/Home every!:2w d:+4d ~1h" },
+  { line = "Weekly review @Place/Home every:1w d:sun 17:00 ~30m", remind = [{ before = "1h" }] },
+  "Buy more tea (real tea, from leaves) @\"Place/Out and about\" ~15m !",
+  "Do NOT buy sausages from Dibbler @\"Place/Out and about\"",
+  { line = "Tax return (Ankh-Morpork, fee for breathing) d:+21d !A ~3h s:+7d" },
+  { line = "Buy more candles x:{-2}" },
+  { line = "Clean the windows (magic dust) x:{-8}" },
+]
+
+[[projects]]
+title = "Vogon poetry: a collection"
+icon = "📜"
+workflow = "Manuscript"
+review = "2w"
+note = """
+Poems you can read aloud without anyone opening the airlock.
+Working title: *Oh freddled gruntbuggly, revisited*.
+"""
+tasks = [
+  { line = "Ode to a small lump of green putty", state = "Printed" },
+  { line = "Sonnet for the bypass ~1h", state = "Editing", clocks = ["{-6} 1h30"] },
+  { line = "Ballad of the sad robot ~2h @Person/Marvin", state = "Draft", clocks = ["{-2} 45m"] },
+  { line = "Limerick about towels ~30m", state = "Idea" },
+  { line = "Haiku about the number 42 ~5m", state = "Idea" },
+  { line = "Find a publisher who has never met a Vogon d:+30d @Clacks", key = "publisher" },
+  { line = "Reading at the Mended Drum @\"Place/Mended Drum\" d:+16d", key = "reading", attach = [{ name = "programme.md", text = """
+# Reading at the Mended Drum
+
+Date: {+16}, from 8 pm
+
+1. Welcome by the landlord
+2. Three poems (emergency exits are marked)
+3. Break, beer
+4. One last poem, on request only
+""" }] },
+]
+
+[[projects]]
+title = "Habits"
+icon = "🔁"
+kind = "single-actions"
+tasks = [
+  { line = "Know where your towel is habit:", key = "habit-towel", history = "xxxxxxxxxxxxxx.xxxxxxxxxxxxxx", remind = [{ daily = "07:30" }] },
+  { line = "Drink proper tea habit:4/d:cup", history = "4 3 4 5 4 2 4 4 3 4 6 4 4 4" },
+  { line = "Bananas for the Librarian habit:3/w", history = "x.x..x.x.x..x.xx.x.x..x." },
+  { line = "Panic habit:avoid", history = "........-.........-......" },
+  { line = "Broomstick lesson with Granny Weatherwax habit:2/w", history = "x..x...x..x.........x...", pause = ["{-12}", "{-5}"] },
+  { line = "Read a chapter of the Guide habit:", history = "xx.xxxxx.xxxx.xxx", remind = [{ daily = "21:00" }] },
+]
+
+# --- Perspectives -----------------------------------------------------------
+
+[[perspectives]]
+name = "Don't panic"
+icon = "🧘"
+search = "ist:markiert"
+sort = "due"
+
+[[perspectives]]
+name = "Quick wins"
+icon = "⚡"
+search = "~<=15m"
+sort = "estimate"
+
+[[perspectives]]
+name = "Due this week"
+icon = "📅"
+search = "fällig:7t"
+group = "date"
+sort = "due"
+
+[[perspectives]]
+name = "Waiting for others"
+icon = "⏳"
+search = "@Waiting"
+filter = "remaining"
+group = "project"
+
+[[perspectives]]
+name = "Witchcraft"
+icon = "🧹"
+search = "ordner:Lancre"
+group = "tag"
+sort = "priority"
+
+[[perspectives]]
+name = "Poetry board"
+icon = "📜"
+search = '#"Vogon poetry: a collection"'
+group = "state"
+board = true
+
+[[perspectives]]
+name = "Important first"
+icon = "🅰️"
+search = "prio:a prio:b"
+group = "priority"
+sort = "due"
+then = "estimate"
+
+# --- Scopes -----------------------------------------------------------------
+
+[[scopes]]
+title = "Discworld"
+members = ["folder:Discworld"]
+color = "orange"
+schedule = ["mo-fr 08:00-17:00"]
+capture_project = "Keep the Bursar calm"
+
+[[scopes]]
+title = "Galaxy"
+members = ["folder:Galaxy", "project:Vogon poetry: a collection"]
+color = "violet"
+inbox = true
+schedule = ["sa-so 00:00-23:59", "mo-fr 18:00-23:00"]
+
+[[scopes]]
+title = "Not home"
+mode = "except"
+members = ["folder:Home"]
+color = "teal"
+
+# --- Templates --------------------------------------------------------------
+
+[[templates]]
+name = "pub"
+text = "#Household @\"Place/Mended Drum\" p:today 19:00"
+key = "p"
+
+[[templates]]
+name = "witch"
+text = "#\"Witch inventory\" @Place/Lancre @\"Person/Granny Weatherwax\""
+remind = ["due:1d"]
+key = "w"
+
+[[templates]]
+name = "habit"
+text = "#Habits habit:1/d"
+key = "h"
+
+# --- Calendars (only with --caldav) -----------------------------------------
+# At <caldav>/<account>/<path>; `account add --caldav` makes the collections
+# (MKCALENDAR). Appointments without `calendar` go into the default
+# calendar.
+
+[[calendars]]
+title = "Discworld"
+path = "discworld/"
+color = "#d97706"
+default = true
+
+[[calendars]]
+title = "Galaxy"
+path = "galaxy/"
+color = "#7c3aed"
+
+[[appointments]]
+title = "Faculty meeting at Unseen University"
+start = "{-6} 10:00"
+end = "{-6} 11:30"
+location = "Great Hall"
+rrule = "FREQ=WEEKLY"
+note = "Agenda: lunch. Then: lunch, continued."
+
+[[appointments]]
+title = "Banana delivery for the Librarian"
+start = "{+1} 08:00"
+end = "{+1} 08:15"
+location = "Library, back door"
+
+[[appointments]]
+title = "Interview: Cut-Me-Own-Throat Dibbler"
+start = "{+2} 14:00"
+end = "{+2} 15:00"
+location = "Watch House, Pseudopolis Yard"
+note = "Bring the sausages as evidence. Do not eat them."
+
+[[appointments]]
+title = "Witch trials on the moor"
+start = "{+5}"
+end = "{+7}"
+location = "Lancre"
+note = "Two days. Granny Weatherwax wins without taking part."
+
+[[appointments]]
+title = "Hat fitting at the hatter's"
+start = "{+3} 11:00"
+end = "{+3} 12:00"
+location = "Ankh-Morpork, Short Street"
+
+[[appointments]]
+title = "Evening at the Mended Drum"
+start = "{+4} 20:00"
+end = "{+4} 23:00"
+location = "Mended Drum"
+free = true
+
+[[appointments]]
+title = "Hogswatchnight"
+start = "{+18}"
+note = "Hang up the stockings. The Hogfather comes by sleigh."
+
+[[appointments]]
+title = "Bursar: check-up at the doctor's"
+start = "{-2} 09:00"
+end = "{-2} 09:30"
+
+[[appointments]]
+title = "Departure: thumb out at the bypass"
+calendar = "Galaxy"
+start = "{+3} 07:30"
+end = "{+3} 08:00"
+location = "Arthur's house"
+note = "Towel!"
+
+[[appointments]]
+title = "Vogon poetry reading (attendance compulsory)"
+calendar = "Galaxy"
+start = "{+1} 19:00"
+end = "{+1} 21:00"
+location = "Vogon ship, airlock 3"
+
+[[appointments]]
+title = "Dinner at the Restaurant at the End of the Universe"
+calendar = "Galaxy"
+start = "{+14} 20:00"
+end = "{+14} 23:59"
+location = "Milliways"
+note = "Booked in the name of Dent. The universe ends at 23:59."
+
+[[appointments]]
+title = "Cheering up Marvin"
+calendar = "Galaxy"
+start = "{-4} 16:00"
+end = "{-4} 16:30"
+rrule = "FREQ=WEEKLY;BYDAY=FR"
+
+[[appointments]]
+title = "Towel Day"
+calendar = "Galaxy"
+start = "{+9}"

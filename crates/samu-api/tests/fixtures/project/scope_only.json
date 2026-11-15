@@ -1,0 +1,12 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b0a",
+  "created": "2026-11-11T08:00:00Z",
+  "modified": "2026-11-11T09:00:00Z",
+  "title": "Geschenke",
+  "scope_only": true,
+  "own_scope": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "kind": "single_actions",
+  "status": "active",
+  "flagged": false,
+  "position": 2
+}

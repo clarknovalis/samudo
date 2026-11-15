@@ -1,0 +1,19 @@
+{
+  "created": 41,
+  "replaced": 2,
+  "skipped": [
+    {
+      "uid": "todo-7@example.org",
+      "reason": "a VTODO is no appointment"
+    },
+    {
+      "reason": "a VEVENT without UID (Zahnarzt)"
+    }
+  ],
+  "failed": [
+    {
+      "uid": "jour-fixe@example.org",
+      "reason": "a change from samu waits to be written; import again later"
+    }
+  ]
+}

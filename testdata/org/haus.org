@@ -1,0 +1,17 @@
+#+FILETAGS: :haus:
+* Abschnitt ohne Schlüsselwort
+* BACKLOG Dachboden aufräumen
+* WAITING Angebot Dachdecker :extern:
+DEADLINE: <2026-12-01 Tue -5d>
+* REVIEW [1/2] Garten :prj:
+:PROPERTIES:
+:ID:       a1b2c3d4-0000-4000-8000-000000000001
+:END:
+** TODO Hecke schneiden
+*** TODO Schere schleifen
+** DONE Laub rechen
+* REVIEW Wochenrückblick
+SCHEDULED: <2026-11-08 Sun 18:00 .+1w>
+:PROPERTIES:
+:ID:       a1b2c3d4-0000-4000-8000-000000000002
+:END:

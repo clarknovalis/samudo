@@ -1,0 +1,34 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c92",
+    "created": "2026-10-01T08:00:00Z",
+    "modified": "2026-10-01T08:00:00Z",
+    "title": "Krafttraining",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0,
+    "habit": {"kind": "build", "times": 3, "per": "week"}
+  },
+  "today": "2026-11-13",
+  "day": "done",
+  "period": {"from": "2026-11-09", "to": "2026-11-15", "amount": 2, "target": 3, "met": false},
+  "streak": 4,
+  "longest": 5,
+  "recent": {"met": 3, "of": 4},
+  "year": {"met": 5, "of": 6},
+  "history": [
+    {"day": "2026-11-12", "state": "none", "amount": 0},
+    {"day": "2026-11-13", "state": "done", "amount": 1}
+  ],
+  "entries": [
+    {
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f93",
+      "created": "2026-11-13T18:00:00Z",
+      "modified": "2026-11-13T18:00:00Z",
+      "habit": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c92",
+      "day": "2026-11-13",
+      "status": "done"
+    }
+  ]
+}

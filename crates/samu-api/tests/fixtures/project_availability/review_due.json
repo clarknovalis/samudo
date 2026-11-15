@@ -1,0 +1,19 @@
+{
+  "project": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b04",
+    "created": "2026-11-01T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Keller",
+    "kind": "parallel",
+    "status": "active",
+    "review_interval": "P1W",
+    "last_reviewed": "2026-11-02T18:30:00Z",
+    "flagged": false,
+    "position": 3
+  },
+  "available": true,
+  "reasons": [],
+  "stuck": false,
+  "review": "2026-11-09",
+  "review_due": true
+}

@@ -1,0 +1,19 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06",
+  "created": "2026-11-09T08:00:00Z",
+  "modified": "2026-11-09T10:00:00Z",
+  "title": "Wichtig",
+  "mode": "only",
+  "position": 4,
+  "filter": [
+    {
+      "kind": "priority",
+      "value": "a"
+    },
+    {
+      "kind": "priority",
+      "value": "ohne",
+      "not": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f50",
+  "created": "2026-11-09T08:00:00Z",
+  "modified": "2026-11-12T10:00:00Z",
+  "due_soon": "P2D",
+  "remind_time": "09:00:00",
+  "forecast_days": 7,
+  "forecast_flagged": true,
+  "forecast_defer": true,
+  "forecast_done": false,
+  "forecast_events": true,
+  "keys": {
+    "complete": "y",
+    "delete": null,
+    "go.inbox": "g i"
+  }
+}

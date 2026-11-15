@@ -1,0 +1,17 @@
+{
+  "kind": "calendar",
+  "object": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+    "created": "2026-11-09T08:00:00Z",
+    "modified": "2026-11-09T08:15:00Z",
+    "title": "Familie",
+    "kind": "ics",
+    "color": "#3b82f6",
+    "enabled": true,
+    "refresh": 15,
+    "link_template": "https://calendar.google.com/calendar/r/day/{y}/{m}/{d}",
+    "position": 1,
+    "fetched_at": "2026-11-09T08:15:00Z",
+    "host": "calendar.google.com"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e81",
+  "created": "2026-11-13T08:00:00Z",
+  "modified": "2026-11-13T08:00:00Z",
+  "title": "habit",
+  "text": "#Gewohnheiten @habit habit:1/d",
+  "reminders": [
+    {
+      "anchor": "daily",
+      "time": "20:00:00"
+    }
+  ],
+  "position": 0,
+  "key": "h"
+}

@@ -1,0 +1,25 @@
+[package]
+name = "samu-replica"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A client's mirror, outbox and sync: shared by the Android app and the replica on a computer (ADR 0028, ADR 0066)."
+publish = false
+
+[dependencies]
+samu-api = { workspace = true }
+samu-core = { workspace = true }
+samu-client = { workspace = true }
+jiff = { workspace = true }
+rusqlite = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+# A phone has no SQLite library to link against (ADR 0028 §3).
+bundled = ["rusqlite/bundled"]
+
+[lints]
+workspace = true

@@ -1,0 +1,14 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+  "created": "2026-11-11T08:00:00Z",
+  "modified": "2026-11-11T08:15:00Z",
+  "title": "Kalender",
+  "kind": "caldav",
+  "color": "#16a34a",
+  "enabled": true,
+  "refresh": 15,
+  "position": 2,
+  "fetched_at": "2026-11-11T08:15:00Z",
+  "host": "dav.example.org",
+  "writable": true
+}

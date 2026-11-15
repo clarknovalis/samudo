@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The broom of ADR 0050 (web/brand/samudo-icon-light.svg) on the dark tile,
+     which is the background colour. The 68-unit tile maps onto the 36 visible
+     units of the 54-unit viewport, so the broom sits in the safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="54"
+    android:viewportHeight="54">
+    <group android:translateX="15.88" android:translateY="15.88" android:scaleX="0.2224" android:scaleY="0.2224">
+        <path android:pathData="M28,16 L58,60" android:strokeColor="#EDEBE4" android:strokeWidth="7" android:strokeLineCap="round" />
+        <path android:pathData="M58,60 L46,88 M58,60 L55,90 M58,60 L64,90 M58,60 L72,87 M58,60 L79,82" android:strokeColor="#EDEBE4" android:strokeWidth="5" android:strokeLineCap="round" />
+        <path android:pathData="M14,92 H24 M28,92 H34" android:strokeColor="#A9C29E" android:strokeWidth="5" android:strokeLineCap="round" />
+    </group>
+</vector>

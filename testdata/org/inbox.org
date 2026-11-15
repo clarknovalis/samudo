@@ -1,0 +1,6 @@
+* TODO [#A] Fahrrad zur Inspektion
+SCHEDULED: <2026-11-10 Tue>
+[2026-11-01 Sun 09:15]
+* DONE Brot holen
+CLOSED: [2026-11-02 Mon 10:00]
+* NEXT Zahnarzt anrufen

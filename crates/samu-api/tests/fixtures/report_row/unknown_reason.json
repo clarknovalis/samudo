@@ -1,0 +1,17 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c04",
+  "kind": "task",
+  "title": "Rasen mähen",
+  "at": "2026-11-11T16:00:00Z",
+  "reasons": [
+    {
+      "reason": "changed",
+      "count": 3
+    },
+    {
+      "reason": "unknown",
+      "count": 1
+    }
+  ],
+  "seconds": 0
+}

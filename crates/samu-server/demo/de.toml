@@ -1,0 +1,558 @@
+# Demo-Inhalt für das Konto demo-de: Scheibenwelt trifft Galaxis.
+#
+# Eine Huldigung an Terry Pratchett und Douglas Adams, ohne Zitate aus
+# ihren Büchern. Eingebettet in samu-server (src/demo.rs, ADR 0099 §6) und
+# geschrieben von `samu-server account add --demo de`. `{+N}`/`{-N}` ist
+# das Datum N Tage nach/vor dem Tag des Seedens; eine Zeile `line` ist
+# Schnellerfassung (docs/quick-capture.md). `history` eines Habits läuft
+# bis gestern: `x` erledigt, Ziffer = Menge, `-` bewusst nicht, `.` nichts.
+
+# --- Eingang: noch nicht eingeordnet ----------------------------------------
+
+inbox = [
+  "Wo ist eigentlich die Truhe hin? Sie hat Beine.",
+  "Rincewind fragt, ob man vor etwas davonlaufen kann, ohne es zu planen",
+  "Idee: Delfine fragen, was sie wussten !",
+  { line = "TOD hat angerufen. ER sagt, ES SEI NICHTS DRINGENDES. @Person/TOD", comments = ["Er hat in Großbuchstaben aufgelegt."] },
+  "Zettel: Bloß keine Pflanzen kaufen, die zurückreden",
+  "Termin beim Zahnarzt der Trolle ausmachen d:+6d",
+]
+
+blocks = [
+  ["gedicht", "babelfisch"],
+  ["lesung", "verlag"],
+  ["besen", "hut"],
+]
+
+[settings]
+due-soon = "P3D"
+forecast-done = "on"
+
+[property_links]
+wiki = "https://de.wikipedia.org/wiki/{value}"
+lspace = "https://wiki.lspace.org/{value}"
+
+# --- Tags -------------------------------------------------------------------
+
+[[tags]]
+path = "Ort"
+[[tags]]
+path = "Ort/Unsichtbare Universität"
+[[tags]]
+path = "Ort/Zuhause"
+[[tags]]
+path = "Ort/Unterwegs"
+[[tags]]
+path = "Ort/Geflickte Trommel"
+[[tags]]
+path = "Ort/Lancre"
+
+[[tags]]
+path = "Person"
+[[tags]]
+path = "Person/Bibliothekar"
+[[tags]]
+path = "Person/Ford"
+[[tags]]
+path = "Person/Marvin"
+[[tags]]
+path = "Person/Oma Wetterwachs"
+[[tags]]
+path = "Person/Nanny Ogg"
+[[tags]]
+path = "Person/Kommandeur Mumm"
+[[tags]]
+path = "Person/TOD"
+
+[[tags]]
+path = "Energie"
+[[tags]]
+path = "Energie/Tee nötig"
+[[tags]]
+path = "Energie/Unwahrscheinlich gut"
+
+[[tags]]
+path = "Klacker"
+[[tags]]
+path = "Handtuch"
+[[tags]]
+path = "Warten"
+on_hold = true
+[[tags]]
+path = "Irgendwann"
+on_hold = true
+
+# Zwei Abläufe: ihre Kinder schließen einander aus.
+[[tags]]
+path = "Manuskript"
+exclusive = true
+[[tags]]
+path = "Manuskript/Idee"
+key = "i"
+[[tags]]
+path = "Manuskript/Entwurf"
+key = "e"
+[[tags]]
+path = "Manuskript/Lektorat"
+key = "l"
+ask_note = true
+[[tags]]
+path = "Manuskript/Gedruckt"
+key = "g"
+
+[[tags]]
+path = "Ermittlung"
+exclusive = true
+[[tags]]
+path = "Ermittlung/Gemeldet"
+key = "m"
+[[tags]]
+path = "Ermittlung/Spurensuche"
+key = "s"
+[[tags]]
+path = "Ermittlung/Verdacht"
+key = "v"
+[[tags]]
+path = "Ermittlung/Aufgeklärt"
+key = "a"
+
+# --- Ordner -----------------------------------------------------------------
+
+[[folders]]
+title = "Scheibenwelt"
+icon = "🐢"
+[[folders]]
+title = "Unsichtbare Universität"
+parent = "Scheibenwelt"
+icon = "🎓"
+[[folders]]
+title = "Lancre"
+parent = "Scheibenwelt"
+icon = "🧹"
+[[folders]]
+title = "Galaxis"
+icon = "🌌"
+[[folders]]
+title = "Zuhause"
+icon = "🏠"
+
+# --- Projekte ---------------------------------------------------------------
+
+[[projects]]
+title = "L-Raum aufräumen"
+folder = "Unsichtbare Universität"
+icon = "📚"
+review = "1w"
+reviewed = true
+note = """
+Die Bibliothek ist größer, als sie von außen aussieht. **Viel** größer.
+
+- Regeln: keine Affen-Witze, Bananen nur am Eingang abgeben
+- Ab Regal 7 nicht ohne Schnur weitergehen
+"""
+props = { lspace = "Library" }
+tasks = [
+  { line = "Bananen-Vorrat für den Bibliothekar auffüllen @Person/Bibliothekar @Ort/Unterwegs ! d:+1d ~15m", key = "bananen" },
+  { line = "Verschollenes Regal 7b suchen @\"Ort/Unsichtbare Universität\" ~2h !B", clocks = ["{-3} 14:00-16:30", "{-1} 10:00-11:15"], children = [
+    "Schnur am Eingang festbinden ~5m",
+    "Kreide und Proviant für drei Tage einpacken ~10m",
+    "Rückweg dokumentieren (falls es einen gibt) ~30m",
+  ] },
+  "Ausgeliehene Zauberbücher zurückfordern @Klacker d:+5d ~30m !B",
+  { line = "Ein Buch, das beißt, neu einbinden lassen @\"Ort/Unsichtbare Universität\" !A d:{-1}", comments = ["Hat den Buchbinder schon wieder angeknabbert. Lederhandschuhe **doppelt** nehmen."] },
+  "Signatur-System auf Ook-Dezimalklassifikation umstellen ~3h s:+7d @\"Energie/Unwahrscheinlich gut\"",
+  { line = "Leselampe im Oktarin-Lesesaal tauschen x:{-2}" },
+  { line = "Mahnungen an überfällige Zauberer verschicken x:{-5}" },
+]
+
+[[projects]]
+title = "Quästor bei Laune halten"
+folder = "Unsichtbare Universität"
+icon = "🐸"
+kind = "single-actions"
+tasks = [
+  { line = "Dem Quästor seine Trockenfrosch-Pillen geben @\"Ort/Unsichtbare Universität\" p:heute 08:00 every+:1d ~5m", remind = [{ before = "10m", of = "planned" }] },
+  "Haushaltsplan: Posten „Explosionen, unerklärt“ begründen d:+9d ~1h @\"Energie/Tee nötig\"",
+  "Erzkanzler davon abhalten, im Großen Saal Enten zu schießen !",
+  { line = "Rechnung der Alchemistengilde prüfen (wieder Krater) @Warten d:+12d", comments = ["Gilde sagt, der Krater war schon da. Warten auf Gutachten."] },
+  { line = "Quittungen sortieren x:{-1} z:{-1} 1h" },
+]
+
+[[projects]]
+title = "Hexeninventar"
+folder = "Lancre"
+icon = "🧙"
+review = "2w"
+note = """
+Oma Wetterwachs braucht **nichts**. Sagt sie. Die Liste hier hat Nanny Ogg
+angelegt, „nur zur Sicherheit“.
+"""
+tasks = [
+  { line = "Oma Wetterwachs kauft einen neuen Spitzhut (schwarz, sehr spitz, keine Pailletten) @\"Person/Oma Wetterwachs\" @Ort/Lancre d:+4d", key = "hut", children = [
+    "Kopfumfang schätzen (fragen ist zwecklos) ~5m",
+    "Hutmacher in Ankh-Morpork finden, der nicht kichert @Ort/Unterwegs ~1h",
+    "Hutnadeln: zwei Dutzend, für Notfälle ~10m",
+  ] },
+  { line = "Besen reparieren lassen (Zwerge, Kupferkopf) @\"Person/Oma Wetterwachs\" @Ort/Unterwegs d:+6d ~2h", key = "besen" },
+  "Kopfologie-Vorrat auffüllen: ernster Blick, hochgezogene Augenbraue @\"Person/Oma Wetterwachs\" ~15m !C",
+  "Hexenstiefel neu besohlen ~30m @Ort/Lancre",
+  { line = "Nanny Ogg davon abhalten, das Igel-Lied beim Erntefest zu singen @\"Person/Nanny Ogg\" ! d:+2d", comments = ["Versuch 1 gescheitert. Sie hatte schon zwei Bier."] },
+  "Kräutergarten winterfest machen @Ort/Lancre ~1h30 s:+3d",
+  "Kessel entkalken (riecht nach Froschlaich, aber der falsche) ~45m",
+  { line = "Ein Schild „Ich ATME NOCH“ neu beschriften x:{-6}", comments = ["Für die Ausflüge im Kopf von Vögeln. Altes Schild war verwittert."] },
+  { line = "Katze Greebo zum Tierarzt bringen (Schutzausrüstung!) @\"Person/Nanny Ogg\" @Warten" },
+]
+
+[[projects]]
+title = "Fall: Der gestohlene Sumpfdrache"
+folder = "Scheibenwelt"
+icon = "🐉"
+kind = "sequential"
+workflow = "Ermittlung"
+note = """
+Ein Sumpfdrache ist aus dem Zuchthaus von Lady Sybil verschwunden.
+Verdacht: Treibe-mich-selbst-in-den-Ruin Schnapper verkauft „Würstchen mit
+Rauchgeschmack“.
+"""
+tasks = [
+  { line = "Zeugen in der Geflickten Trommel befragen @\"Ort/Geflickte Trommel\" @\"Person/Kommandeur Mumm\" ~1h", state = "Aufgeklärt", done = true },
+  { line = "Rußspuren am Tatort sichern @\"Person/Kommandeur Mumm\" ~30m !A", state = "Spurensuche" },
+  { line = "Schnappers Würstchenstand durchsuchen @Ort/Unterwegs d:+2d", state = "Verdacht", key = "stand" },
+  { line = "Bericht an den Patrizier schreiben d:+5d ~1h", state = "Gemeldet" },
+]
+
+[[projects]]
+title = "Erde verlassen (vor Donnerstag)"
+folder = "Galaxis"
+icon = "🚀"
+kind = "sequential"
+review = "1w"
+note = """
+Die Umgehungsstraße ist beschlossen. Die Pläne lagen seit Monaten aus.
+Im Keller. Hinter einer Tür mit „Vorsicht, Leopard“.
+
+**Keine Panik.** Siehe Checkliste.
+"""
+props = { wiki = "Per_Anhalter_durch_die_Galaxis" }
+tasks = [
+  { line = "Handtuch einpacken @Handtuch ! !A d:heute ~2m", key = "handtuch" },
+  { line = "Babelfisch besorgen (nicht fragen, wo er hinkommt) @Person/Ford d:+1d ~20m", key = "babelfisch" },
+  { line = "Vogonisches Gedicht über sich ergehen lassen @\"Energie/Tee nötig\" ~45m", key = "gedicht" },
+  { line = "Tee kochen, der fast, aber nicht ganz, ganz anders ist als Tee ~10m" },
+  { line = "Daumen raus, Raumschiff anhalten @Ort/Unterwegs @Person/Ford d:+3d" },
+]
+
+[[projects]]
+title = "Herz aus Gold: Wartung"
+folder = "Galaxis"
+icon = "💛"
+review = "1mo"
+tasks = [
+  { line = "Unwahrscheinlichkeitsdrive kalibrieren (Ergebnis: ein Pottwal, wieder) @\"Energie/Unwahrscheinlich gut\" ~2h d:+8d", clocks = ["{-4} 2h", "{-2} 09:30-11:00"] },
+  { line = "Marvin aufmuntern @Person/Marvin ~30m every:1w p:fr", comments = ["Hat nichts gebracht. Er sagt, das habe er gewusst."] },
+  { line = "Türen bitten, weniger zufrieden zu seufzen ~15m" },
+  { line = "Pangalaktischen Donnergurgler-Vorrat prüfen @Irgendwann" },
+  { line = "Ersatz-Köpfe für Zaphod bestellen @Warten d:+20d", comments = ["Lieferzeit: zwei Wochen, oder fünfhundert Jahre, je nach Route."] },
+  { line = "Bordcomputer Eddie leiser stellen x:{-3}" },
+]
+
+[[projects]]
+title = "Die Frage zur Antwort finden"
+folder = "Galaxis"
+icon = "❓"
+note = "Die Antwort ist 42. Die Frage fehlt noch. Deep Thought empfiehlt Geduld."
+tasks = [
+  { line = "Mäuse anrufen und Zwischenstand erfragen @Klacker d:+10d ~15m !B" },
+  { line = "Scrabble-Steine neu mischen ~10m" },
+  { line = "Sechs mal neun ausrechnen (nochmal) ~1m" },
+]
+
+[[projects]]
+title = "Die Antwort berechnen"
+folder = "Galaxis"
+icon = "🖥️"
+note = "Siebeneinhalb Millionen Jahre. Erledigt."
+tasks = [
+  { line = "Rechner bauen, der die Antwort findet x:{-20}" },
+  { line = "Antwort verkünden x:{-19}" },
+]
+status = "completed"
+
+[[projects]]
+title = "Magrathea: Luxusplanet bestellen"
+folder = "Galaxis"
+icon = "🪐"
+note = "Irgendwann. Wenn die Wirtschaft wieder anzieht."
+tasks = [
+  "Katalog durchblättern: Fjorde mit preisgekrönten Küstenlinien",
+  "Finanzierung klären ~2h",
+]
+status = "on-hold"
+
+[[projects]]
+title = "Restaurant am Ende des Universums"
+folder = "Galaxis"
+icon = "🍽️"
+tasks = [
+  { line = "Tisch reservieren (Zeitreise: vorgestern einzahlen, morgen essen) d:+14d @Klacker ~10m !C", remind = [{ before = "1d" }] },
+  { line = "Pfennig auf ein Sparkonto legen, damit es reicht x:{-14}" },
+  { line = "Herausfinden, welches Tier serviert werden möchte" },
+]
+
+[[projects]]
+title = "Haus von Arthur retten"
+folder = "Zuhause"
+icon = "🏡"
+tasks = [
+  { line = "Vor den Bulldozer legen (bequeme Matte mitnehmen) @Ort/Zuhause d:{-1} !" },
+  { line = "Einspruch beim Planungsamt einlegen d:+3d ~1h", comments = ["Formular B-12 liegt im Keller hinter der Leopardentür."] },
+  { line = "Schlafanzug und Morgenmantel für die Reise bügeln ~20m x:heute" },
+]
+status = "dropped"
+
+[[projects]]
+title = "Haushalt"
+folder = "Zuhause"
+icon = "🧺"
+kind = "single-actions"
+tasks = [
+  { line = "Handtuch waschen @Handtuch @Ort/Zuhause every!:2w d:+4d ~1h" },
+  { line = "Wochenrückblick @Ort/Zuhause every:1w d:so 17:00 ~30m", remind = [{ before = "1h" }] },
+  "Tee nachkaufen (echten, aus Blättern) @Ort/Unterwegs ~15m !",
+  "Würstchen von Schnapper NICHT kaufen @Ort/Unterwegs",
+  { line = "Steuererklärung (Ankh-Morpork, Gebühr für Atmen) d:+21d !A ~3h s:+7d" },
+  { line = "Kerzen nachkaufen x:{-2}" },
+  { line = "Fenster putzen (Zauberstaub) x:{-8}" },
+]
+
+[[projects]]
+title = "Vogonische Poesie: Gedichtband"
+icon = "📜"
+workflow = "Manuskript"
+review = "2w"
+note = """
+Gedichte, die man vorlesen kann, ohne dass jemand die Luftschleuse öffnet.
+Arbeitstitel: *Oh, zerfranster Grunzwanst*.
+"""
+tasks = [
+  { line = "Ode an einen kleinen Klumpen grünen Kitts", state = "Gedruckt" },
+  { line = "Sonett für die Umgehungsstraße ~1h", state = "Lektorat", clocks = ["{-6} 1h30"] },
+  { line = "Ballade vom traurigen Roboter ~2h @Person/Marvin", state = "Entwurf", clocks = ["{-2} 45m"] },
+  { line = "Limerick über Handtücher ~30m", state = "Idee" },
+  { line = "Haiku über die Zahl 42 ~5m", state = "Idee" },
+  { line = "Verlag finden, der Vogonen nicht kennt d:+30d @Klacker", key = "verlag" },
+  { line = "Lesung in der Geflickten Trommel @\"Ort/Geflickte Trommel\" d:+16d", key = "lesung", attach = [{ name = "programm.md", text = """
+# Lesung in der Geflickten Trommel
+
+Datum: {+16}, ab 20 Uhr
+
+1. Begrüßung durch den Wirt
+2. Drei Gedichte (Notausgänge sind gekennzeichnet)
+3. Pause, Bier
+4. Ein letztes Gedicht, nur auf Wunsch
+""" }] },
+]
+
+[[projects]]
+title = "Gewohnheiten"
+icon = "🔁"
+kind = "single-actions"
+tasks = [
+  { line = "Handtuch dabei haben habit:", key = "habit-handtuch", history = "xxxxxxxxxxxxxx.xxxxxxxxxxxxxx", remind = [{ daily = "07:30" }] },
+  { line = "Echten Tee trinken habit:4/d:Tasse", history = "4 3 4 5 4 2 4 4 3 4 6 4 4 4" },
+  { line = "Bananen an den Bibliothekar habit:3/w", history = "x.x..x.x.x..x.xx.x.x..x." },
+  { line = "In Panik geraten habit:avoid", history = "........-.........-......" },
+  { line = "Besen-Flugstunde bei Oma Wetterwachs habit:2/w", history = "x..x...x..x.........x...", pause = ["{-12}", "{-5}"] },
+  { line = "Ein Kapitel aus dem Reiseführer lesen habit:", history = "xx.xxxxx.xxxx.xxx", remind = [{ daily = "21:00" }] },
+]
+
+# --- Perspektiven -----------------------------------------------------------
+
+[[perspectives]]
+name = "Keine Panik"
+icon = "🧘"
+search = "ist:markiert"
+sort = "due"
+
+[[perspectives]]
+name = "Schnelle Siege"
+icon = "⚡"
+search = "~<=15m"
+sort = "estimate"
+
+[[perspectives]]
+name = "Diese Woche fällig"
+icon = "📅"
+search = "fällig:7t"
+group = "date"
+sort = "due"
+
+[[perspectives]]
+name = "Wartet auf andere"
+icon = "⏳"
+search = "@Warten"
+filter = "remaining"
+group = "project"
+
+[[perspectives]]
+name = "Hexenkram"
+icon = "🧹"
+search = "ordner:Lancre"
+group = "tag"
+sort = "priority"
+
+[[perspectives]]
+name = "Gedichtband"
+icon = "📜"
+search = '#"Vogonische Poesie: Gedichtband"'
+group = "state"
+board = true
+
+[[perspectives]]
+name = "Wichtig zuerst"
+icon = "🅰️"
+search = "prio:a prio:b"
+group = "priority"
+sort = "due"
+then = "estimate"
+
+# --- Scopes -----------------------------------------------------------------
+
+[[scopes]]
+title = "Scheibenwelt"
+members = ["folder:Scheibenwelt"]
+color = "orange"
+schedule = ["mo-fr 08:00-17:00"]
+capture_project = "Quästor bei Laune halten"
+
+[[scopes]]
+title = "Galaxis"
+members = ["folder:Galaxis", "project:Vogonische Poesie: Gedichtband"]
+color = "violet"
+inbox = true
+schedule = ["sa-so 00:00-23:59", "mo-fr 18:00-23:00"]
+
+[[scopes]]
+title = "Ohne Haushalt"
+mode = "except"
+members = ["folder:Zuhause"]
+color = "teal"
+
+# --- Vorlagen ---------------------------------------------------------------
+
+[[templates]]
+name = "kneipe"
+text = "#Haushalt @\"Ort/Geflickte Trommel\" p:heute 19:00"
+key = "k"
+
+[[templates]]
+name = "hexe"
+text = "#Hexeninventar @Ort/Lancre @\"Person/Oma Wetterwachs\""
+remind = ["due:1d"]
+key = "h"
+
+[[templates]]
+name = "gewohnheit"
+text = "#Gewohnheiten habit:1/d"
+key = "g"
+
+# --- Kalender (nur mit --caldav) ---------------------------------------------
+# Unter <caldav>/<konto>/<path>; `account add --caldav` legt die Sammlungen
+# an (MKCALENDAR). Termine ohne `calendar` gehen in den Standardkalender.
+
+[[calendars]]
+title = "Scheibenwelt"
+path = "scheibenwelt/"
+color = "#d97706"
+default = true
+
+[[calendars]]
+title = "Galaxis"
+path = "galaxis/"
+color = "#7c3aed"
+
+[[appointments]]
+title = "Fakultätssitzung der Unsichtbaren Universität"
+start = "{-6} 10:00"
+end = "{-6} 11:30"
+location = "Großer Saal"
+rrule = "FREQ=WEEKLY"
+note = "Tagesordnung: Mittagessen. Danach: Mittagessen, Fortsetzung."
+
+[[appointments]]
+title = "Bananenlieferung für den Bibliothekar"
+start = "{+1} 08:00"
+end = "{+1} 08:15"
+location = "Bibliothek, Hintereingang"
+
+[[appointments]]
+title = "Verhör: Treibe-mich-selbst-in-den-Ruin Schnapper"
+start = "{+2} 14:00"
+end = "{+2} 15:00"
+location = "Wachhaus Pseudopolis-Platz"
+note = "Würstchen als Beweismittel mitbringen. Nicht essen."
+
+[[appointments]]
+title = "Hexentreffen auf der Heide"
+start = "{+5}"
+end = "{+7}"
+location = "Lancre"
+note = "Zwei Tage. Oma Wetterwachs gewinnt, ohne mitzumachen."
+
+[[appointments]]
+title = "Hutanprobe beim Hutmacher"
+start = "{+3} 11:00"
+end = "{+3} 12:00"
+location = "Ankh-Morpork, Kurze Straße"
+
+[[appointments]]
+title = "Abend in der Geflickten Trommel"
+start = "{+4} 20:00"
+end = "{+4} 23:00"
+location = "Geflickte Trommel"
+free = true
+
+[[appointments]]
+title = "Schneevaternacht"
+start = "{+18}"
+note = "Strümpfe aufhängen. Der Schneevater kommt mit dem Schweineschlitten."
+
+[[appointments]]
+title = "Quästor: Kontrolltermin beim Arzt"
+start = "{-2} 09:00"
+end = "{-2} 09:30"
+
+[[appointments]]
+title = "Abflug: Daumen raus an der Umgehungsstraße"
+calendar = "Galaxis"
+start = "{+3} 07:30"
+end = "{+3} 08:00"
+location = "Haus von Arthur"
+note = "Handtuch!"
+
+[[appointments]]
+title = "Vogonische Dichterlesung (Anwesenheit Pflicht)"
+calendar = "Galaxis"
+start = "{+1} 19:00"
+end = "{+1} 21:00"
+location = "Vogonenschiff, Luftschleuse 3"
+
+[[appointments]]
+title = "Abendessen im Restaurant am Ende des Universums"
+calendar = "Galaxis"
+start = "{+14} 20:00"
+end = "{+14} 23:59"
+location = "Milliways"
+note = "Reservierung auf den Namen Dent. Das Universum endet um 23:59."
+
+[[appointments]]
+title = "Marvin-Aufmunterungsrunde"
+calendar = "Galaxis"
+start = "{-4} 16:00"
+end = "{-4} 16:30"
+rrule = "FREQ=WEEKLY;BYDAY=FR"
+
+[[appointments]]
+title = "Handtuch-Tag"
+calendar = "Galaxis"
+start = "{+9}"

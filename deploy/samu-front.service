@@ -1,0 +1,27 @@
+# The front (ADR 0087 §2): on 127.0.0.1:80 and [::1]:80 it hands each
+# connection to the profile its Host names, so a profile is
+# http://<profile>.samu.localhost; http://samu.localhost lists them.
+# A system unit, so that only this service may take port 80 (ADR 0087 §4);
+# it runs as the user whose ~/.config/samu/config.toml it reads.
+# Installed by `make install-front`, which fills in @USER@ and @BINDIR@.
+# After a new samu-server: sudo systemctl restart samu-front
+[Unit]
+Description=samudo front for the profiles of @USER@
+After=network.target
+
+[Service]
+User=@USER@
+ExecStart=@BINDIR@/samu-server front
+Restart=on-failure
+RestartSec=5
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

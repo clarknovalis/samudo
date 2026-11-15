@@ -1,0 +1,37 @@
+{
+  "kind": "scope",
+  "object": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02",
+    "created": "2026-11-08T08:00:00Z",
+    "modified": "2026-11-08T09:00:00Z",
+    "title": "Privat ohne IT",
+    "mode": "except",
+    "members": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01"
+    ],
+    "position": 1
+  },
+  "sync": {
+    "seq": 7,
+    "stamps": {
+      "@create": {
+        "wall": 1762500000000,
+        "counter": 0,
+        "device": "laptop",
+        "seq": 7
+      }
+    },
+    "members": [
+      {
+        "member": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d11",
+        "present": true,
+        "stamp": {
+          "wall": 1762500000000,
+          "counter": 0,
+          "device": "laptop",
+          "seq": 7
+        }
+      }
+    ]
+  }
+}

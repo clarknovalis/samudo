@@ -1,0 +1,79 @@
+{
+  "kind": "task",
+  "object": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Milch",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "sync": {
+    "seq": 42,
+    "author": {
+      "device": "pixel",
+      "kind": "human"
+    },
+    "stamps": {
+      "@create": {
+        "wall": 1762502400000,
+        "counter": 0,
+        "device": "pixel",
+        "seq": 12
+      },
+      "title": {
+        "wall": 1762506000000,
+        "counter": 1,
+        "device": "laptop",
+        "seq": 42
+      }
+    },
+    "tags": [
+      {
+        "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d11",
+        "position": 0,
+        "present": true,
+        "stamp": {
+          "wall": 1762502400000,
+          "counter": 0,
+          "device": "pixel",
+          "seq": 12
+        }
+      },
+      {
+        "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12",
+        "position": 1,
+        "present": false,
+        "stamp": {
+          "wall": 1762504000000,
+          "counter": 0,
+          "device": "claude",
+          "seq": 30
+        }
+      }
+    ],
+    "properties": [
+      {
+        "key": "jira",
+        "value": "SAMU-12",
+        "stamp": {
+          "wall": 1762502400000,
+          "counter": 0,
+          "device": "pixel",
+          "seq": 12
+        }
+      },
+      {
+        "key": "old",
+        "stamp": {
+          "wall": 1762505000000,
+          "counter": 2,
+          "device": "laptop",
+          "seq": 35
+        }
+      }
+    ]
+  }
+}

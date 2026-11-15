@@ -1,0 +1,27 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Dachrinne",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "flagged": false,
+    "sequential": true,
+    "complete_with_last_child": true,
+    "position": 1
+  },
+  "available": false,
+  "reasons": [
+    {"reason": "has_open_children"}
+  ],
+  "due": "none",
+  "today": false,
+  "workflow": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d10",
+  "next_state": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d11",
+  "group": {
+    "open": 3,
+    "done": 1,
+    "available": 1,
+    "next": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c04"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "available": false,
+  "reasons": [
+    {
+      "reason": "tag_not_active",
+      "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12"
+    }
+  ],
+  "due": "none",
+  "today": false,
+  "workflow": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d10",
+  "state": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12",
+  "next_state": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d13"
+}

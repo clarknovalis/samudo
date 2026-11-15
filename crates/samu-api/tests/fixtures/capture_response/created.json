@@ -1,0 +1,49 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c07",
+    "created": "2026-11-08T09:00:00Z",
+    "modified": "2026-11-08T09:00:00Z",
+    "title": "Fliesenleger anrufen",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "due": {
+      "date": "2026-11-13"
+    },
+    "flagged": false,
+    "estimate": "PT15M",
+    "sequential": false,
+    "complete_with_last_child": false,
+    "tags": [
+      {
+        "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01",
+        "position": 0
+      }
+    ],
+    "position": 3
+  },
+  "created": true,
+  "new_tags": [
+    "telefon"
+  ],
+  "marks": [
+    {
+      "start": 21,
+      "end": 25,
+      "meaning": "project"
+    },
+    {
+      "start": 26,
+      "end": 34,
+      "meaning": "tag"
+    },
+    {
+      "start": 35,
+      "end": 39,
+      "meaning": "due"
+    },
+    {
+      "start": 40,
+      "end": 44,
+      "meaning": "estimate"
+    }
+  ]
+}

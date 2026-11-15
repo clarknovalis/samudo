@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_label">samudo · Today</string>
+    <string name="widget_description">Overdue, today and flagged; check off and capture</string>
+    <string name="habits_widget_label">samudo · Habits</string>
+    <string name="habits_widget_description">All habits with their streak; ✓ or +1 for today</string>
+</resources>

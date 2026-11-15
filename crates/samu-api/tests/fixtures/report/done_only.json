@@ -1,0 +1,17 @@
+{
+  "from": "2026-11-12",
+  "to": "2026-11-12",
+  "by": "task",
+  "done": {
+    "rows": [
+      {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03",
+        "kind": "task",
+        "title": "Altpapier",
+        "at": "2026-11-12T07:00:00Z",
+        "seconds": 0,
+        "dropped": true
+      }
+    ]
+  }
+}

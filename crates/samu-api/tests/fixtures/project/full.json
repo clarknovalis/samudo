@@ -1,0 +1,24 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+  "created": "2026-11-07T08:00:00Z",
+  "modified": "2026-11-07T09:30:00Z",
+  "title": "Dachrinne erneuern",
+  "note": "Angebote von *zwei* Firmen.",
+  "folder": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a01",
+  "kind": "sequential",
+  "status": "active",
+  "defer": {"date": "2026-11-10"},
+  "due": {"at": "2026-12-01T17:00:00+01:00[Europe/Berlin]"},
+  "planned": {"date": "2026-11-20"},
+  "due_warning": "P3D",
+  "repeat": {"rule": "FREQ=YEARLY", "mode": "fixed", "catch_up": true},
+  "review_interval": "P1W",
+  "next_review": "2026-11-14",
+  "last_reviewed": "2026-11-07T09:00:00Z",
+  "flagged": true,
+  "estimate": "PT4H",
+  "tags": [
+    {"tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01", "position": 0}
+  ],
+  "position": 1
+}

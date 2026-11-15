@@ -1,0 +1,37 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c20",
+    "created": "2026-11-11T09:00:00Z",
+    "modified": "2026-11-11T09:00:00Z",
+    "title": "Rauchfrei",
+    "planned": {
+      "at": "2026-11-11T21:00:00+01:00[Europe/Berlin]"
+    },
+    "repeat": {
+      "rule": "FREQ=DAILY",
+      "mode": "fixed",
+      "catch_up": true
+    },
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "created": true,
+  "marks": [
+    {
+      "start": 10,
+      "end": 16,
+      "meaning": "template"
+    }
+  ],
+  "reminders": [
+    {
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e90",
+      "created": "2026-11-11T09:00:00Z",
+      "modified": "2026-11-11T09:00:00Z",
+      "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c20",
+      "anchor": "planned"
+    }
+  ]
+}

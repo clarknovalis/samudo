@@ -1,0 +1,24 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Angebot Dachdecker",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "tags": [
+      {"tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12", "position": 0}
+    ],
+    "position": 0
+  },
+  "available": false,
+  "reasons": [
+    {"reason": "tag_not_active", "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12"}
+  ],
+  "due": "none",
+  "today": false,
+  "workflow": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d10",
+  "state": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12",
+  "next_state": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d13"
+}

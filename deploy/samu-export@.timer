@@ -1,0 +1,13 @@
+# Every 15 minutes (ADR 0086 §10, as ADR 0074 §9); only for local
+# profiles, online ones are kept on their server:
+#   systemctl --user enable --now samu-export@<profile>.timer
+[Unit]
+Description=samudo export of profile %i, every 15 minutes
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

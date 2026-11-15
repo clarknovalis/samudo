@@ -1,0 +1,41 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c08",
+    "created": "2026-11-08T09:00:00Z",
+    "modified": "2026-11-08T09:00:00Z",
+    "title": "Anruf #gibtsnicht @te d:irgendwann",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "created": false,
+  "warnings": [
+    {
+      "warning": "unknown_date",
+      "meaning": "due",
+      "text": "d:irgendwann"
+    },
+    {
+      "warning": "unknown_estimate",
+      "text": "~bald"
+    },
+    {
+      "warning": "unknown_repeat",
+      "text": "every:oft"
+    },
+    {
+      "warning": "twice",
+      "meaning": "project",
+      "text": "#zwei"
+    },
+    {
+      "warning": "unknown_project",
+      "name": "gibtsnicht"
+    },
+    {
+      "warning": "unknown_tag",
+      "name": "te"
+    }
+  ]
+}

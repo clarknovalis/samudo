@@ -1,0 +1,5 @@
+{
+  "//": "Marks the web UI's .js files as ES modules for Node.js, which runs web/tests/ (make web-check). No dependencies, no build step.",
+  "private": true,
+  "type": "module"
+}

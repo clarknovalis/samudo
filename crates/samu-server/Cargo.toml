@@ -1,0 +1,48 @@
+[package]
+name = "samu-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The samu server: API, events, hooks, reminders."
+publish = false
+
+[[bin]]
+name = "samu-server"
+path = "src/main.rs"
+
+[dependencies]
+samu-store = { workspace = true }
+# The replica on a computer (ADR 0066): mirror, outbox and sync, and the
+# client towards the server.
+samu-replica = { workspace = true }
+samu-client = { workspace = true }
+anyhow = { workspace = true }
+base64ct = { workspace = true }
+# Fetching calendars (ADR 0047 §7).
+reqwest = { workspace = true }
+quick-xml = { workspace = true }
+# multipart: the form the Pebble app delivers (ADR 0010).
+axum = { workspace = true, features = ["multipart"] }
+tower-http = { workspace = true }
+clap = { workspace = true }
+futures-util = { workspace = true }
+jiff = { workspace = true }
+rpassword = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+# The hash of a demo attachment, as a client computes it (ADR 0099 §6).
+sha2 = { workspace = true }
+# The demo content (ADR 0099 §6), as the CLI reads its configuration.
+toml = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "io-util", "fs"] }
+
+[dev-dependencies]
+# The tests ask the account database directly: what a run reports says
+# nothing about what it wrote.
+rusqlite = { workspace = true }
+
+[lints]
+workspace = true

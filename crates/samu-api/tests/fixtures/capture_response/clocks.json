@@ -1,0 +1,43 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c07",
+    "created": "2026-11-08T09:00:00Z",
+    "modified": "2026-11-08T09:00:00Z",
+    "title": "Review Angebot",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 3,
+    "completed_at": "2026-11-11T15:00:00Z"
+  },
+  "created": true,
+  "marks": [
+    {
+      "start": 15,
+      "end": 34,
+      "meaning": "clock"
+    },
+    {
+      "start": 35,
+      "end": 44,
+      "meaning": "completed"
+    }
+  ],
+  "warnings": [
+    {
+      "warning": "clock_in_future",
+      "text": "z:23-23:30"
+    }
+  ],
+  "clocks": [
+    {
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01",
+      "created": "2026-11-12T09:00:00Z",
+      "modified": "2026-11-12T09:00:00Z",
+      "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c07",
+      "start": "2026-11-11T13:00:00Z",
+      "end": "2026-11-11T15:00:00Z"
+    }
+  ]
+}

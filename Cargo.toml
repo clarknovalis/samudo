@@ -1,0 +1,141 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+# The same floor as catastr, so the two workspaces build with one toolchain.
+rust-version = "1.89"
+# One version for the application, inherited by every crate except samu-api,
+# which has a semver of its own because catastr depends on it (ADR 0003 §1).
+version = "0.1.0"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/clarknovalis/samudo"
+
+# Lint levels as in catastr: they encode the rules from AGENTS.md, so a
+# violation fails `cargo clippy -- -D warnings` instead of relying on review.
+[workspace.lints.rust]
+unsafe_code = "deny"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+# No unwrap/expect outside tests; test modules opt out locally.
+unwrap_used = "warn"
+expect_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
+[workspace.dependencies]
+# Internal crates. Dependency direction: api <- core <- store <- server;
+# api <- client <- cli, mobile; core <- mobile (ADR 0028); api, core,
+# client <- replica <- mobile, server (ADR 0066). Nothing depends on
+# samu-server.
+samu-api = { path = "crates/samu-api", version = "0.1.5" }
+samu-core = { path = "crates/samu-core" }
+samu-store = { path = "crates/samu-store" }
+samu-client = { path = "crates/samu-client" }
+samu-replica = { path = "crates/samu-replica" }
+
+# The Android app's bridge to Rust (ADR 0028), as in catastr (catastr ADR
+# 0080): generates the FFI layer and the Kotlin bindings from the exported
+# types. Mozilla's, MPL-2.0, behind Firefox for Android, actively maintained.
+# The same version as catastr, so both apps build with one toolchain.
+uniffi = "0.32"
+
+# Errors: thiserror in libraries, anyhow only in binaries.
+thiserror = "2"
+anyhow = "1"
+
+# Wire types. serde is the only serialisation layer, as in catastr.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# UUIDv7 (RFC 9562) for object identity, as in catastr: time-ordered, so
+# inserts stay local in the B-tree. Same crate and features as catastr, so
+# samu-api brings nothing new into catastr's tree.
+uuid = { version = "1", features = ["v7", "serde"] }
+# jiff keeps a local date and an instant with a zone apart, which a due date
+# needs (ADR 0007), and serialises a zoned time in RFC 9557 form. catastr
+# uses it for the same reason.
+jiff = { version = "0.2", features = ["serde"] }
+# Repetition (ADR 0033): RFC 5545 RRULE with BYDAY ordinals, BYSETPOS, UNTIL,
+# COUNT and zones, so samu invents none of it (ADR 0007 §3). MIT/Apache-2.0,
+# maintained. It computes in chrono and chrono-tz (a second zone database
+# beside jiff's); samu-core hands it dates as text and reads them back into
+# jiff, and nothing else uses chrono.
+rrule = "0.14"
+# Reading calendars (ADR 0047): only its parser, which unfolds lines, reads
+# parameters in quotes and unescapes text, so samu writes no iCalendar
+# syntax of its own. MIT/Apache-2.0, maintained. Tried against `ical`,
+# whose license on crates.io is unknown and which has not changed in years.
+icalendar = { version = "0.17", default-features = false, features = ["parser"] }
+# Notes and comments rendered (ADR 0058), with the parsers copied from
+# catastr-core and the same crates and versions as there: pulldown-cmark is
+# rustdoc's Markdown parser, MIT, actively maintained, no C, only the parser
+# without default features; regex (MIT/Apache-2.0, rust-lang) for the Org
+# subset's inline rules.
+pulldown-cmark = { version = "0.13", default-features = false }
+regex = "1"
+
+# Storage, as in catastr (catastr ADR 0012): SQLite through rusqlite, the
+# bundled build chosen per crate. MIT, the standard SQLite binding.
+rusqlite = { version = "0.40", default-features = false }
+
+# Sign-in, as in catastr (catastr ADR 0022): Argon2id from RustCrypto,
+# MIT/Apache-2.0, pure Rust, parameters and salt inside the hash string.
+argon2 = "0.5"
+# Random bytes for session tokens and salts, from the operating system.
+rand = "0.9"
+# SHA-256 of a session token: only the hash is stored, so a copy of the
+# database hands over no live session. RustCrypto, MIT/Apache-2.0.
+sha2 = "0.10.9"
+# HMAC-SHA256 of a webhook request from the Pebble app (ADR 0010, 0022).
+# RustCrypto, MIT/Apache-2.0, the same crate and version as catastr.
+hmac = "0.12.1"
+# Sealing calendar sources in the account file (ADR 0047 §3):
+# XChaCha20-Poly1305 from RustCrypto, like argon2, sha2 and hmac here.
+# Apache-2.0 OR MIT. 0.10, the line of the digest 0.10 crates above.
+chacha20poly1305 = { version = "0.10", default-features = false, features = ["alloc"] }
+
+# Server, as in catastr.
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+axum = "0.8"
+# gzip for JSON and the web's files (ADR 0065 §6). axum's own companion
+# crate from the tokio project, MIT, already in the tree through reqwest;
+# only the gzip feature.
+tower-http = { version = "0.6", default-features = false, features = ["compression-gzip"] }
+# Fetching calendars (ADR 0047 §7): redirects, gzip, Basic auth, a limit on
+# time, and later the PROPFIND and REPORT of CalDAV. The hand-written
+# client in samu-client covers samu's own API, not other servers.
+# MIT/Apache-2.0. rustls with ring and the system's certificates, as
+# samu-client; no OpenSSL.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "gzip"] }
+# The key of SAMU_SECRET_KEY, in constant time (RustCrypto, already here
+# through argon2). MIT/Apache-2.0.
+base64ct = { version = "1.8", features = ["alloc"] }
+# The multistatus answers of CalDAV (ADR 0047 §7): a pull reader, no serde
+# mapping. MIT, maintained.
+quick-xml = "0.37"
+# A `Stream` for axum's SSE on `GET /events`; already in the tree via axum.
+futures-util = { version = "0.3", default-features = false }
+
+# Command line: configuration as TOML, a password without echo, and TLS to
+# a samu server — the same crates and features as catastr, so ring
+# rather than aws-lc-rs (no CMake), and the system's trust store.
+toml = "0.9"
+rpassword = "7"
+# Printing a pairing code as a QR code in the terminal (ADR 0031 §6), as
+# catastr: pure Rust, no image features; MIT or Apache-2.0.
+qrcode = { version = "0.14", default-features = false }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-native-certs = "0.8"
+
+# Command lines of both binaries. "env" so the server can be configured the
+# way a container is. Same crate and features as catastr.
+clap = { version = "4", features = ["derive", "env"] }
+# Shell completion of the command line, computed by `samu` itself
+# (COMPLETE=zsh), so tags and projects come live from the server. Same
+# maintainers as clap, MIT/Apache. The dynamic engine is behind an
+# "unstable" feature: pinned exactly, its use kept in samu-cli's
+# complete.rs.
+clap_complete = { version = "=4.6.9", features = ["unstable-dynamic"] }

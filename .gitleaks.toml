@@ -1,0 +1,10 @@
+# Secret scan of the tree (ADR 0108 §7): `make secret-scan`.
+# The default rules, plus one exception: the samu-api fixtures are
+# synthetic wire examples whose fields are named secret, password and
+# token, and the generic rule takes their made-up values for keys.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "synthetic samu-api fixtures"
+paths = ['''(^|/)crates/samu-api/tests/fixtures/.*\.json$''']

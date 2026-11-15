@@ -1,0 +1,1 @@
+{"id": "a81d0c5f22e4", "device": "claude", "kind": "agent", "created": "2026-11-13T09:00:00Z", "expires": "2026-12-13T09:00:00Z", "grant": {"objects": ["01a1bb73-e364-7cd8-b9e3-000000000001"], "access": "rw"}, "current": false}

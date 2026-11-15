@@ -1,0 +1,920 @@
+{
+ "about": "Shared cases for the search offers (ADR 0103 §2): samu_core::query::offers and offers() in web/lib/query.js must give these. Synthetic data. `appointments` true is the web's search; false is a scope's filter and the phone (the web's inScope). `lang` \"en\" shows the words in English, the chips stay German (ADR 0105 §3).",
+ "folders": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Arbeit",
+   "status": "active",
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e02",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Kunden",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01",
+   "status": "active",
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e03",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Altes",
+   "status": "dropped",
+   "position": 0
+  }
+ ],
+ "projects": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0a",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Steuer",
+   "folder": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01",
+   "kind": "parallel",
+   "status": "active",
+   "schedule": {},
+   "properties": {
+    "jira": "ST-1"
+   },
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0b",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Stall bauen",
+   "kind": "parallel",
+   "status": "active",
+   "schedule": {},
+   "properties": {},
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0c",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Strand",
+   "kind": "parallel",
+   "status": "dropped",
+   "schedule": {},
+   "properties": {},
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0d",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Garten",
+   "kind": "parallel",
+   "status": "on_hold",
+   "schedule": {},
+   "properties": {},
+   "position": 0
+  }
+ ],
+ "tags": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e14",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Ort",
+   "status": "active",
+   "exclusive": false,
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e15",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Büro",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e14",
+   "status": "active",
+   "exclusive": false,
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e16",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Stadt",
+   "status": "active",
+   "exclusive": false,
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e17",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Ablauf",
+   "status": "active",
+   "exclusive": true,
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e18",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "In Arbeit",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e17",
+   "status": "active",
+   "exclusive": false,
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e19",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Gebaut",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e17",
+   "status": "active",
+   "exclusive": false,
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e1a",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Staub",
+   "status": "dropped",
+   "exclusive": false,
+   "position": 0
+  }
+ ],
+ "tasks": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e1e",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "eins",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0a",
+   "flagged": false,
+   "sequential": false,
+   "complete_with_last_child": false,
+   "properties": {
+    "jira": "ST-2",
+    "org_id": "x"
+   },
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e1f",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "zwei",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0a",
+   "flagged": false,
+   "sequential": false,
+   "complete_with_last_child": false,
+   "properties": {},
+   "position": 0
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e20",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "drei",
+   "flagged": false,
+   "sequential": false,
+   "complete_with_last_child": false,
+   "properties": {
+    "kunde": "Meier"
+   },
+   "position": 0
+  }
+ ],
+ "cases": [
+  {
+   "word": "",
+   "offers": [
+    {
+     "label": "#Projekt",
+     "insert": "#"
+    },
+    {
+     "label": "@Tag",
+     "insert": "@"
+    },
+    {
+     "label": "ordner:Ordner",
+     "insert": "ordner:"
+    },
+    {
+     "label": "fällig:woche",
+     "insert": "fällig:"
+    },
+    {
+     "label": "geplant:heute",
+     "insert": "geplant:"
+    },
+    {
+     "label": "start:morgen",
+     "insert": "start:"
+    },
+    {
+     "label": "erledigt:-7t",
+     "insert": "erledigt:"
+    },
+    {
+     "label": "erstellt:-7t",
+     "insert": "erstellt:"
+    },
+    {
+     "label": "geändert:heute",
+     "insert": "geändert:"
+    },
+    {
+     "label": "ist:markiert",
+     "insert": "ist:"
+    },
+    {
+     "label": "zustand:Name",
+     "insert": "zustand:"
+    },
+    {
+     "label": "prop:schlüssel",
+     "insert": "prop:"
+    },
+    {
+     "label": "prio:a",
+     "insert": "prio:"
+    },
+    {
+     "label": "~<15m",
+     "insert": "~"
+    }
+   ]
+  },
+  {
+   "word": "-",
+   "offers": []
+  },
+  {
+   "word": "#st",
+   "offers": [
+    {
+     "label": "#Stall bauen",
+     "chip": {
+      "kind": "project",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0b"
+     }
+    },
+    {
+     "label": "#Steuer",
+     "chip": {
+      "kind": "project",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0a"
+     }
+    }
+   ]
+  },
+  {
+   "word": "#in",
+   "offers": [
+    {
+     "label": "#Inbox",
+     "chip": {
+      "kind": "project",
+      "value": "inbox"
+     }
+    }
+   ]
+  },
+  {
+   "word": "-@bü",
+   "offers": [
+    {
+     "label": "-@Ort/Büro",
+     "chip": {
+      "kind": "tag",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e15",
+      "not": true
+     }
+    }
+   ]
+  },
+  {
+   "word": "fäl",
+   "offers": [
+    {
+     "label": "fällig:woche",
+     "insert": "fällig:"
+    }
+   ]
+  },
+  {
+   "word": "faellig:h",
+   "offers": [
+    {
+     "label": "fällig:heute",
+     "chip": {
+      "kind": "due",
+      "value": "heute"
+     }
+    }
+   ]
+  },
+  {
+   "word": "geplant:ü",
+   "offers": [
+    {
+     "label": "geplant:überfällig",
+     "chip": {
+      "kind": "planned",
+      "value": "überfällig"
+     }
+    }
+   ]
+  },
+  {
+   "word": "erledigt:",
+   "offers": [
+    {
+     "label": "erledigt:heute",
+     "chip": {
+      "kind": "completed",
+      "value": "heute"
+     }
+    },
+    {
+     "label": "erledigt:gestern",
+     "chip": {
+      "kind": "completed",
+      "value": "gestern"
+     }
+    },
+    {
+     "label": "erledigt:-7t",
+     "chip": {
+      "kind": "completed",
+      "value": "-7t"
+     }
+    },
+    {
+     "label": "erledigt:-30t",
+     "chip": {
+      "kind": "completed",
+      "value": "-30t"
+     }
+    },
+    {
+     "label": "erledigt:mit",
+     "chip": {
+      "kind": "completed",
+      "value": "mit"
+     }
+    },
+    {
+     "label": "erledigt:ohne",
+     "chip": {
+      "kind": "completed",
+      "value": "ohne"
+     }
+    }
+   ]
+  },
+  {
+   "word": "ist:",
+   "offers": [
+    {
+     "label": "ist:markiert",
+     "chip": {
+      "kind": "is",
+      "value": "markiert"
+     }
+    },
+    {
+     "label": "ist:verfügbar",
+     "chip": {
+      "kind": "is",
+      "value": "verfügbar"
+     }
+    },
+    {
+     "label": "ist:wartet",
+     "chip": {
+      "kind": "is",
+      "value": "wartet"
+     }
+    },
+    {
+     "label": "ist:offen",
+     "chip": {
+      "kind": "is",
+      "value": "offen"
+     }
+    },
+    {
+     "label": "ist:erledigt",
+     "chip": {
+      "kind": "is",
+      "value": "erledigt"
+     }
+    },
+    {
+     "label": "ist:verworfen",
+     "chip": {
+      "kind": "is",
+      "value": "verworfen"
+     }
+    },
+    {
+     "label": "ist:gruppe",
+     "chip": {
+      "kind": "is",
+      "value": "gruppe"
+     }
+    },
+    {
+     "label": "ist:notiz",
+     "chip": {
+      "kind": "is",
+      "value": "notiz"
+     }
+    }
+   ]
+  },
+  {
+   "word": "ist:t",
+   "offers": []
+  },
+  {
+   "word": "ist:t",
+   "appointments": true,
+   "offers": [
+    {
+     "label": "ist:termin",
+     "chip": {
+      "kind": "is",
+      "value": "termin"
+     }
+    }
+   ]
+  },
+  {
+   "word": "zustand:",
+   "offers": [
+    {
+     "label": "zustand:Gebaut",
+     "chip": {
+      "kind": "state",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e19"
+     }
+    },
+    {
+     "label": "zustand:In Arbeit",
+     "chip": {
+      "kind": "state",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e18"
+     }
+    }
+   ]
+  },
+  {
+   "word": "prop:",
+   "offers": [
+    {
+     "label": "prop:jira",
+     "chip": {
+      "kind": "property",
+      "value": "jira"
+     }
+    },
+    {
+     "label": "prop:kunde",
+     "chip": {
+      "kind": "property",
+      "value": "kunde"
+     }
+    }
+   ]
+  },
+  {
+   "word": "prop:JIRA=",
+   "offers": [
+    {
+     "label": "prop:jira=ST-1",
+     "chip": {
+      "kind": "property",
+      "value": "jira=ST-1"
+     }
+    },
+    {
+     "label": "prop:jira=ST-2",
+     "chip": {
+      "kind": "property",
+      "value": "jira=ST-2"
+     }
+    }
+   ]
+  },
+  {
+   "word": "~<",
+   "offers": [
+    {
+     "label": "~<15m",
+     "chip": {
+      "kind": "estimate",
+      "value": "<15m"
+     }
+    },
+    {
+     "label": "~<30m",
+     "chip": {
+      "kind": "estimate",
+      "value": "<30m"
+     }
+    },
+    {
+     "label": "~<1h",
+     "chip": {
+      "kind": "estimate",
+      "value": "<1h"
+     }
+    }
+   ]
+  },
+  {
+   "word": "-prio:",
+   "offers": [
+    {
+     "label": "-prio:a",
+     "chip": {
+      "kind": "priority",
+      "value": "a",
+      "not": true
+     }
+    },
+    {
+     "label": "-prio:b",
+     "chip": {
+      "kind": "priority",
+      "value": "b",
+      "not": true
+     }
+    },
+    {
+     "label": "-prio:c",
+     "chip": {
+      "kind": "priority",
+      "value": "c",
+      "not": true
+     }
+    },
+    {
+     "label": "-prio:mit",
+     "chip": {
+      "kind": "priority",
+      "value": "mit",
+      "not": true
+     }
+    },
+    {
+     "label": "-prio:ohne",
+     "chip": {
+      "kind": "priority",
+      "value": "ohne",
+      "not": true
+     }
+    }
+   ]
+  },
+  {
+   "word": "st",
+   "offers": [
+    {
+     "label": "start:morgen",
+     "insert": "start:"
+    },
+    {
+     "label": "#Stall bauen",
+     "chip": {
+      "kind": "project",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0b"
+     }
+    },
+    {
+     "label": "#Steuer",
+     "chip": {
+      "kind": "project",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0a"
+     }
+    },
+    {
+     "label": "@Stadt",
+     "chip": {
+      "kind": "tag",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e16"
+     }
+    }
+   ]
+  },
+  {
+   "word": "ordner:k",
+   "offers": [
+    {
+     "label": "ordner:Arbeit/Kunden",
+     "chip": {
+      "kind": "folder",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e02"
+     }
+    }
+   ]
+  },
+  {
+   "word": "ar",
+   "offers": [
+    {
+     "label": "#Garten",
+     "chip": {
+      "kind": "project",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0d"
+     }
+    },
+    {
+     "label": "@Ablauf/In Arbeit",
+     "chip": {
+      "kind": "tag",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e18"
+     }
+    },
+    {
+     "label": "ordner:Arbeit",
+     "chip": {
+      "kind": "folder",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01"
+     }
+    },
+    {
+     "label": "ordner:Arbeit/Kunden",
+     "chip": {
+      "kind": "folder",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e02"
+     }
+    }
+   ]
+  },
+  {
+   "word": "x",
+   "offers": []
+  },
+  {
+   "word": "",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "#Project",
+     "insert": "#"
+    },
+    {
+     "label": "@Tag",
+     "insert": "@"
+    },
+    {
+     "label": "folder:Folder",
+     "insert": "folder:"
+    },
+    {
+     "label": "due:week",
+     "insert": "due:"
+    },
+    {
+     "label": "planned:today",
+     "insert": "planned:"
+    },
+    {
+     "label": "defer:tomorrow",
+     "insert": "defer:"
+    },
+    {
+     "label": "done:-7d",
+     "insert": "done:"
+    },
+    {
+     "label": "created:-7d",
+     "insert": "created:"
+    },
+    {
+     "label": "modified:today",
+     "insert": "modified:"
+    },
+    {
+     "label": "is:flagged",
+     "insert": "is:"
+    },
+    {
+     "label": "state:Name",
+     "insert": "state:"
+    },
+    {
+     "label": "prop:key",
+     "insert": "prop:"
+    },
+    {
+     "label": "prio:a",
+     "insert": "prio:"
+    },
+    {
+     "label": "~<15m",
+     "insert": "~"
+    }
+   ]
+  },
+  {
+   "word": "due:t",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "due:today",
+     "chip": {
+      "kind": "due",
+      "value": "heute"
+     }
+    },
+    {
+     "label": "due:tomorrow",
+     "chip": {
+      "kind": "due",
+      "value": "morgen"
+     }
+    }
+   ]
+  },
+  {
+   "word": "fällig:to",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "due:today",
+     "chip": {
+      "kind": "due",
+      "value": "heute"
+     }
+    },
+    {
+     "label": "due:tomorrow",
+     "chip": {
+      "kind": "due",
+      "value": "morgen"
+     }
+    }
+   ]
+  },
+  {
+   "word": "done:",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "done:today",
+     "chip": {
+      "kind": "completed",
+      "value": "heute"
+     }
+    },
+    {
+     "label": "done:yesterday",
+     "chip": {
+      "kind": "completed",
+      "value": "gestern"
+     }
+    },
+    {
+     "label": "done:-7d",
+     "chip": {
+      "kind": "completed",
+      "value": "-7t"
+     }
+    },
+    {
+     "label": "done:-30d",
+     "chip": {
+      "kind": "completed",
+      "value": "-30t"
+     }
+    },
+    {
+     "label": "done:any",
+     "chip": {
+      "kind": "completed",
+      "value": "mit"
+     }
+    },
+    {
+     "label": "done:none",
+     "chip": {
+      "kind": "completed",
+      "value": "ohne"
+     }
+    }
+   ]
+  },
+  {
+   "word": "-is:w",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "-is:waiting",
+     "chip": {
+      "kind": "is",
+      "value": "wartet",
+      "not": true
+     }
+    }
+   ]
+  },
+  {
+   "word": "is:a",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "is:available",
+     "chip": {
+      "kind": "is",
+      "value": "verfügbar"
+     }
+    }
+   ]
+  },
+  {
+   "word": "is:a",
+   "lang": "en",
+   "appointments": true,
+   "offers": [
+    {
+     "label": "is:available",
+     "chip": {
+      "kind": "is",
+      "value": "verfügbar"
+     }
+    },
+    {
+     "label": "is:appointment",
+     "chip": {
+      "kind": "is",
+      "value": "termin"
+     }
+    }
+   ]
+  },
+  {
+   "word": "~n",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "~none",
+     "chip": {
+      "kind": "estimate",
+      "value": "ohne"
+     }
+    }
+   ]
+  },
+  {
+   "word": "fo",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "folder:Folder",
+     "insert": "folder:"
+    }
+   ]
+  },
+  {
+   "word": "ar",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "#Garten",
+     "chip": {
+      "kind": "project",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e0d"
+     }
+    },
+    {
+     "label": "@Ablauf/In Arbeit",
+     "chip": {
+      "kind": "tag",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e18"
+     }
+    },
+    {
+     "label": "folder:Arbeit",
+     "chip": {
+      "kind": "folder",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01"
+     }
+    },
+    {
+     "label": "folder:Arbeit/Kunden",
+     "chip": {
+      "kind": "folder",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e02"
+     }
+    }
+   ]
+  }
+ ]
+}

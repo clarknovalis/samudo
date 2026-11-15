@@ -1,0 +1,12 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03",
+  "created": "2026-11-01T08:00:00Z",
+  "modified": "2026-11-06T12:00:00Z",
+  "title": "Leiter ausleihen",
+  "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+  "flagged": false,
+  "completed_at": "2026-11-06T12:00:00Z",
+  "sequential": false,
+  "complete_with_last_child": false,
+  "position": 1
+}

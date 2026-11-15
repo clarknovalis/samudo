@@ -1,0 +1,92 @@
+{
+  "format": "org",
+  "blocks": [
+    { "type": "keyword", "at": { "start": 0, "end": 12 }, "key": "title", "value": "Plan" },
+    {
+      "type": "heading",
+      "at": { "start": 13, "end": 35 },
+      "level": 2,
+      "keyword": "DONE",
+      "done": true,
+      "priority": "A",
+      "tags": ["work"],
+      "content": [{ "type": "text", "at": { "start": 23, "end": 28 }, "text": "Call" }]
+    },
+    {
+      "type": "properties",
+      "at": { "start": 36, "end": 66 },
+      "entries": [{ "key": "ID", "value": "abc" }]
+    },
+    { "type": "drawer", "at": { "start": 67, "end": 90 }, "name": "LOGBOOK", "text": "CLOCK: x" },
+    {
+      "type": "list",
+      "at": { "start": 91, "end": 110 },
+      "ordered": true,
+      "start": 3,
+      "items": [
+        {
+          "at": { "start": 91, "end": 110 },
+          "checked": false,
+          "partial": true,
+          "box": { "start": 94, "end": 97 },
+          "term": [{ "type": "text", "at": { "start": 98, "end": 99 }, "text": "t" }],
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "at": { "start": 111, "end": 160 },
+      "content": [
+        {
+          "type": "emphasis",
+          "at": { "start": 111, "end": 114 },
+          "content": [{ "type": "text", "at": { "start": 112, "end": 113 }, "text": "a" }]
+        },
+        {
+          "type": "underline",
+          "at": { "start": 115, "end": 118 },
+          "content": [{ "type": "text", "at": { "start": 116, "end": 117 }, "text": "b" }]
+        },
+        {
+          "type": "strike",
+          "at": { "start": 119, "end": 122 },
+          "content": [{ "type": "text", "at": { "start": 120, "end": 121 }, "text": "c" }]
+        },
+        { "type": "code", "at": { "start": 123, "end": 126 }, "text": "d" },
+        { "type": "timestamp", "at": { "start": 127, "end": 143 }, "text": "<2026-11-10 Di>" },
+        { "type": "footnote_ref", "at": { "start": 144, "end": 150 }, "label": "1" },
+        {
+          "type": "link",
+          "at": { "start": 151, "end": 160 },
+          "target": "id:abc",
+          "class": "task",
+          "content": []
+        }
+      ]
+    },
+    {
+      "type": "quote",
+      "at": { "start": 161, "end": 190 },
+      "blocks": [
+        {
+          "type": "verse",
+          "at": { "start": 170, "end": 175 },
+          "content": [{ "type": "text", "at": { "start": 170, "end": 175 }, "text": "Roses" }]
+        }
+      ]
+    },
+    {
+      "type": "center",
+      "at": { "start": 191, "end": 220 },
+      "blocks": []
+    },
+    { "type": "comment", "at": { "start": 221, "end": 228 }, "text": "later" },
+    {
+      "type": "footnote",
+      "at": { "start": 229, "end": 240 },
+      "label": "1",
+      "blocks": []
+    }
+  ]
+}

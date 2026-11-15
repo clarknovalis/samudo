@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Signing in and syncing with the server (ADR 0028). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Reminders (ADR 0030): notify, wake on time, set the alarm again
+         after a restart. Exact alarms are granted at install from Android
+         13 on (USE_EXACT_ALARM); before, SCHEDULE_EXACT_ALARM. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Finds an appointment by its UID in the phone's calendars, to open it
+         in the calendar app (ADR 0049 §3); asked for on first use. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!-- Recording a comment (ADR 0039 §6), asked for on the first recording.
+         Photos go through the camera app (TakePicture), which needs no
+         permission here. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- The launcher hears how the inbox stands (Launcher.kt); without
+         this the system hides its package and drops the broadcast. -->
+    <queries>
+        <package android:name="org.example.launcher" />
+    </queries>
+
+    <!-- No backup: it would carry the session token off the phone, and the
+         mirror comes back from the server anyway. -->
+    <application
+        android:allowBackup="false"
+        android:label="samudo"
+        android:localeConfig="@xml/locales_config"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Samu">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- samu:<uuid> from any app opens the task (ADR 0075 §4). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="samu" />
+            </intent-filter>
+            <!-- "An samu teilen" from any app (ADR 0013). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+        <!-- The widget "Heute" (ADR 0028 §9). -->
+        <receiver
+            android:name=".TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget" />
+        </receiver>
+        <!-- The widget "Habits" (ADR 0092 §4). -->
+        <receiver
+            android:name=".HabitsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/habits_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habits_widget" />
+        </receiver>
+        <!-- Midnight in the account's zone: the habits begin a new day. -->
+        <receiver android:name=".MidnightReceiver" android:exported="false" />
+        <!-- The ring's net: Tasker hands a recording over (ADR 0032). Open
+             without a permission, because Tasker cannot declare one; it
+             can only file into the inbox. -->
+        <receiver android:name=".RingReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="de.samudo.app.action.RING" />
+            </intent-filter>
+        </receiver>
+        <!-- Tasker chooses the scope (ADR 0043 §8). Open for the same
+             reason; another app can only switch what this phone shows. -->
+        <receiver android:name=".ScopeReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="de.samudo.app.action.SCOPE" />
+            </intent-filter>
+        </receiver>
+        <!-- Files of comments and attachments (ADR 0039 §6): the camera app
+             writes a photo into the cache, another app opens a stored file. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="de.samudo.app.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/files" />
+        </provider>
+        <!-- Reminders (ADR 0030). -->
+        <receiver android:name=".AlarmReceiver" android:exported="false" />
+        <receiver android:name=".NoticeAction" android:exported="false" />
+        <receiver android:name=".ClockAction" android:exported="false" />
+        <receiver android:name=".BootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

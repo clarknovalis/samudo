@@ -1,0 +1,31 @@
+[package]
+name = "samu-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Data model, availability, repetition and HLC for samu. No I/O."
+publish = false
+
+[dependencies]
+samu-api = { workspace = true }
+# Notes and comments as a document tree (ADR 0058).
+pulldown-cmark = { workspace = true }
+regex = { workspace = true }
+# `Timestamp` for "now" in the clock arithmetic (ADR 0016 §1).
+jiff = { workspace = true }
+# Checking a hook's signature (ADR 0022).
+hmac = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+# The next date of a repetition (ADR 0033).
+rrule = { workspace = true }
+# Reading the calendars of ADR 0047.
+icalendar = { workspace = true }
+# A change carries its value as JSON (ADR 0016); laying it over an object
+# works on the object's serde form (ADR 0028 §4).
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

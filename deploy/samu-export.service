@@ -1,0 +1,13 @@
+# The git mirror of samu's export (ADR 0074 §9), started by
+# samu-export.timer. Install on the server (see deploy/README.md, "Export"):
+#   cp deploy/samu-export.{service,timer} /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now samu-export.timer
+[Unit]
+Description=samudo export into git
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/samu/export-git.sh
+Nice=10

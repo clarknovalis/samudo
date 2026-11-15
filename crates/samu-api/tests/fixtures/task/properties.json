@@ -1,0 +1,15 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c07",
+  "created": "2026-11-07T08:00:00Z",
+  "modified": "2026-11-07T08:00:00Z",
+  "title": "Rauchmelder Batterie tauschen",
+  "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b02",
+  "flagged": false,
+  "sequential": false,
+  "complete_with_last_child": false,
+  "properties": {
+    "org_id": "3f0c2a1e-9d4b-4c7a-8e21-5b6d7c8e9f01",
+    "source": "org-import"
+  },
+  "position": 3
+}

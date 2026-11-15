@@ -1,0 +1,5 @@
+{
+  "url": "https://dav.example.org/remote.php/dav/calendars/alice/personal/",
+  "username": "alice",
+  "password": "app-password"
+}

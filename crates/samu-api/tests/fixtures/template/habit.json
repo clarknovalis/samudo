@@ -1,0 +1,18 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e80",
+  "created": "2026-11-11T08:00:00Z",
+  "modified": "2026-11-11T09:00:00Z",
+  "title": "habit",
+  "text": "#Gewohnheiten @habit p:heute 21:00 every+:1d",
+  "reminders": [
+    {
+      "anchor": "planned"
+    },
+    {
+      "anchor": "due",
+      "before": "PT1H"
+    }
+  ],
+  "position": 0,
+  "key": "h"
+}

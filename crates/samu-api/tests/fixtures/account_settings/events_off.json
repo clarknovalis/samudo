@@ -1,0 +1,13 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f51",
+  "created": "2026-11-09T08:00:00Z",
+  "modified": "2026-11-09T10:00:00Z",
+  "due_soon": "P3D",
+  "remind_time": "08:30:00",
+  "forecast_days": 14,
+  "forecast_flagged": false,
+  "forecast_tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01",
+  "forecast_defer": false,
+  "forecast_done": true,
+  "forecast_events": false
+}

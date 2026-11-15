@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_label">samudo · Heute</string>
+    <string name="widget_description">Überfälliges, Heutiges und Markiertes; abhaken und erfassen</string>
+    <string name="habits_widget_label">samudo · Habits</string>
+    <string name="habits_widget_description">Alle Habits mit Serie; ✓ oder +1 für heute</string>
+</resources>

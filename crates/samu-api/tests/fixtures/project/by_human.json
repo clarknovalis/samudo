@@ -1,0 +1,14 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b39",
+  "created": "2026-11-08T18:00:00Z",
+  "modified": "2026-11-08T18:00:00Z",
+  "created_by": {
+    "device": "laptop",
+    "kind": "human"
+  },
+  "title": "Umzug",
+  "kind": "parallel",
+  "status": "active",
+  "flagged": false,
+  "position": 0
+}

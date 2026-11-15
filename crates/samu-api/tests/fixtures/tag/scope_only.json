@@ -1,0 +1,11 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d04",
+  "created": "2026-11-11T08:00:00Z",
+  "modified": "2026-11-11T08:00:00Z",
+  "title": "habit",
+  "status": "active",
+  "exclusive": false,
+  "scope_only": true,
+  "own_scope": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "position": 6
+}

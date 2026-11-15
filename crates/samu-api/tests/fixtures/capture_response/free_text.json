@@ -1,0 +1,27 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a11",
+    "created": "2026-11-08T09:00:00Z",
+    "modified": "2026-11-12T09:00:00Z",
+    "title": "Fliesen bestellen",
+    "flagged": false,
+    "priority": "A",
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 3
+  },
+  "created": false,
+  "marks": [
+    {
+      "start": 0,
+      "end": 2,
+      "meaning": "priority"
+    }
+  ],
+  "warnings": [
+    {
+      "warning": "free_text",
+      "text": "morgen anrufen"
+    }
+  ]
+}

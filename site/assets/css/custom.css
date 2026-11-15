@@ -1,0 +1,5 @@
+/* A link into the (non-public) repository: text with a dotted underline. */
+.samu-repo-link {
+  text-decoration: underline dotted;
+  cursor: help;
+}

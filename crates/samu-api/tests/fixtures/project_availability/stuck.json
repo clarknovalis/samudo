@@ -1,0 +1,15 @@
+{
+  "project": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b03",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Garten",
+    "kind": "parallel",
+    "status": "active",
+    "flagged": false,
+    "position": 2
+  },
+  "available": true,
+  "reasons": [],
+  "stuck": true
+}

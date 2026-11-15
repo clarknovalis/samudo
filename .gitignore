@@ -1,0 +1,36 @@
+# Rust (target is a local symlink into ~/.cache/build, like catastr's)
+/target
+**/*.rs.bk
+
+# Built packages belong in the registry, not in the repository
+/dist/
+
+# Local configuration and secrets
+.claude/settings.local.json
+# a local symlink to shared agent commands
+.claude/commands
+# local symlinks into the maintainer's private repository
+/CLAUDE.md
+/local.mk
+.env
+.env.*
+!.env.example
+/deploy/.env
+*.key
+*.pem
+*.sock
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+
+# Editor and OS
+.DS_Store
+*~
+\#*\#
+.\#*
+
+# GitHub workflows and templates belong to the repository, whatever a
+# global excludes file says.
+!.github/

@@ -1,0 +1,38 @@
+[package]
+name = "samu-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The samu command line."
+publish = false
+
+[[bin]]
+name = "samu"
+path = "src/main.rs"
+
+# The command line speaks to the server over the API only, so it depends on
+# the wire types and the client and nothing else from this workspace
+# (docs/architecture.md, ADR 0028).
+[dependencies]
+samu-api = { workspace = true }
+samu-client = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+clap_complete = { workspace = true }
+# "now" for completed_at and created; the same crate samu-api uses.
+jiff = { workspace = true }
+rpassword = { workspace = true }
+# The pairing code as a QR code in the terminal (ADR 0031 §6).
+qrcode = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+# Signing `samu hook send` as the Pebble app does (ADR 0010); the same
+# RustCrypto crates the server checks with.
+hmac = { workspace = true }
+sha2 = { workspace = true }
+
+[lints]
+workspace = true

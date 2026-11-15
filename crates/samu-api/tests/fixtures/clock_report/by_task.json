@@ -1,0 +1,19 @@
+{
+  "from": "2026-11-09",
+  "to": "2026-11-15",
+  "by": "task",
+  "seconds": 5400,
+  "rows": [
+    {
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+      "title": "Steuer abschicken",
+      "seconds": 3600,
+      "estimate": "PT45M"
+    },
+    {
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+      "title": "Haushalt",
+      "seconds": 1800
+    }
+  ]
+}

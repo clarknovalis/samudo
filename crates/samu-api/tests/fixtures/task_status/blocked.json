@@ -1,0 +1,87 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T09:30:00Z",
+    "title": "Firma anrufen",
+    "note": "Nummer steht im [[catastr:01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f00][Angebot]].",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c00",
+    "defer": {
+      "at": "2026-11-10T08:00:00+01:00[Europe/Berlin]"
+    },
+    "due": {
+      "date": "2026-11-12"
+    },
+    "planned": {
+      "at": "2026-11-11T10:00:00+01:00[Europe/Berlin]"
+    },
+    "due_warning": "P1D",
+    "planned_duration": "PT30M",
+    "repeat": {
+      "rule": "FREQ=WEEKLY;BYDAY=MO",
+      "mode": "due_after_completion",
+      "catch_up": false
+    },
+    "flagged": true,
+    "estimate": "PT15M",
+    "repeat_of": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6bff",
+    "sequential": false,
+    "complete_with_last_child": false,
+    "tags": [
+      {
+        "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01",
+        "position": 0
+      },
+      {
+        "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d02",
+        "position": 1
+      }
+    ],
+    "position": 4
+  },
+  "available": false,
+  "reasons": [
+    {
+      "reason": "deferred",
+      "until": {
+        "at": "2026-11-10T08:00:00+01:00[Europe/Berlin]"
+      }
+    },
+    {
+      "reason": "waiting_in_sequence",
+      "first": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03"
+    },
+    {
+      "reason": "tag_not_active",
+      "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d03"
+    },
+    {
+      "reason": "container_unavailable",
+      "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c00"
+    },
+    {
+      "reason": "blocked_by",
+      "task": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03"
+    },
+    {
+      "reason": "project_not_active",
+      "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01"
+    },
+    {
+      "reason": "folder_dropped",
+      "folder": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a00"
+    },
+    {
+      "reason": "has_open_children"
+    },
+    {
+      "reason": "unknown_value"
+    },
+    {
+      "reason": "cycle"
+    }
+  ],
+  "due": "soon",
+  "today": true
+}

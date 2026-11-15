@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the FileProvider hands out (ADR 0039 §6): photos and recordings
+     before they are sent, and the stored files of attachments. -->
+<paths>
+    <cache-path name="notes" path="notes/" />
+    <files-path name="blobs" path="samu/blobs/" />
+</paths>

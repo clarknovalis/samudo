@@ -1,0 +1,19 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e03",
+  "created": "2026-11-09T08:15:00Z",
+  "modified": "2026-11-09T08:15:00Z",
+  "calendar": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "uid": "weekly@example.org",
+  "recurrence_id": {
+    "at": "2026-11-17T19:30:00+01:00[Europe/Berlin]"
+  },
+  "title": "Chor (Generalprobe)",
+  "start": {
+    "at": "2026-11-18T19:00:00+01:00[Europe/Berlin]"
+  },
+  "end": {
+    "at": "2026-11-18T22:00:00+01:00[Europe/Berlin]"
+  },
+  "status": "tentative",
+  "busy": true
+}

@@ -1,0 +1,45 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e91",
+  "created": "2026-11-12T08:00:00Z",
+  "modified": "2026-11-12T09:30:00Z",
+  "title": "Wochenplanung",
+  "icon": "🗓️",
+  "text": "angebot",
+  "chips": [
+    {
+      "kind": "tag",
+      "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01"
+    },
+    {
+      "kind": "due",
+      "value": "woche"
+    },
+    {
+      "kind": "is",
+      "value": "markiert",
+      "not": true
+    }
+  ],
+  "filter": "remaining",
+  "arrange": {
+    "group": "priority",
+    "sort": "due",
+    "desc": true,
+    "then": "estimate",
+    "then_desc": true
+  },
+  "view": "board",
+  "board": {
+    "source": "tags",
+    "tags": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d03",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d12"
+    ],
+    "none": false,
+    "done": true,
+    "wip": {
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d03": 3
+    }
+  },
+  "position": 2
+}

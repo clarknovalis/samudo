@@ -1,0 +1,28 @@
+[package]
+name = "samu-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Talking to a samu server over HTTP: the command line's client, shared with the Android app (ADR 0028)."
+publish = false
+
+# Only the wire types from this workspace (docs/architecture.md, dependency direction).
+[dependencies]
+samu-api = { workspace = true }
+rustls = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+# The profiles of the configuration file, read by the command line and the
+# services alike (ADR 0086); the same crate samu-cli already uses.
+toml = { workspace = true }
+
+# A phone has no certificate file where rustls-native-certs looks; the
+# Android build reads the system's directories itself (ADR 0028 §2).
+[target.'cfg(not(target_os = "android"))'.dependencies]
+rustls-native-certs = { workspace = true }
+
+[lints]
+workspace = true

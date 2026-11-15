@@ -1,0 +1,31 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c05",
+    "created": "2026-11-09T08:00:00Z",
+    "modified": "2026-11-09T08:00:00Z",
+    "title": "Rinne abdichten",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "properties": {
+      "ticket": "T-17"
+    },
+    "position": 2
+  },
+  "available": true,
+  "reasons": [],
+  "due": "none",
+  "today": false,
+  "inherited": {
+    "epic": {
+      "value": "catastr:01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a01",
+      "from": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03"
+    },
+    "jira": {
+      "value": "HAUS-12",
+      "from": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01"
+    }
+  }
+}

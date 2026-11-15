@@ -1,0 +1,40 @@
+{{- /*
+  Makes the pages of one language from the Markdown in docs/ (English) or
+  docs/de/ (German), mounted as assets/docs/<lang>/. The first `# Heading`
+  is the title and is cut from the body. The groups follow docs/README.md.
+  This one file is mounted into the content of every language.
+*/ -}}
+{{- $lang := .Site.Language.Lang -}}
+{{- $groups := slice
+  (dict "path" "start"      "de" "Einstieg"       "en" "Start here" "pages" (slice "concepts" "quick-capture" "search"))
+  (dict "path" "clients"    "de" "Oberflächen"    "en" "Clients"    "pages" (slice "web" "android" "cli" "emacs" "desktop-widget"))
+  (dict "path" "features"   "de" "Funktionen"     "en" "Features"   "pages" (slice "habits" "ring"))
+  (dict "path" "running"    "de" "Betrieb"        "en" "Running"    "pages" (slice "self-hosting" "profiles"))
+  (dict "path" "developing" "de" "Entwicklung"    "en" "Developing" "pages" (slice "architecture" "api"))
+-}}
+{{- range $gi, $g := $groups -}}
+  {{- $.AddPage (dict
+      "kind" "section"
+      "path" $g.path
+      "title" (index $g $lang)
+      "weight" (add 10 $gi)
+      "params" (dict "sidebar" (dict "open" true))) -}}
+  {{- range $pi, $name := $g.pages -}}
+    {{- with resources.Get (printf "docs/%s/%s.md" $lang $name) -}}
+      {{- $raw := .Content -}}
+      {{- $title := $name -}}
+      {{- with findRESubmatch `(?m)^# (.+)$` $raw 1 -}}
+        {{- $title = index (index . 0) 1 -}}
+      {{- end -}}
+      {{- $body := replaceRE `^\s*# .+\n` "" $raw 1 -}}
+      {{- $.AddPage (dict
+          "path" (printf "%s/%s" $g.path $name)
+          "title" $title
+          "weight" (add 1 $pi)
+          "params" (dict "source" $name)
+          "content" (dict "mediaType" "text/markdown" "value" $body)) -}}
+    {{- else -}}
+      {{- warnf "docs/%s/%s.md is missing" $lang $name -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

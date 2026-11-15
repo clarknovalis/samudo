@@ -1,0 +1,184 @@
+# Android-App
+
+Eine native App (Kotlin und Jetpack Compose) auf demselben Rust-Kern wie
+der Server, sodass Verfügbarkeit, Schnellerfassung, Uhren und
+Gewohnheiten auf dem Handy genauso berechnet werden, auch offline. Die Oberfläche spricht Deutsch oder Englisch (siehe
+[Sprache](#sprache)). Wie man sie baut, steht in [`android/README.md`](../android/README.md).
+
+## Anmelden
+
+Entweder mit Server, Konto, Passwort und einem Gerätenamen oder per
+**Koppeln**: in der Web-Oberfläche das Kontomenü öffnen, „Handy koppeln“,
+und den QR-Code mit der App scannen (oder `samu pair phone` auf der
+Kommandozeile). Der Code gilt einmal, für zehn Minuten. Die App behält nur
+das Sitzungs-Token.
+
+## Offline zuerst
+
+Jede Änderung geht zuerst in den **Ausgang** und wird mit dem nächsten
+Sync gesendet: beim Öffnen der App, nach jeder Änderung, wenn man eine
+Liste herunterzieht, und alle 15 Minuten, solange es Netz gibt. Ein Punkt
+am Titel zeigt, dass etwas wartet; das Menü (⋮) sagt, wie viel. Dateien
+warten auf dem Handy und gehen vor den Änderungen hoch, die auf sie
+verweisen. Nur Löschen braucht eine Verbindung.
+
+## Der Kopf
+
+Eine Zeile: der Titel, der [Scope](concepts.md#scopes) als Chip (Tippen
+wählt einen anderen) und ein Menü (⋮) mit „Details“, „Sync“,
+„Einstellungen“ und, in den Projekten, „Neues Projekt“ oder Ordner.
+**Eine Liste herunterziehen** synct. Die Tag-Chips sind die erste Zeile
+der Liste und scrollen mit ihr weg; jeder filtert nach einem Tag und
+allem darunter.
+
+## Die Leiste
+
+Die Leiste unten zeigt fünf Einträge auf einmal; seitlich wischen zeigt
+weitere, ein Punkt am Rand sagt, dass es weitergeht. Ohne Einstellung hat
+sie **Inbox**, **Verfügbar**, **Forecast**, **Projekte** (ein Baum aus
+Ordnern und Projekten, die sich anlegen, verschieben und zuklappen lassen)
+und **Suche**.
+
+Einstellungen › „Leiste“ bestimmt, was darin steht, nur auf diesem
+Handy: einen Eintrag am Griff ziehen, mit seinem Schalter ausblenden, mit
+× entfernen. „Hinzufügen“ bietet die festen Ansichten (dazu **Heute**,
+**Markiert**, **Stuck**, **Review** und **Habits**), die eigenen
+Perspektiven, Projekte (Suche nach Name) und Tags. Die Inbox lässt sich
+nur verschieben. Ein gelöschtes oder verworfenes Projekt, ein gelöschter
+Tag oder eine gelöschte Perspektive verschwindet von selbst aus der
+Leiste.
+
+- Eine **Perspektive** zeigt ihre Aufgaben als Liste, mit Scope und
+  Filter wie im Web; ihre Chips stehen unter dem Titel, zum Ansehen.
+  Ändern bleibt im Web und auf der [Kommandozeile](cli.md). In der Leiste
+  trägt sie ihr Emoji, ohne eines einen Trichter.
+- Ein **Projekt** öffnet wie aus dem Baum, ein **Tag** zeigt die
+  verfügbaren Aufgaben mit ihm.
+
+## Suche
+
+Die Suche nimmt die [Suchsprache](search.md), auf Deutsch oder Englisch.
+Beim Tippen bietet die Liste unter dem Feld Arten, Projekte, Tags, Ordner,
+Zustände und Daten für das Wort am Cursor an, auch offline; Tippen nimmt
+einen Vorschlag. Ein erkanntes Wort wird ein **Chip im Feld**: Tippen
+verneint ihn, × entfernt ihn.
+
+Das leere Feld zeigt fünf schnelle Filter („Markiert“, „Heute fällig“,
+„Überfällig“, „Ohne Projekt“, „Heute erledigt“), die letzten fünf Suchen
+auf diesem Handy und die eigenen Perspektiven. Mit mindestens einem Chip
+oder Wort sichert „☆ Als Perspektive“ die Suche als Perspektive (Emoji
+und Name) und öffnet sie.
+
+## Mit Aufgaben arbeiten
+
+- **Zeilen** haben einen runden Haken; nach rechts wischen oder auf den
+  Haken tippen erledigt (oder öffnet wieder). **Nach links wischen**
+  markiert oder hebt die Markierung auf. Auf eine Zeile tippen öffnet die
+  Aufgabe.
+- **Rückgängig:** Nach Erledigen, Markieren, Entmarkieren oder Verwerfen
+  aus einer Liste sagt eine Leiste unten, was geschah („3 erledigt“ bei
+  einer Auswahl), und bietet ein paar Sekunden lang „Rückgängig“ an.
+  Solange sie steht, wartet die Änderung auf dem Handy; Rückgängig nimmt
+  sie wieder aus dem Ausgang, der Server sieht sie nie (kein Eintrag im
+  Logbuch, keine nächste Aufgabe einer Wiederholung). Hat ein Sync sie
+  schon gesendet, schreibt Rückgängig stattdessen die Gegenänderung.
+- **Langes Drücken** öffnet das Menü der Aufgabe: „Bearbeiten“,
+  „Unteraufgabe anlegen“, „Markieren“, „Zurückstellen bis …“,
+  „Verschieben …“ (in die Inbox oder ein Projekt, Kinder gehen mit) und
+  „Auswählen“. Eine Gewohnheit behält ihr eigenes Menü.
+- **Bearbeiten** zeigt den Titel in einem eigenen Feld, was gesetzt ist,
+  als Chips (✕ merkt einen zum Entfernen vor, ↶ nimmt das zurück) und
+  eine Zeile in der Syntax der [Schnellerfassung](quick-capture.md) mit
+  Vorschlägen und einer Vorschau dessen, was sie hinzufügt. „Sichern“
+  schreibt alles auf einmal, auch offline.
+- **Viele auswählen:** „Auswählen“ im Menü einer Aufgabe oder im Menü (⋮)
+  des Kopfs startet die Auswahl; Tippen nimmt dann Aufgaben dazu oder
+  heraus, bis ✕ oder Zurück. Die Leiste bietet erledigen, markieren,
+  verschieben und unter „⋯“ wieder öffnen, verwerfen, planen, Daten,
+  Tags, Zustand und löschen; bei genau einer Aufgabe auch bearbeiten und
+  die Uhr.
+- **Die Aufgabenseite** ist bearbeitbar: Titel, Notiz, Start-, Fälligkeits-
+  und Plandatum, Schätzung, Tags und Zustand als Chips, die Projektzeile
+  verschiebt die Aufgabe, dazu Wiederholung und Erinnerungen.
+- **Kommentare und Anhänge** unten: Text, ein **Foto** aus der Kamera-App,
+  eine **Aufnahme** („● Aufnehmen“, fragt beim ersten Mal nach dem
+  Mikrofon) oder eine beliebige **Datei**. Mit Text wird daraus ein
+  Kommentar mit den Dateien daran; ohne hängen die Dateien an der Aufgabe.
+  Bilder zeigen eine Vorschau, Aufnahmen spielen ab, andere Dateien öffnen
+  in einer anderen App.
+- **Uhr** („Zeit“): Summe gegen die Schätzung, Start/Stopp und die letzten
+  Uhren. Eine laufende Uhr steht als dauerhafte Benachrichtigung mit Zeit
+  und „Stopp“ da.
+- **Gewohnheiten:** siehe [Gewohnheiten](habits.md#app).
+
+## Erfassen und Teilen
+
+- **Erfassen** öffnet ein Blatt mit der
+  [Schnellerfassung](quick-capture.md); die Vorschau rechnet das Handy,
+  auch offline.
+- **An samudo teilen** aus jeder App, die Text teilt: Betreff oder erste
+  Zeile werden der Titel (bearbeitbar), darunter ein Feld der
+  Schnellerfassung für Projekt, Tags und Daten. Der Rest des Textes wird
+  die Notiz, und jede Adresse mit `https://`, `mid:` oder `catastr:` ein
+  Link. Ohne Sitzung wartet der geteilte Text, bis man sich anmeldet.
+- **`samu:<id>`-Links** in anderen Apps öffnen die Aufgabe.
+
+## Widgets
+
+- **„Heute“**: überfällig, heute, dann markierte verfügbare Aufgaben. Der
+  Haken erledigt über den Ausgang, „+“ öffnet das Erfassen, eine Zeile
+  öffnet die Aufgabe. Neu gezeichnet nach jedem Sync und beim Verlassen der
+  App.
+- **„Habits“**: jede offene Gewohnheit; siehe
+  [Gewohnheiten](habits.md#widget-habits).
+
+## Erinnerungen und Kalender
+
+Erinnerungen an Aufgaben werden als Wecker auf dem Handy gestellt und
+erscheinen als Benachrichtigungen, auch ohne Netz. Termine stehen im
+Forecast und in der Kalenderansicht (Liste, Tag, Woche); Tippen öffnet
+das Blatt des Termins, nur lesbar, mit „In Kalender-App öffnen“.
+
+**Erinnerungen an Termine** (Einstellungen › „Erinnerungen“) sind
+anfangs aus und gelten nur für dieses Handy. Eingeschaltet melden sich
+die Erinnerungen, die ein Termin in seinem Kalender trägt (VALARM), wie
+die von Aufgaben, mit Titel, Uhrzeit und Ort; „Später“ fragt in einer
+Stunde wieder, Tippen öffnet den Termin. Gleicht das Handy die Kalender
+schon über DAVx5 ab, bleibt der Schalter besser aus, sonst kommt jede
+Erinnerung zweimal. Das Blatt des Termins nennt seine Erinnerungen
+(„15 Min. vorher“), ob der Schalter an ist oder nicht.
+
+## Sprache
+
+Einstellungen › „Sprache“: „System“, „Deutsch“ oder „English“, nur auf
+diesem Handy. „System“ folgt der Sprache des Telefons und der App-Sprache
+in Androids Einstellungen (ab Android 13). Ein Wechsel zeichnet sofort
+neu; Widgets und Benachrichtigungen folgen beim nächsten Zeichnen.
+Fehlermeldungen des Servers bleiben englisch.
+
+## Automatisieren mit Tasker
+
+Zwei Broadcasts lassen andere Apps (etwa Tasker) auf die App wirken; ihr
+Paketname ist `de.samudo.app`.
+
+**Scope** (dem Kontext folgen: Nicht stören, WLAN, Ort):
+
+| Feld | Wert |
+|---|---|
+| Aktion | `de.samudo.app.action.SCOPE` |
+| Paket | `de.samudo.app` |
+| Extra | `scope`: Titel oder ID eines Scopes; leer = kein Scope; `auto` = dem Zeitplan folgen |
+
+**In die Inbox erfassen** (wie der Ring, auch offline): Aktion
+`de.samudo.app.action.RING`, Extra `text`, wahlweise `recorded_at` in
+Unix-Millisekunden. Siehe
+[Erfassen vom Index-Ring](ring.md#offline-über-tasker).
+
+Über adb ausprobieren:
+
+```sh
+adb shell am broadcast -a de.samudo.app.action.SCOPE -p de.samudo.app --es scope Work
+adb shell am broadcast -a de.samudo.app.action.RING -p de.samudo.app --es text "'Milch kaufen'"
+```
+
+Zurück zum Anmeldebildschirm: `adb shell pm clear de.samudo.app`.

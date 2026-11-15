@@ -1,0 +1,114 @@
+# The documentation site of samudo, docs.samudo.de.
+#
+# The pages are not copied here: docs/ (English) and docs/de/ (German) are
+# mounted as assets and turned into pages by content/<lang>/_content.gotmpl,
+# so the Markdown in docs/ stays the one source. See site/README.md.
+baseURL: https://docs.samudo.de/
+title: samudo
+enableRobotsTXT: true
+enableGitInfo: false
+
+defaultContentLanguage: de
+defaultContentLanguageInSubdir: false
+
+languages:
+  de:
+    label: Deutsch
+    locale: de-de
+    weight: 1
+    params:
+      description: "Die Dokumentation von samudo, der selbst gehosteten Aufgabenverwaltung für Linux, Web und Android."
+  en:
+    label: English
+    locale: en-us
+    weight: 2
+    params:
+      description: "The documentation of samudo, self-hosted task management for Linux, the web and Android."
+
+module:
+  imports:
+    - path: github.com/imfing/hextra
+  mounts:
+    - source: content/de
+      target: content
+      sites:
+        matrix:
+          languages: [de]
+    - source: content/en
+      target: content
+      sites:
+        matrix:
+          languages: [en]
+    - source: adapter
+      target: content
+      sites:
+        matrix:
+          languages: [de]
+    - source: adapter
+      target: content
+      sites:
+        matrix:
+          languages: [en]
+    - source: assets
+      target: assets
+    - source: layouts
+      target: layouts
+    - source: i18n
+      target: i18n
+    - source: static
+      target: static
+    # The Markdown pages, read by the content adapters.
+    - source: ../docs
+      target: assets/docs/en
+      files: ['! de/**']
+    - source: ../docs/de
+      target: assets/docs/de
+    # Logo and favicon from the web UI.
+    - source: ../web/brand
+      target: static/brand
+    - source: ../web/favicon.svg
+      target: static/favicon.svg
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
+
+menu:
+  main:
+    - name: Demo
+      url: https://demo.samudo.de/
+      weight: 1
+    - name: Search
+      weight: 10
+      params:
+        type: search
+    - name: Language
+      weight: 11
+      params:
+        type: language-switch
+
+params:
+  navbar:
+    displayTitle: false
+    displayLogo: true
+    logo:
+      path: brand/samudo-lockup-light.svg
+      dark: brand/samudo-lockup-dark.svg
+      width: 120
+  page:
+    width: normal
+  theme:
+    default: system
+    displayToggle: true
+  footer:
+    enable: true
+    displayCopyright: false
+    displayPoweredBy: false
+  search:
+    enable: true
+    type: flexsearch
+  editURL:
+    enable: false

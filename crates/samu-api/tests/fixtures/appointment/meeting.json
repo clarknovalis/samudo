@@ -1,0 +1,17 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e05",
+  "created": "2026-11-11T08:15:00Z",
+  "modified": "2026-11-11T08:15:00Z",
+  "calendar": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+  "uid": "meeting@example.org",
+  "title": "Planungsrunde",
+  "start": {
+    "at": "2026-11-18T10:00:00+01:00[Europe/Berlin]"
+  },
+  "end": {
+    "at": "2026-11-18T11:00:00+01:00[Europe/Berlin]"
+  },
+  "status": "confirmed",
+  "busy": true,
+  "meeting": true
+}

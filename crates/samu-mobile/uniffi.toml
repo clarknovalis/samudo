@@ -1,0 +1,3 @@
+# Where the generated Kotlin lands in the app (ADR 0028).
+[bindings.kotlin]
+package_name = "de.samudo.app.mobile"

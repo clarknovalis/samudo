@@ -1,0 +1,14 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f42",
+  "created": "2026-11-08T18:06:00Z",
+  "modified": "2026-11-08T18:06:00Z",
+  "created_by": {
+    "device": "laptop",
+    "kind": "human"
+  },
+  "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "blob": "60303ae22b998861bce3b28f33eec1be758a213c86c93c076dbe9f558c11c752",
+  "name": "aufnahme-2026-11-08-1806.webm",
+  "media_type": "audio/webm",
+  "size": 31744
+}

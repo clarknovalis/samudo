@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "api": "0.1.33",
+  "account": "alice",
+  "exported_at": "2026-11-11T12:00:00Z",
+  "seq": 1,
+  "zone": "Europe/Berlin",
+  "due_soon": "P2D",
+  "remind_time": "09:00",
+  "counts": {}
+}

@@ -1,0 +1,31 @@
+{{- /*
+  Links between the pages in docs/ are written for the repository
+  (`concepts.md#scopes`). The pages here come from a content adapter and
+  have no file, so Hextra's hook cannot resolve them: look the page up by
+  the name of its Markdown file (param `source`) instead. A link that
+  leaves docs/ stays text.
+*/ -}}
+{{- $dest := .Destination -}}
+{{- $isExternal := or (hasPrefix $dest "http://") (hasPrefix $dest "https://") (hasPrefix $dest "mailto:") -}}
+{{- $href := $dest -}}
+{{- $inRepo := false -}}
+{{- if and (not $isExternal) (not (hasPrefix $dest "#")) -}}
+  {{- $parts := split $dest "#" -}}
+  {{- $path := index $parts 0 -}}
+  {{- $fragment := cond (gt (len $parts) 1) (printf "#%s" (index $parts 1)) "" -}}
+  {{- if hasPrefix $path "../" -}}
+    {{- $inRepo = true -}}
+  {{- else if hasSuffix $path ".md" -}}
+    {{- $name := strings.TrimSuffix ".md" (path.Base $path) -}}
+    {{- with index (where site.Pages "Params.source" $name) 0 -}}
+      {{- $href = printf "%s%s" .RelPermalink $fragment -}}
+    {{- else -}}
+      {{- warnf "render-link: no page for %q on %s" $dest .Page.RelPermalink -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if $inRepo -}}
+  <span class="samu-repo-link" title="{{ T "inRepository" }}: {{ strings.TrimPrefix "../" $dest }}">{{ .Text | safeHTML }}</span>
+{{- else -}}
+  <a href="{{ $href | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>{{ .Text | safeHTML }}</a>
+{{- end -}}

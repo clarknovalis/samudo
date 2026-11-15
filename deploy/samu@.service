@@ -1,0 +1,22 @@
+# One profile of ~/.config/samu/config.toml (ADR 0086 §2): with `upstream`
+# the replica (ADR 0066), without it a server of its own; either way on
+# 127.0.0.1 with the profile's port, data in ~/.local/share/samu/<profile>.
+# Installed by `make install-replica`; one profile is enabled with
+#   systemctl --user enable --now samu@<profile>
+# A local profile needs its account first:
+#   samu-server profile <profile> account add <account>
+# and, to fetch calendars itself (ADR 0047 §3), SAMU_SECRET_KEY in
+# ~/.config/samu/<profile>.env (mode 600):
+#   SAMU_SECRET_KEY=<openssl rand -base64 32>
+[Unit]
+Description=samudo profile %i
+After=network-online.target
+
+[Service]
+EnvironmentFile=-%h/.config/samu/%i.env
+ExecStart=%h/.local/bin/samu-server profile %i
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+{
+  "range": "all",
+  "patch": {
+    "title": "Chorprobe",
+    "location": "Gemeindehaus",
+    "busy": false,
+    "calendar": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+    "clear": [
+      "note"
+    ]
+  }
+}

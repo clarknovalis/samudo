@@ -1,0 +1,15 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05",
+  "created": "2026-11-08T08:00:00Z",
+  "modified": "2026-11-08T08:00:00Z",
+  "title": "Dienst mit Kalender",
+  "mode": "only",
+  "members": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6a01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01"
+  ],
+  "calendars": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02"
+  ],
+  "position": 0
+}

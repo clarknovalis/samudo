@@ -1,0 +1,9 @@
+# The git mirror of a local profile (ADR 0086 §10), started by
+# samu-export@<profile>.timer. Installed by `make install-replica`.
+[Unit]
+Description=samudo export of profile %i into git
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/samu-export-profile %i
+Nice=10

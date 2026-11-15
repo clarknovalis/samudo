@@ -1,0 +1,26 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c09",
+    "created": "2026-11-10T09:00:00Z",
+    "modified": "2026-11-10T09:00:00Z",
+    "title": "Steuer abgeben",
+    "flagged": true,
+    "priority": "A",
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "created": true,
+  "marks": [
+    {
+      "start": 15,
+      "end": 17,
+      "meaning": "priority"
+    },
+    {
+      "start": 18,
+      "end": 19,
+      "meaning": "flag"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "habit_entry",
+  "object": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f94",
+    "created": "2026-11-13T21:00:00Z",
+    "modified": "2026-11-13T21:00:00Z",
+    "habit": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c93",
+    "day": "2026-11-13",
+    "status": "fail"
+  }
+}

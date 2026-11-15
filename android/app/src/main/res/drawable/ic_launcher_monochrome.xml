@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same broom in one colour, for themed icons (Android 13+). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="54"
+    android:viewportHeight="54">
+    <group android:translateX="15.88" android:translateY="15.88" android:scaleX="0.2224" android:scaleY="0.2224">
+        <path android:pathData="M28,16 L58,60" android:strokeColor="#FFFFFF" android:strokeWidth="7" android:strokeLineCap="round" />
+        <path android:pathData="M58,60 L46,88 M58,60 L55,90 M58,60 L64,90 M58,60 L72,87 M58,60 L79,82" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="round" />
+        <path android:pathData="M14,92 H24 M28,92 H34" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="round" />
+    </group>
+</vector>

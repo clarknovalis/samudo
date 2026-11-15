@@ -1,0 +1,45 @@
+# A starting point for running samudo with Docker Compose; see
+# docs/self-hosting.md for the steps around it (secret key, first account,
+# reverse proxy). Copy it to docker-compose.yml next to a .env file:
+#
+#     (umask 077; echo "SAMU_SECRET_KEY=$(openssl rand -base64 32)" > .env)
+#     docker compose up -d --build
+#
+# The port is bound to localhost: put a reverse proxy with TLS in front,
+# and keep the instance inside your own network or VPN.
+
+name: samu
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: samu-server
+    restart: unless-stopped
+    volumes:
+      # server.db and one SQLite file per account. Back these up as files.
+      - data:/data
+      # Plain JSON and Org export (docs/self-hosting.md).
+      - ./export:/export
+    ports:
+      - "127.0.0.1:8490:8490"
+    environment:
+      SAMU_DATA: /data
+      SAMU_LISTEN: 0.0.0.0:8490
+      # Seals the sources of calendars. Lost, every source has to be set again.
+      SAMU_SECRET_KEY: ${SAMU_SECRET_KEY:?create it in .env first}
+    healthcheck:
+      test: ["CMD", "samu", "--server", "http://127.0.0.1:8490", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  data:

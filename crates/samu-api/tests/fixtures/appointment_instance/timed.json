@@ -1,0 +1,14 @@
+{
+  "appointment": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e02",
+  "calendar": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "title": "Chor",
+  "start": {
+    "at": "2026-11-10T19:30:00+01:00[Europe/Berlin]"
+  },
+  "end": {
+    "at": "2026-11-10T21:00:00+01:00[Europe/Berlin]"
+  },
+  "link": "https://calendar.google.com/calendar/r/day/2026/11/10",
+  "status": "confirmed",
+  "busy": true
+}

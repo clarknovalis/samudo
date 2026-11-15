@@ -1,0 +1,102 @@
+{
+  "format": "markdown",
+  "blocks": [
+    {
+      "type": "heading",
+      "at": { "start": 0, "end": 8 },
+      "level": 1,
+      "content": [{ "type": "text", "at": { "start": 2, "end": 8 }, "text": "Plan" }]
+    },
+    {
+      "type": "list",
+      "at": { "start": 9, "end": 52 },
+      "ordered": false,
+      "items": [
+        {
+          "at": { "start": 9, "end": 26 },
+          "checked": false,
+          "box": { "start": 11, "end": 14 },
+          "blocks": [
+            {
+              "type": "paragraph",
+              "at": { "start": 15, "end": 26 },
+              "content": [
+                { "type": "text", "at": { "start": 15, "end": 19 }, "text": "Ask " },
+                {
+                  "type": "strong",
+                  "at": { "start": 19, "end": 26 },
+                  "content": [{ "type": "text", "at": { "start": 21, "end": 24 }, "text": "Bob" }]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": { "start": 27, "end": 52 },
+          "checked": true,
+          "box": { "start": 29, "end": 32 },
+          "blocks": [
+            {
+              "type": "paragraph",
+              "at": { "start": 33, "end": 52 },
+              "content": [
+                {
+                  "type": "link",
+                  "at": { "start": 33, "end": 52 },
+                  "target": "samu:01a1c1d1-be00-7364-932c-f70b4e8c4b53",
+                  "class": "task",
+                  "task": "01a1c1d1-be00-7364-932c-f70b4e8c4b53",
+                  "content": [{ "type": "text", "at": { "start": 34, "end": 38 }, "text": "Done" }]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "at": { "start": 53, "end": 80 },
+      "content": [
+        {
+          "type": "link",
+          "at": { "start": 53, "end": 70 },
+          "target": "javascript:x()",
+          "class": "inert",
+          "content": [{ "type": "text", "at": { "start": 54, "end": 55 }, "text": "x" }]
+        },
+        { "type": "break", "at": { "start": 70, "end": 71 } },
+        {
+          "type": "image",
+          "at": { "start": 71, "end": 80 },
+          "target": "a.png",
+          "class": "inert",
+          "alt": "a"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "at": { "start": 81, "end": 100 },
+      "align": ["none", "right"],
+      "rows": [
+        {
+          "at": { "start": 81, "end": 88 },
+          "header": true,
+          "cells": [
+            [{ "type": "text", "at": { "start": 83, "end": 84 }, "text": "a" }],
+            [{ "type": "text", "at": { "start": 86, "end": 87 }, "text": "b" }]
+          ]
+        }
+      ]
+    },
+    {
+      "type": "code",
+      "at": { "start": 101, "end": 120 },
+      "language": "sh",
+      "text": "make check\n"
+    },
+    { "type": "html", "at": { "start": 121, "end": 129 }, "text": "<b>x</b>" },
+    { "type": "rule", "at": { "start": 130, "end": 133 } }
+  ]
+}

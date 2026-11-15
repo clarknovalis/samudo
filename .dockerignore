@@ -1,0 +1,3 @@
+# The build context: crates and the binaries in dist/bin, nothing else big.
+target
+.git

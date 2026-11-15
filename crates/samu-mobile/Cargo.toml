@@ -1,0 +1,45 @@
+[package]
+name = "samu-mobile"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The Android app's way into samu: mirror, outbox, sync and availability behind uniffi (ADR 0028)."
+publish = false
+
+[lib]
+# cdylib for the app, which loads it through JNA; lib so `make check` builds
+# and tests it on the host, and so the bindgen binary can link it (as
+# catastr-mobile).
+crate-type = ["lib", "cdylib"]
+
+# Writes the Kotlin side from the built library. Behind a feature, because
+# uniffi's command line brings clap and askama along, which neither the app
+# nor `make check` needs.
+[[bin]]
+name = "uniffi-bindgen"
+required-features = ["bindgen"]
+
+[features]
+bindgen = ["uniffi/cli"]
+
+[dependencies]
+samu-api = { workspace = true }
+samu-core = { workspace = true }
+samu-client = { workspace = true }
+# Mirror, outbox and sync, shared with the replica on a computer (ADR 0066 §4).
+samu-replica = { workspace = true, features = ["bundled"] }
+jiff = { workspace = true }
+# The mirror and the outbox on the phone (ADR 0028 §3); bundled, because a
+# phone has no SQLite library to link against.
+rusqlite = { workspace = true, features = ["bundled"] }
+serde_json = { workspace = true }
+# The SHA-256 a file taken on the phone is named by (ADR 0039 §4), the
+# same crate as the server and the CLI.
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+uniffi = { workspace = true }
+
+[lints]
+workspace = true
