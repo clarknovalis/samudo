@@ -49,6 +49,12 @@ android {
         targetSdk = 36
         versionCode = productVersionCode
         versionName = productVersion
+        // samu-mobile is built for arm64-v8a only (ADR 0118 §7, rust.sh);
+        // JNA and androidx bring their libraries for six more ABIs, on
+        // which the app would install and then fail to load its core.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     signingConfigs {
