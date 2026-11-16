@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Properties as a front matter (ADR 0054): a foldable block under the
 // title of a task or project, one line `key  value` per property, the own
 // ones editable, the inherited ones faint with where they come from. A

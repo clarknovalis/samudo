@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Completing a repetition makes the next task (ADR 0007 §4, ADR 0033).
 //! Synthetic data only.
 

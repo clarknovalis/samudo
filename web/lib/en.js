@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // English for the web UI (ADR 0105 §1): the German text as the key.
 // `make check` (web/tests/i18n.mjs) holds it to the keys in the code.
 export const EN = {

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Dates on a task (ADR 0007, ADR 0014 §4).
 
 use std::fmt;

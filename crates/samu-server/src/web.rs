@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The web UI, carried inside the binary (ADR 0025 §1, §2).
 //!
 //! Embedded rather than served from a directory, as in catastr: nothing to

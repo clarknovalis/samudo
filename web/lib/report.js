@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The view „Bericht“ (ADR 0080 §5, ADR 0081 §1): three tabs, Erledigt,
 // Bearbeitet and Zeit, over one span, one grouping and one filter. It took
 // the place of the view „Zeit“; its bar is that view's, with the filter

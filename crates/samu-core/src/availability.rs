@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Availability, computed and never stored (ADR 0006, ADR 0017).
 //!
 //! One pure function over a snapshot of an account: the server and the phone

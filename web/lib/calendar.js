@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The calendar view (ADR 0047 §11): a day or a week, hours as a grid, a
 // band of whole days above it. Appointments in their calendar's colour and
 // tasks planned at a time as blocks. A click on a free place makes a new

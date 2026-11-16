@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Quick capture (ADR 0011): one syntax, one parser.
 //!
 //! [`parse`] turns a line like `Anrufen #haus @telefon d:fr 9:00 ~15m` into a

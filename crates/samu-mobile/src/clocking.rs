@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Clocking on the phone (ADR 0046 §2, §3, §8).
 //!
 //! Start and stop go into the outbox like every change. The rules the

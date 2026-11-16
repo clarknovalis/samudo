@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The server file: accounts, sessions (ADR 0019 §2, §3) and hooks
 //! (ADR 0022 §3).
 //!

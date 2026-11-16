@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Marc Seibert
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <resources>
     <string name="widget_label">samudo · Today</string>
     <string name="widget_description">Overdue, today and flagged; check off and capture</string>

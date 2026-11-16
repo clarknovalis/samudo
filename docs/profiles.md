@@ -45,6 +45,11 @@ Each profile runs as `samu-server profile <name>` on `127.0.0.1` with its
 port, its data in `~/.local/share/samu/<name>`; logs with
 `journalctl --user -u samu@<name>`.
 
+A new `samu-server` binary needs `systemctl --user restart samu@<name>`: a
+profile that keeps running keeps the old binary, and with it the old schema,
+since migrations run when the server starts. New routes then answer 404 and
+the export stops at `schema N, this build at M`.
+
 ## Signing in to a replica
 
 Sign in as usual. The replica passes account and password on to the

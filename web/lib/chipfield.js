@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The filter of a scope in the settings (ADR 0043 §2): chips of the search
 // language (ADR 0042 §2), typed with the same list under the field as the
 // search, without free text. Every change writes the whole field; what a

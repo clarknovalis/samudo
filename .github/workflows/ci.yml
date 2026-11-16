@@ -1,6 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # The checks every change on main and every pull request has to pass:
 # `make check-public` (formatting, clippy, tests, samu-api packaged on its
-# own, the web UI's and the Emacs package's tests) and a secret scan of the
+# own, the license checks, the web UI's and the Emacs package's tests) and a secret scan of the
 # committed tree. Nothing here needs anything but this repository.
 name: CI
 
@@ -22,6 +26,8 @@ env:
   # release's checksums file.
   GITLEAKS_VERSION: "8.21.2"
   GITLEAKS_SHA256: "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba"
+  # The release of reuse (https://reuse.software) for `make reuse-lint`.
+  REUSE_VERSION: "5.0.2"
 
 jobs:
   check:
@@ -43,6 +49,9 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends emacs-nox tzdata
+
+      - name: reuse
+        run: pipx install "reuse==${REUSE_VERSION}"
 
       - name: make check-public
         run: make check-public

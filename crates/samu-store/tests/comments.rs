@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Comments, attachments and the author (ADR 0039) against a real account
 //! database. Synthetic data only.
 

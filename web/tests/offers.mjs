@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The search offers of web/lib/query.js against the cases samu-core meets
 // as well (ADR 0103 §2): testdata/query/offers.json. Run by `make check`
 // with node, no packages. The web gets `inherited` from the server; here

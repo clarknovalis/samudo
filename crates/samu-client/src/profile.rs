@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Profiles: the accounts of one computer, each behind its own service on
 //! the loopback (ADR 0086).
 //!

@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Workflows (ADR 0024): an exclusive tag group is one; its children are the
 -- states. A state has a key to pick it by and may ask for a note; a group
 -- may be the workflow of projects that name none. A project names its own.

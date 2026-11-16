@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # One profile of ~/.config/samu/config.toml (ADR 0086 §2): with `upstream`
 # the replica (ADR 0066), without it a server of its own; either way on
 # 127.0.0.1 with the profile's port, data in ~/.local/share/samu/<profile>.

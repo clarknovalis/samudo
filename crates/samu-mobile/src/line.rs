@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The edit dialog on the phone (ADR 0078 §1–3, §6; ADR 0102 §7): the
 //! title in its own field, what is set as chips with ✕, and a line in the
 //! quick-capture syntax that `samu_core::views::capture` applies to the

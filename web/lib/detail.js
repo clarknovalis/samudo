@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Right: the inspector of the selected task (ADR 0020 §1): edit what it
 // is, see every reason, its properties (ADR 0054), links, reminders
 // (ADR 0030) and logbook (ADR 0024 §7).

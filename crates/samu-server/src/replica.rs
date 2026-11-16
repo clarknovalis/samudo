@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu-server replica`: the replica on a computer (ADR 0066). It answers
 //! the same API and serves the same web UI on 127.0.0.1, from a mirror of
 //! the server's objects with an outbox laid over it (`samu-replica`), and

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! A note or comment as a document tree (ADR 0058), the form of catastr's
 //! ADR 0097 with samu's links.
 //!

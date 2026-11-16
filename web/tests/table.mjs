@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The table's numbers of web/lib/tabledata.js against the cases samu-core
 // meets as well (ADR 0115 §4): testdata/table/worked.json. Run by
 // `make check` with node, no packages.

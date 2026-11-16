@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Just enough of Org to import the open tasks of an agenda (ADR 0002 §4):
 //! headings with keyword, priority and tags, the planning line under a
 //! heading, drawers, and the in-file keyword lines. Text in, structure out;

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Named hooks: a sender outside samu delivers to `POST /hooks/{name}`
 //! (ADR 0010, ADR 0022).
 //!

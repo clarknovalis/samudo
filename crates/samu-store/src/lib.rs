@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SQLite storage for samu: one database file per account (ADR 0005,
 //! ADR 0018).
 //!

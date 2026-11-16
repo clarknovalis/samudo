@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Refile (ADR 0020 §4): a palette with a fuzzy search over the inbox,
 // projects and action groups. ↵ moves there, ⇥ makes the task a child.
 // Indenting in the list (ADR 0021 §5) and the project select in the

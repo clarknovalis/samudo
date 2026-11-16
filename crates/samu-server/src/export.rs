@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu-server export` and `samu-server restore` (ADR 0074 §5, §6): an
 //! account as a directory, read from its database file directly, without
 //! a session and also while the server runs; and back into an empty

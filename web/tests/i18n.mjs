@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The English tables against the keys in the code (ADR 0105 §5), run by
 // `make check` with node, no packages:
 // - every `tr("…")` in web/ and every text, aria-label, title and

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Signing in and out (ADR 0019, ADR 0025 §4). The session lives in a cookie
 // the server sets; this page never sees the token.
 

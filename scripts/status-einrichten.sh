@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 #
 # Richtet in einem Konto den Ablauf „Status" ein (ADR 0024), über die CLI:
 #

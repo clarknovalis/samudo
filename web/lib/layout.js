@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // A scope's layout (ADR 0072): which parts of the inspector it shows, the
 // rest folded under one line that names what has a value, and how the
 // note shows. The layout lives in the scope on the server; whether this

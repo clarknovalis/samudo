@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The replica on a computer (ADR 0066, ADR 0067): a real server as the
 //! upstream, the replica before it, both in this process.
 

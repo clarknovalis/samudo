@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The appointment in the inspector (ADR 0047 §11, ADR 0068 §11): read,
 // and in a writable calendar edited, deleted and made new.
 //

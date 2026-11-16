@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The table (ADR 0115): the names of its columns and the time worked on
 //! each task and its subtree, and the estimate summed the same way.
 //!

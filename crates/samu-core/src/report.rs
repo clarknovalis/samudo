@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The report (ADR 0080): what was done, what was worked on and the time,
 //! over days in the account's zone.
 //!

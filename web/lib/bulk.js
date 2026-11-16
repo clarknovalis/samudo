@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // One action on many tasks (ADR 0052): picking rows in the list, the bar
 // above it with the actions, and dragging rows onto the sidebar. Every
 // action is one write over /changes; only deleting goes task by task.

@@ -1,5 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # The definition of done (AGENTS.md).
-.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check web-check emacs-check install install-replica install-front android
+.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check reuse-lint web-check emacs-check install install-replica install-front android
 
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
@@ -10,7 +14,7 @@ check: check-public
 # What the public CI runs (.github/workflows/ci.yml), and what a
 # contribution needs. A local.mk beside this file, if there is one, can add
 # checks of its own to `check`.
-check-public: fmt clippy test api-standalone license-check web-check emacs-check
+check-public: fmt clippy test api-standalone license-check reuse-lint web-check emacs-check
 
 fmt:
 	cargo fmt --all --check
@@ -32,6 +36,13 @@ api-standalone:
 # is only AGPL (ADR 0117).
 license-check:
 	scripts/license-check.sh
+
+# Every file carries its copyright and license: an SPDX header in source
+# files, an entry in REUSE.toml for data, images and third-party code
+# (https://reuse.software). Needs the reuse tool (Debian: apt install reuse).
+reuse-lint:
+	@command -v reuse >/dev/null 2>&1 || { echo "reuse-lint: reuse is missing (apt install reuse, or pipx install reuse)" >&2; exit 1; }
+	reuse lint
 
 # A secret scan of exactly what is committed (ADR 0108 §7), with the
 # exceptions in .gitleaks.toml. Needs gitleaks; not part of check, since it
@@ -104,6 +115,11 @@ install-replica:
 	install -m 0644 deploy/samu@.service deploy/samu-export@.service deploy/samu-export@.timer $(UNITDIR)/
 	-systemctl --user daemon-reload
 	@$(BINDIR)/samu-server --version
+	@# A profile that keeps running keeps the old binary, and with it the old
+	@# schema: migrations run when the server starts, so new routes answer 404
+	@# and the export stops at "schema N, this build at M" (16.11.2026).
+	@for u in $$(systemctl --user list-units 'samu@*.service' --state=active --plain --no-legend 2>/dev/null | cut -d' ' -f1); do \
+		echo "$$u still runs the old samu-server: systemctl --user restart $$u"; done
 	@if systemctl is-active --quiet samu-front 2>/dev/null; then \
 		echo "samu-front still runs the old samu-server: sudo systemctl restart samu-front"; fi
 

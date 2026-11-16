@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `PUT` and `GET /blobs/{sha256}`: the files of attachments (ADR 0039 §4).
 //!
 //! An upload goes straight to a temporary file and is hashed on the way, so

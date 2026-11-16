@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The search field on top (ADR 0026 §4) with chips (ADR 0042): a word the
 // search language knows becomes a chip once taken from the list or ended
 // with a space; the rest is free text for title and note. What matches is

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The views of the app's bar beyond the first five (ADR 0102 §1, §4):
 //! Heute, Markiert, Stuck, Review and the perspectives. Each computes
 //! through samu-core as the server's routes do (ADR 0006); grouping and

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The bar at the bottom of the app (ADR 0102 §1, §3): a list of entries,
 //! kept per phone in the cache's meta, never synced. A fixed view, a
 //! perspective, a project or a tag; what is gone leaves it silently.

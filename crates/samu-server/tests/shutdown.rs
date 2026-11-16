@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The server ends on SIGTERM even while an `/events` stream is open
 //! (regression, 11.11.2026: graceful shutdown waited for the stream
 //! forever, and a restart waited for systemd's or Docker's kill).

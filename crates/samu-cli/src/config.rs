@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Where the server is, which account, which device, and where the tokens
 //! live (ADR 0019 §7).
 //!

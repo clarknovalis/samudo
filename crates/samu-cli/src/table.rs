@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu list --columns` (ADR 0115 §8): the table of the web as lines,
 //! with the same column names. Worked time and estimates come from
 //! samu-core; an action group's row counts its subtree, as in the web.

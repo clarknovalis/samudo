@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Pairing a phone by QR code (ADR 0031, as catastr's web/lib/pair.js).
 //
 // Asks for the phone's name and the password once more — a stolen session

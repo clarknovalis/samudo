@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reminders on the phone (ADR 0030 §5, §6; appointments ADR 0101 §6, §7).
 //!
 //! The app keeps one alarm: the next one [`Samu::next_alarm`] names. When

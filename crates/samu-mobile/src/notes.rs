@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Comments and attachments on the phone (ADR 0039 §6).
 //!
 //! A comment is an ordinary object through the outbox. A file taken on the

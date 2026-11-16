@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Properties of a task or project (ADR 0023): free keys, each with its own
 -- stamp, so two devices changing different keys both win. A removed key
 -- keeps its row with `value IS NULL` and its stamp, as `tagging` does with

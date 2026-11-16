@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Listening to `GET /events` (ADR 0004 §5), only while the tab is visible,
 // as catastr ADR 0095 §6: a hidden tab holds no connection and catches up
 // once when it comes back.

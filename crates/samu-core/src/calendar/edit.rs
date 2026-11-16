@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! An edit of an appointment turned into changes (ADR 0068 §4), and the
 //! rule that settles a write that crossed one from elsewhere (§7).
 //!

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The rendered document tree (ADR 0058, after catastr ADR 0097): where its nodes are, how deep it
 //! goes, and the JSON the web UI and the app read.
 

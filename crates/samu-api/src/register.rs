@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Making an account over HTTP, and deleting one's own (ADR 0099 §1–5).
 
 use jiff::Timestamp;

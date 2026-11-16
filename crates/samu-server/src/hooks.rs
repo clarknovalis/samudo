@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Named hooks (ADR 0010, ADR 0022): managing them with a session, and the
 //! delivery route a sender reaches without one.
 

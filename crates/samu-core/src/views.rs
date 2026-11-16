@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What the reading routes answer, computed from the objects of an account
 //! (ADR 0066 §4). The server reads them from its store, the replica on a
 //! computer from its mirror with the outbox laid over; both call these

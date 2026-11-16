@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The board (ADR 0061): the tasks of a view as cards in columns, from the
 // states of a workflow or from chosen tags, with lanes from the menu
 // Gruppieren. Dragging a card writes over /changes; what the board shows

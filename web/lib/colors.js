@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The colours of scopes (ADR 0060): names on the wire, shades in style.css.
 
 import { el } from "./dom.js";

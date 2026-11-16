@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Restricted sessions on the server (ADR 0095 §4): what each route does
 //! for a session with a grant, and the check every change passes. The rule
 //! itself is `samu_core::grant`.

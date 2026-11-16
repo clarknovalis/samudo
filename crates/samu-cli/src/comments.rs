@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu comment`, `samu comments`, `samu attach`, `samu attachments` and
 //! `samu blob get` (ADR 0039 §6). Comments and attachments are objects of
 //! their own over the ordinary routes; the file of an attachment goes to

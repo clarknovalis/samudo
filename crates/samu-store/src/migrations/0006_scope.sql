@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Scopes (ADR 0035): a new kind of object, its fields and its members.
 --
 -- `object.kind` has a CHECK listing the kinds, so the table is rebuilt as in

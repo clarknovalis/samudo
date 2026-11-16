@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- The account's settings as an object (ADR 0045 §4), so they sync and can
 -- be changed offline like anything else.
 --

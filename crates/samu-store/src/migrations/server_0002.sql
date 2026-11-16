@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Named hooks a sender outside samu delivers to (ADR 0010, ADR 0022 §3).
 --
 -- In the server file, not an account database: the URL `/hooks/ring` names

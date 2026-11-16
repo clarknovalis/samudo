@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Calendars over the API (ADR 0047, 0048): a source is set, the server
 //! fetches it from a small ICS server in the test, the appointments come
 //! over `/changes` and `/appointments`. Asked of the database, not of the

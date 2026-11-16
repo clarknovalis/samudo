@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Properties beyond `samu set` (ADR 0054): `samu prop` shows a task's own
 //! and inherited ones, `samu open` opens a value with this device's command
 //! or where it leads, `samu open-uri` is the handler for `samu-open:`, and

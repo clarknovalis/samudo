@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! The fixtures are the contract (ADR 0003 §2, ADR 0014 §11).
 //!
 //! Every file under `fixtures/<type>/` is read into its type and written

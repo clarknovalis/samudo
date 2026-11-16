@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu habit` (ADR 0091): habits are tasks with the field `habit`; what
 //! they are today comes from `GET /habits` and `GET /habits/{id}`, computed
 //! in samu-core; entries are objects of their own, made over `/changes`.

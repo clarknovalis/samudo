@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What deleting an object takes with it (ADR 0036).
 //!
 //! The server reads the account, asks [`plan`] for the changes and writes

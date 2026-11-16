@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The brake on failed sign-ins (ADR 0097 §1): so many failures in a
 //! window, and the key waits until the window ends. Only in memory; a
 //! restart forgets it.

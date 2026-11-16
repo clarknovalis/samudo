@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The language of the interface (ADR 0105): German is the key. `tr("…")`
 // looks the German text up in the English table when the page is English
 // and falls back to German; `{name}` is filled from `vars` after the

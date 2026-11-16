@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Capture templates (ADR 0073): a line of quick capture with only marks
 // and reminders for the new task, called as `/name`, or by its key after
 // the capture prefix, `C h` (ADR 0084). Here the settings pane to keep them,

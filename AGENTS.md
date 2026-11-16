@@ -54,11 +54,16 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo package -p samu-api     # builds without the rest of the workspace
 scripts/license-check.sh      # MIT crates depend on no AGPL-only crate
+reuse lint                    # every file names its copyright and license
 ```
 
 plus the web UI's and the Emacs package's tests.
 
 - Every new feature gets tests; every bug fix a regression test.
+- Every new source file starts with an SPDX header (`SPDX-FileCopyrightText`
+  and `SPDX-License-Identifier`, in `samu-api` and `samu-client`
+  `AGPL-3.0-or-later OR MIT OR Apache-2.0`); data, images and
+  third-party code are covered by `REUSE.toml` instead.
 - Tests use synthetic data only (`testdata/`), never real notes or mail,
   and never call network services or language models.
 - **Every API route has a command in the CLI**, in the same commit. No

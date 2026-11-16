@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The URI in a pairing QR code (ADR 0031 §4):
 //! `samu-pair:?server=<url>&account=<name>&device=<name>&code=<code>`.
 //!

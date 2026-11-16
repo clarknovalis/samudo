@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Habits (ADR 0091): a task with the field `habit`. What it is today, its
 // streak and its history come from GET /habits, computed in samu-core;
 // here they are drawn, and taps become entries over /changes.

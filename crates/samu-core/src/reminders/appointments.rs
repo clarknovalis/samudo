@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! When appointments remind (ADR 0101 §3, §4): the alarms their VALARMs
 //! carry, for every occurrence the repetition unfolds into, with the same
 //! function as `GET /appointments`.

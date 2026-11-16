@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! What happened to a task or project, beyond the last state the stamps
 //! keep (ADR 0006, ADR 0024 §5), and what a client did to an appointment
 //! (ADR 0068 §3). Written by the server, read with

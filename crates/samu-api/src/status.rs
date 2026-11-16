@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! A task with its computed availability, as `GET /available` returns it
 //! (ADR 0017 §10, ADR 0019 §5), and a project with its own, as
 //! `GET /available/projects` returns it.

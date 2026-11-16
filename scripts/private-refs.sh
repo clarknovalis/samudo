@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Finds the maintainer's private names, hosts and paths in the files that
 # are published (ADR 0108 §7). gitleaks finds keys; this finds what is not
 # a secret but still not meant for the public tree.

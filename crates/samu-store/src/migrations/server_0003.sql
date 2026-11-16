@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Pairing codes (ADR 0031): traded once, within ten minutes, for a
 -- session. Only the SHA-256 is kept, as for sessions; at most one open per
 -- account, a new one replaces it.

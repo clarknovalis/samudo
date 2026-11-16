@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Marc Seibert
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <!-- The broom of ADR 0050 (web/brand/samudo-icon-light.svg) on the dark tile,
      which is the background colour. The 68-unit tile maps onto the 36 visible
      units of the 54-unit viewport, so the broom sits in the safe zone. -->

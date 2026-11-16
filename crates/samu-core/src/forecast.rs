@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What Forecast shows (ADR 0045), here and only here: the web UI asks the
 //! server, the phone asks this module offline.
 //!

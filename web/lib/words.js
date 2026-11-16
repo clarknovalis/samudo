@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // What the server computed, in words (ADR 0020 §2, §5). Nothing here
 // decides anything; it only says it.
 

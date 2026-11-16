@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What the list under a search field offers for the word at the cursor
 //! (ADR 0103 §1): the same as `offers` in `web/lib/query.js`. The cases in
 //! `testdata/query/offers.json` hold the two to the same answers.

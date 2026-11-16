@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The scope in the header (ADR 0035 §7): always visible, a menu to switch,
 // and how much is due outside it. What a scope shows is computed by the
 // server (`/available?scope=`); this page only names the choice.

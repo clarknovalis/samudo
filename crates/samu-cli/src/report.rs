@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu report` (ADR 0080 §6): what was done, what was worked on and the
 //! time, as `GET /report` computes it. TSV is the way into a spreadsheet.
 

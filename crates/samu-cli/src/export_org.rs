@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! An export as one Org file to read (ADR 0074 §8): folders, projects and
 //! tasks as an outline, with keyword, priority, tags, dates, properties,
 //! note, comments and attachments. Only for reading, in Emacs say, while

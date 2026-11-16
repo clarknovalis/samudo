@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Capture as a window (ADR 0026 §5) with the quick-entry syntax of
 // ADR 0011 over POST /capture (ADR 0027): while one types, the server's
 // preview shows as chips; in a `#…` or `@…` the known projects or tags are

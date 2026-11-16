@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Left: the built-in views and the tree of folders and projects, each with
 // a count of what is available there (ADR 0020 §1). The counts add up what
 // the server computed; they decide nothing. In the tree one makes, renames,

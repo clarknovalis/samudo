@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu profile`: the accounts of this computer (ADR 0086 §5).
 
 use anyhow::Result;

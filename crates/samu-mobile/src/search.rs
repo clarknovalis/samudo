@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The search field of the phone (ADR 0103 §3): what the list under it
 //! offers, the words that become chips in it, and the last searches of this
 //! phone. The offers come from samu-core, as in the web; the search itself

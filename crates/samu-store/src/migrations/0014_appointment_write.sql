@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Writing appointments back (ADR 0068). Columns that may be NULL or have a
 -- default: no rebuild.
 

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The search language of ADR 0042: words that become chips, and whether a
 // task matches the chips and the free text. Only reads state; draws
 // nothing. Availability, state, due and today come from the server

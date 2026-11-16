@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Settings › Kalender (ADR 0047 §2, §3, §7–§9): the calendars of the
 // account. Make one from an ICS address or a CalDAV collection, find the
 // collections on a CalDAV server or next to a calendar already there with

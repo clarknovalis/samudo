@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Habits on the phone (ADR 0091, ADR 0092 §1).
 //!
 //! What a habit is today comes from `samu_core::habit` over the mirror with

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The only way to the server (ADR 0025). Relative paths throughout, so this
 // works on a server of its own, on localhost and later inside a desktop shell.
 

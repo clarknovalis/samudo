@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // samu in the browser: lists, inspector and capture over the HTTP API and
 // nothing else (ADR 0025).
 //

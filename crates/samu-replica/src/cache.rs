@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A client's database (ADR 0028 §3, ADR 0066 §2): the mirror of the
 //! server's objects with the change number it reaches, the outbox of changes
 //! not yet confirmed, and the sign-in. Small on purpose: the truth is on the

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Objects of any kind and the page `GET /changes` answers with (ADR 0019 §5).
 
 use serde::de::Error as _;

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Names offered while typing a `#project`, `@tag` or `/template` in a line
 // of quick capture (ADR 0027 §5, ADR 0073 §3): in the capture window and
 // in the edit dialog (ADR 0078 §1) alike.

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Restricted sessions: what a session with a grant sees and may write
 //! (ADR 0095 §2, §3).
 //!

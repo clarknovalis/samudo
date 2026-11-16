@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One action on many tasks (ADR 0052 §6): what the bar of the app needs
 //! beyond calling the functions for one task in a row. Moving and deleting
 //! leave out a task whose ancestor is picked as well (§3); a state is

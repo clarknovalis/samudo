@@ -1,5 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # samu server (ADR 0009).
 #
 # Two ways to the binaries: `compiled` builds them here, `prebuilt` takes

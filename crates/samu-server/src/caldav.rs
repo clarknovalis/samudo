@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The little of CalDAV (RFC 4791) a calendar collection needs to be read
 //! (ADR 0047 §7): `PROPFIND` for its ctag or sync-token, to tell whether
 //! anything changed, and `REPORT calendar-query` over the window the server

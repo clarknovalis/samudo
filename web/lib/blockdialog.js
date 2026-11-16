@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The dialog „Blöcke …“ of a block perspective (ADR 0116 §6): its blocks
 // in order, each another perspective or a fixed view with an optional
 // heading of its own; adding, dragging or ↑ ↓ to order, removing; and the

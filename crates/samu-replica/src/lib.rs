@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A client's way to work without the server (ADR 0028, ADR 0066): a
 //! mirror of the account's objects, an outbox of changes the server has not
 //! yet confirmed, and the sync between them. The Android app uses it

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // A voice note into the inbox with one button (ADR 0063 §1–§3): press to
 // record, press again to stop; then a task „Sprachnotiz T.M. HH:MM“ goes
 // in over POST /capture with the recording attached. Esc throws it away.

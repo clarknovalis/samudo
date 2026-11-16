@@ -45,6 +45,12 @@ Jedes Profil läuft als `samu-server profile <name>` auf `127.0.0.1` mit
 seinem Port, die Daten in `~/.local/share/samu/<name>`; Logs mit
 `journalctl --user -u samu@<name>`.
 
+Ein neues `samu-server`-Binary braucht
+`systemctl --user restart samu@<name>`: ein weiterlaufendes Profil behält das
+alte Binary und damit das alte Schema, denn Migrationen laufen beim Start des
+Servers. Neue Routen antworten dann mit 404, und der Export bleibt bei
+`schema N, this build at M` stehen.
+
 ## Bei einer Replik anmelden
 
 Wie gewohnt anmelden. Die Replik reicht Konto und Passwort an den Server

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Addresses the settings show but never call: the ready link templates
 // (ADR 0047 §9) and the examples in empty fields. Kept here, apart, so the
 // test that the UI calls only relative paths can leave this one file out.

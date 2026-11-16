@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- An exclusive object names its own scope (ADR 0094). A column with no
 -- default: no rebuild. `scope_only` stays in the tables but is no longer
 -- read or written; the wire field is derived from `own_scope` (§6).

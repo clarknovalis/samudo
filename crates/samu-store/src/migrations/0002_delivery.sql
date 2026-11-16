@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- What a hook delivered, by the sender's own id (ADR 0022 §1): the same
 -- delivery again finds the task it made instead of making a second one.
 -- Written in the same transaction as the task. Bookkeeping of the server;

@@ -1,4 +1,9 @@
 #!/bin/sh
+
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # The git mirror of a local profile (ADR 0086 §10), run by
 # samu-export@<profile>.timer: writes the profile's account with
 # `samu-server profile <profile> export` into

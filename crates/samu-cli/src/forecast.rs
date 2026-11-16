@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu forecast` (GET /forecast) and `samu settings`: Forecast as the
 //! server computes it, and the account's settings object (ADR 0045), shown
 //! and set over `POST /changes` like any object.

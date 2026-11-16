@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Data on stdout in the format asked for (ADR 0019 §7).
 
 use std::io::Write;

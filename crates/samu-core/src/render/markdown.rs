@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Markdown through `pulldown-cmark` (catastr ADR 0097, samu ADR 0058 §2).
 //!
 //! The parser hands out events with their byte range; a stack of open

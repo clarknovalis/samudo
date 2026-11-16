@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One running clock per account, and a clock stops with its task
 //! (ADR 0046 §2-§4). Synthetic data only.
 

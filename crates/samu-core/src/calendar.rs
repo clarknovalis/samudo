@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Calendars read from elsewhere (ADR 0047, 0048): an iCalendar text read
 //! into appointments, the window the server keeps, repetitions unfolded
 //! into occurrences, and the link into the calendar itself.

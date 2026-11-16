@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Reminders in the inspector (ADR 0030): the ones set on a task, made and
 // deleted as ordinary objects over POST /changes, like `samu remind`.
 //

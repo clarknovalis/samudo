@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Marc Seibert
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <!-- What the FileProvider hands out (ADR 0039 §6): photos and recordings
      before they are sent, and the stored files of attachments. -->
 <paths>

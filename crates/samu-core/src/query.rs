@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The chips of the search language as a filter (ADR 0042 §2, ADR 0043 §2).
 //!
 //! The web UI's search evaluates the same language in the browser

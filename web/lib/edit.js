@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The edit dialog (ADR 0078): a task's title in its own field, what is set
 // as chips with ✕, and a line in the quick-capture syntax for what comes
 // on top. The server applies the line (POST /capture with `task`); the

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The front (ADR 0087 §2): on port 80 of the loopback it hands each
 //! connection to the service of the profile its `Host` names, so a
 //! profile is `http://<profile>.samu.localhost` in the browser.

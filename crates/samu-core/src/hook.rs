@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Named hooks and the format `index-v1`, the webhook of the Pebble app for
 //! the Index ring (ADR 0010, ADR 0022).
 //!

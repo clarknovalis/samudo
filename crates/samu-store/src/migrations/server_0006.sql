@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- How an account came to be and when it was last used (ADR 0099 §4).
 --
 -- `registered`: `cli` from `samu-server account add`, `demo` and `open`

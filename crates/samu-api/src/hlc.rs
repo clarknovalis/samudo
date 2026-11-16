@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! The hybrid logical clock stamp (ADR 0015 §4, ADR 0016 §1).
 //!
 //! The type and its order live here, the arithmetic of the next stamp in

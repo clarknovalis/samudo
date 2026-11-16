@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu clock …` (ADR 0046): clocks are objects of their own, started,
 //! stopped and added over `POST /changes`. That one clock runs per account
 //! and that a clock stops with its task, the server sees to; the report is

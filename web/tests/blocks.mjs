@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The blocks of web/lib/blocks.js against the cases samu-core meets as
 // well (ADR 0116 §3): testdata/blocks/sections.json. Run by `make check`
 // with node, no packages.

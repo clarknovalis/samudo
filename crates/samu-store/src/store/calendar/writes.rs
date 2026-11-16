@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Appointments written back (ADR 0068): a client's change taken in a
 //! writable calendar, the queue of resources still to be written, and what
 //! the writer learns from the CalDAV server.

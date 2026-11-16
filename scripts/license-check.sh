@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # The crates that may also be used under MIT (samu-api, samu-client) must
 # not depend on a crate of this workspace that is only AGPL: otherwise
 # their MIT label would be void. Dev-dependencies do not ship and are not

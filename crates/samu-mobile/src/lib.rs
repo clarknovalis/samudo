@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The Android app's way into samu (ADR 0028).
 //!
 //! A thin layer over `samu-core` and `samu-client`: it keeps the mirror of

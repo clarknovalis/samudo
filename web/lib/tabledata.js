@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The table's numbers (ADR 0115 §2, §4): the names of its columns, the
 // time worked and the estimate per task and subtree, and the sums of a set
 // of rows. Pure: no DOM, no state of the page, so web/tests/table.mjs can

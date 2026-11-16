@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Numbered schema migrations (the runner of catastr-store, `migrations.rs`).
 //!
 //! `PRAGMA user_version` is the truth; `schema_history` records what ran and

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! The objects of the model as whole states, the way `GET` returns them and
 //! a cache keeps them (ADR 0006, ADR 0014 §8).
 //!

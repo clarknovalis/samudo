@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Settings: projects and folders, and tags (ADR 0036 §8, ADR 0037 §5).
 // A tree to choose from in the middle, the inspector of the chosen one on
 // the right. Making, renaming, moving and the project's properties are

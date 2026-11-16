@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Clocking (ADR 0046): the status bar with the running clock, `c` on a
 // task and the section „Zeit“ in the inspector. The view „Zeit“ became the
 // tab „Zeit“ of the report (ADR 0081 §1, report.js).

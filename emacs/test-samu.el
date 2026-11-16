@@ -1,5 +1,6 @@
 ;;; test-samu.el --- Tests for samu.el -*- lexical-binding: t; -*-
 
+;; SPDX-FileCopyrightText: 2026 Marc Seibert
 ;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 ;;; Commentary:

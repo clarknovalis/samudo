@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Keyboard first (ADR 0020 §4), bound as the account says (ADR 0079). The
 // table of actions and the bindings live in keymap.js; here each action id
 // gets what it does, and a key press is looked up in the bindings in effect.

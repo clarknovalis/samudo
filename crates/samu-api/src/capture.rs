@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Quick capture over `POST /capture` (ADR 0011, ADR 0027): a line of text
 //! in, the task it makes out, with what was recognised where.
 

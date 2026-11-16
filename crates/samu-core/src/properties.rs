@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Properties beyond storing them (ADR 0054): which a task inherits from
 //! its action groups and project, and where a value leads when clicked.
 

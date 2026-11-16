@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A client's own changes laid over what the server last said (ADR 0028 §4).
 //!
 //! A phone mirrors the server's objects and keeps its unconfirmed changes

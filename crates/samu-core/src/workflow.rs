@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Workflows (ADR 0024): an exclusive tag group whose children, in order,
 //! are the states. Which workflow a task follows, its states, the current
 //! one and the next one when cycling. Pure functions for every client; the

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // All state lives here; a view reads it and draws (catastr's one rule).
 // Nothing else remembers anything of its own.
 

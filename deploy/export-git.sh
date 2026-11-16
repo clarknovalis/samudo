@@ -1,4 +1,9 @@
 #!/bin/sh
+
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # The git mirror of samu's export (ADR 0074 §9): run by samu-export.timer
 # on the server. Writes each account as a directory of JSON (samu-server export)
 # plus samu.org (samu export-org) into /srv/samu/export/<account>, commits

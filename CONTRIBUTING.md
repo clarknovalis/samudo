@@ -59,6 +59,7 @@ samudo is licensed under the [GNU Affero General Public License v3.0 or
 later](LICENSE). The wire types in `crates/samu-api` and the HTTP client
 in `crates/samu-client` may in addition be used under the MIT or
 Apache-2.0 license; they must therefore depend on nothing else in this
-workspace (`make license-check`). By submitting a contribution
+workspace (`make license-check`). Every file names its copyright and
+license, in an SPDX header or in `REUSE.toml` (`make reuse-lint`). By submitting a contribution
 you agree that it is licensed under the same terms as the files it
 changes.

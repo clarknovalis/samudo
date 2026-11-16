@@ -1,0 +1,54 @@
+# Licensing of the files that carry no SPDX header of their own: data,
+# images, documentation and third-party code (https://reuse.software).
+# Source files carry their header; `make reuse-lint` checks that every file
+# is covered by one or the other.
+version = 1
+
+# Data, documentation, images and generated files of samudo itself.
+[[annotations]]
+path = [
+    "**/*.md",
+    "**/*.json",
+    "**/*.svg",
+    "**/*.png",
+    "**/.gitignore",
+    ".dockerignore",
+    "Cargo.lock",
+    "web/favicon.svg",
+    "testdata/**",
+    "site/**",
+    ".github/ISSUE_TEMPLATE/**",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Marc Seibert"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# The wire types and the client library may also be used under MIT or
+# Apache-2.0 (their Cargo.toml), their fixtures and data alike.
+[[annotations]]
+path = ["crates/samu-api/**", "crates/samu-client/**"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Marc Seibert"
+SPDX-License-Identifier = "AGPL-3.0-or-later OR MIT OR Apache-2.0"
+
+# Hextra, the Hugo theme of the documentation site, vendored by `hugo mod
+# vendor` (site/_vendor/modules.txt names the version).
+[[annotations]]
+path = "site/_vendor/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2023 Xin"
+SPDX-License-Identifier = "MIT"
+
+# qrcode-generator, vendored for the pairing dialog of the web UI.
+[[annotations]]
+path = "web/lib/qrcode-generator-*"
+precedence = "override"
+SPDX-FileCopyrightText = "2009 Kazuhiko Arase"
+SPDX-License-Identifier = "MIT"
+
+# The Gradle wrapper.
+[[annotations]]
+path = ["android/gradlew", "android/gradlew.bat", "android/gradle/wrapper/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "2015 the original authors (Gradle)"
+SPDX-License-Identifier = "Apache-2.0"

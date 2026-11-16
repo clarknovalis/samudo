@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu-server account …` (ADR 0019 §3, ADR 0099 §4–5): what `list`
 //! shows and what `delete` leaves behind.
 

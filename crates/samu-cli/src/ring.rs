@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A delivery as the Pebble app sends it (format `index-v1`, ADR 0010), for
 //! `samu hook send`, which stands in for the app.
 //!

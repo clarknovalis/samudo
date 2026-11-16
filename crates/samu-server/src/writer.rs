@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Writing appointments back to their CalDAV server (ADR 0068 §6–§9).
 //!
 //! A change a client made goes into the account's queue in the same

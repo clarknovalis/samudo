@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- samu, the server file: accounts and sessions (ADR 0019 §2, §3).
 -- Conventions as in the account database (0001_initial.sql).
 

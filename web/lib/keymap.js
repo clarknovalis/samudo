@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The key bindings (ADR 0079): every action has an id, a title, a default
 // binding and the place it works. Keys, the help and the menu are all drawn
 // from this table and the account's own bindings (`settings.keys`), so they

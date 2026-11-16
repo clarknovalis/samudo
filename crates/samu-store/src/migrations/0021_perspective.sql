@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Perspectives (ADR 0090): a new kind of object.
 --
 -- `object.kind` has a CHECK listing the kinds, so the table is rebuilt as in

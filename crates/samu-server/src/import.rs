@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `POST /calendars/{id}/import` (ADR 0100 §4): an iCalendar file into a
 //! writable CalDAV calendar. samu-core cuts it into one resource per UID,
 //! each goes to the collection as it came (VALARM, ATTENDEE and the rest

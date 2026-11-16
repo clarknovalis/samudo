@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu tag …` and `samu state`: tags and workflows (ADR 0024). The
 //! command line depends on samu-api only, so the few rules of a workflow
 //! (which group, which order, the next state) are written out here once

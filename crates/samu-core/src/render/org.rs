@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Org mode, a subset (catastr ADR 0097, samu ADR 0058 §2).
 //!
 //! Line based, like the extractor. What it does not know stays text: a

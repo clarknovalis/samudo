@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu perspective` (ADR 0090): saved views of the search, made and
 //! changed over `/changes` like a scope. `samu list --perspective name`
 //! shows what one holds, computed by samu-core on the server.

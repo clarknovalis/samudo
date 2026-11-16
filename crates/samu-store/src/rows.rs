@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Rows ↔ `samu-api` objects.
 //!
 //! One description of the columns per kind, used both ways: an object is

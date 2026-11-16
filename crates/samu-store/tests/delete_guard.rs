@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! ADR 0076 §2: a folder, project or tag is not deleted while a live
 //! object still points at it; once that is gone, it is. Asked of the
 //! database. Synthetic data only.

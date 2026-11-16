@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Drag the sidebar and the inspector wider or narrower. The widths are
 // this browser's own, like the sidebar's step: two CSS variables on #app,
 // kept in localStorage. A double click goes back to the stylesheet's.

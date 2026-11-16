@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Where the generated Kotlin lands in the app (ADR 0028).
 [bindings.kotlin]
 package_name = "de.samudo.app.mobile"

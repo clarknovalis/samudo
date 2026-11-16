@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu project …` and `samu folder …`: make and rename them (ADR 0036
 //! §7). Deleting goes through `samu delete`, which the server composes.
 

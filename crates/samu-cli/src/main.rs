@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The samu command line. It covers the whole API, one command per route
 //! (ADR 0019 §7, catastr ADR 0009).
 //!

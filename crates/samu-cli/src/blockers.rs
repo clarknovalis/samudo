@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu block`, `samu unblock` and `samu blockers` (ae5a3206): a task
 //! waits for another through a `blocked_by` link (ADR 0017 §7). The links
 //! are ordinary objects over `/changes`. Which ones make sense is

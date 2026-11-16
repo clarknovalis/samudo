@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Marc Seibert
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <!-- The widget "Heute" (ADR 0028 §9). Drawn anew after every sync and on
      leaving the app; the half hour is only a fallback. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"

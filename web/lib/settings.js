@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Settings (ADR 0035 §8, ADR 0036 §8, ADR 0037 §5): a navigation on the
 // left, the chosen section beside it. The first section is Scopes: make one, name it,
 // choose its mode, tick its members in the tree of folders, projects and

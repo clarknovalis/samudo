@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Perspectives (ADR 0090): saved views of the search, the filter, the
 // arrangement and the presentation, kept on the server. In a perspective
 // the search field holds its chips and free text; changing them asks to

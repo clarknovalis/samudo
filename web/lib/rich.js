@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Notes and comments rendered (ADR 0058): the tree comes from samu-core
 // through POST /render and is built here with el(), never innerHTML, so
 // nothing in a note runs (§5). Only `web` links and `task` links the server

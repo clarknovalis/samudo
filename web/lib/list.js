@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The middle: what the view holds, through the filter, grouped by project
 // (ADR 0020 §1), with action groups as ADR 0021 draws them. Availability,
 // reasons, state and group summaries come from the server (ADR 0025 §3).

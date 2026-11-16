@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 [package]
 name = "samu-api"
 # Its own semver, independent of the application (ADR 0003 §1): catastr

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Making an account, filling it with demo data, deleting it (ADR 0099
 // §2, §5, §7, §8). The sign-in page asks the server once whether it takes
 // new accounts (`GET /register`) and shows the form below its own only

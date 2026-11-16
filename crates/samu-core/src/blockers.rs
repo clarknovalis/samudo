@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Setting blockers (ae5a3206): which task may block which, and the link
 //! that says so. A blocker is a `Link` with `kind = blocked_by` and the
 //! `samu:` address of the blocking task (ADR 0012, ADR 0017 §7); the

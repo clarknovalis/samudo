@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu template` (ADR 0073): capture templates are objects of their own,
 //! made and changed over `/changes` like a scope. A template is called as
 //! `/name` in `samu add`, or with `samu add --template name`; its key

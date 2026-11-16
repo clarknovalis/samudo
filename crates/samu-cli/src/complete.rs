@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Shell completion (zsh first). The shell calls `samu` itself with
 //! `COMPLETE=zsh`; clap_complete knows commands and options from the clap
 //! definition, and the functions here add what only the server knows:

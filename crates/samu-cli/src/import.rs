@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu import org`: the open tasks of an Org agenda as changes (ADR 0002
 //! §4, ADR 0012 §4, ADR 0023). It may run as often as wanted, with any
 //! directories, into one account: what it brought before it knows by

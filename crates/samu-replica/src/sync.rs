@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading the mirror with the outbox over it, and the sync with the server
 //! (ADR 0028 §4, §5).
 

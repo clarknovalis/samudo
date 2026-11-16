@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Open accounts close after a rest, and the running server deletes
 //! accounts: expired demo accounts (ADR 0099 §4–5; 13.11.2026, to
 //! `0b785034`).

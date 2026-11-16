@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- A daily reminder (ADR 0093): the anchor `daily` with a time of day.
 --
 -- `reminder.anchor` has a CHECK listing the anchors, and SQLite cannot

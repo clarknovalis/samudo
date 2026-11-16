@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The demo content (ADR 0099 §6): both languages into an empty account,
 //! counted in the database, not in what the seeding says it made.
 

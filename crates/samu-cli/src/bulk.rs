@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu bulk …`: one action on many tasks (ADR 0052 §7). Every action
 //! but `delete` is one `POST /changes`; ids come as arguments or, with
 //! `-`, one per line on stdin (the first word, so `samu list --format tsv`

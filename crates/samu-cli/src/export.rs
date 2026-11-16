@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu export` and `samu export-org` (ADR 0074 §5, §8): the account as a
 //! directory from `GET /export` and the files from `/blobs`; and an Org
 //! file written from such a directory, without a server.

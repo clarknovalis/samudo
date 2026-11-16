@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Reminders (ADR 0030): a new kind of object, and the time of day a
 -- reminder on a date without a time goes off.
 --

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What a habit is today: day, period, streak, rate and history, from its
 //! entries (ADR 0091 §3). Computed here and nowhere else.
 

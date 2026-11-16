@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The context menu of a task (ADR 0062 §1, §4): a right click on a row of
 // the list or a card of the board, Shift+F10 or the menu key on the
 // current row, a long press on touch. Every entry goes the way its key or

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // A repetition in the inspector (ADR 0007 §3, 85b3799a): the RRULE taken
 // apart into what the form edits, put together again, and said in words.
 // The form knows FREQ, INTERVAL, plain BYDAY on a weekly rule, one

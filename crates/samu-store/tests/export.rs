@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Export and restore of an account (ADR 0074 §7): an account with every
 //! kind of object, a logbook, removed tags, properties and members, and a
 //! file is exported, restored into an empty account and exported again;

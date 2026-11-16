@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2026 Marc Seibert
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <resources>
     <!-- The window behind Compose; the colours are in Theme.kt (ADR 0026). -->
     <style name="Samu" parent="android:Theme.Material.Light.NoActionBar">

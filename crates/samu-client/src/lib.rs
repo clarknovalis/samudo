@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Talking to a samu server: HTTP/1.1 by hand, plain or over TLS
 //! (ADR 0028 §2).
 //!

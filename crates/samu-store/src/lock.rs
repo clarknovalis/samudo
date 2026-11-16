@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One writer per database, enforced by the operating system (as in
 //! catastr-store, `lock.rs`).
 //!

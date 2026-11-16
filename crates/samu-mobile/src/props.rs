@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Properties on the phone (ADR 0054): the front matter of a task or
 //! project, own and inherited, with where each value leads; setting one;
 //! the account's templates per key. Inheritance and links come from

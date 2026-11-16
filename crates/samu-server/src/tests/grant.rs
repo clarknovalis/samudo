@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Restricted sessions over the API (ADR 0095 §4–6). The account:
 //! folders tec > ai and tec > other; project P in ai, Q in other; task a in
 //! P, task b in Q, task i in the inbox; a tag. The grant is the folder ai.

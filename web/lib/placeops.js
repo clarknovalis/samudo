@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Making and moving projects, folders and tags (ADR 0037 §1, ADR 0041).
 // The settings and the sidebar both go through here, so there is one way
 // to the server: ordinary changes over /changes, in one write each.

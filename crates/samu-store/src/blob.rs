@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The files of attachments (ADR 0039 §4): named by their SHA-256, written
 //! once and never changed, in a directory of their own next to the account
 //! database.

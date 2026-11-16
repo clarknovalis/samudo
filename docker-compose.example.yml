@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # A starting point for running samudo with Docker Compose; see
 # docs/self-hosting.md for the steps around it (secret key, first account,
 # reverse proxy). Copy it to docker-compose.yml next to a .env file:

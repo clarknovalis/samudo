@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The report's `autor:` in both languages (ADR 0080 §2, ADR 0105 §3):
 // web/lib/author.js. Run by `make check` with node, no packages.
 

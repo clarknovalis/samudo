@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The same plugin versions as catastr's app (ADR 0028 §1), so both build
 // with one SDK and one Gradle.
 plugins {

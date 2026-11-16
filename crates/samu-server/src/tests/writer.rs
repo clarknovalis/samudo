@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Appointments written back (ADR 0068): a small CalDAV server in the test
 //! keeps resources with ETags and answers `If-Match` and `If-None-Match`
 //! as a real one does. A change over `/changes` goes back at once; what

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Changes from an outbox against a real account database (ADR 0016,
 //! ADR 0018). Synthetic data only: the fixtures of samu-api and made-up ids.
 

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! What `GET /events` sends (ADR 0014 §10, catastr ADR 0095).
 
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The columns of a board and where each task stands in them (ADR 0061).
 // Pure: no DOM, no state of the page; board.js hands in what it needs, so
 // the rules can be checked on their own.

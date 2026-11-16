@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The search language in German and English (ADR 0105 §3). Both are read
 //! always; a chip keeps the German word, its wire form, and is shown in the
 //! language of the interface. `web/lib/query.js` holds the same pairs.

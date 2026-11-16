@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu login --only`: the folders and projects a restricted session may
 //! reach (ADR 0095 §8), named as in `samu folder list` and `samu projects`.
 

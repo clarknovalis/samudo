@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Scopes: one lens over every view (ADR 0035).
 //!
 //! A scope names folders, projects and tags, and says whether the views show

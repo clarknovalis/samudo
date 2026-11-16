@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- The grant of a restricted session (ADR 0095 §1): the folders and projects
 -- it may reach and whether it may write, as the JSON of `samu_api::Grant`.
 -- NULL is a session of the whole account, as every session before.

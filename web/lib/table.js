@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The table (ADR 0115): a third way to show a view beside list and board.
 // The rows are the list's — the same tree, filter, grouping and sorting —
 // drawn as a table with chosen columns, the sums of an action group's

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Settings › Tastatur (ADR 0079 §4): every action with the key in effect,
 // change, remove, back to the default; and the capture: press a key (or
 // two, §6), then it is free, refused or taken — taken offers to swap, to

@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Scopes, second round (ADR 0043): the inbox as a member, a filter in the
 -- search language, what a capture inherits, a schedule.
 --

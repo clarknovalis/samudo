@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The next task of a repetition (ADR 0007 §3–§5, ADR 0033).
 //!
 //! The rule is RFC 5545 and computed by the `rrule` crate, which works in

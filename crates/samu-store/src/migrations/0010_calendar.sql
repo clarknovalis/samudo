@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- Calendars read from elsewhere and their appointments (ADR 0047, 0048).
 --
 -- `object.kind` has a CHECK listing the kinds, so the table is rebuilt as in

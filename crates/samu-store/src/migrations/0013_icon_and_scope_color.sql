@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- An emoji for folders and projects (ADR 0059 §3): not empty, at most 32
 -- bytes. A colour for a scope from a fixed palette (ADR 0060 §3). Columns
 -- that may be NULL: no rebuild.

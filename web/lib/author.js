@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The report's `autor:` (ADR 0080 §2) in both languages (ADR 0105 §3):
 // `author:` and `all` are read always and shown on an English page; the
 // chip keeps the German word, which is what the server is sent.

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! An account as a directory of files, readable without samu (ADR 0074).
 //!
 //! `GET /export` answers with an [`Export`]; [`Export::to_files`] lays it

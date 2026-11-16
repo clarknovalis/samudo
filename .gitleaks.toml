@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Secret scan of the tree (ADR 0108 §7): `make secret-scan`.
 # The default rules, plus one exception: the samu-api fixtures are
 # synthetic wire examples whose fields are named secret, password and

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Calendars and appointments in the store (ADR 0047, 0048): appointments
 //! are the server's alone, the source is sealed, and a sync writes only what
 //! changed. Asked of the database itself, not of what the store says.

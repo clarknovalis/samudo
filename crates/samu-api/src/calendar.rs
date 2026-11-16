@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! Calendars read from elsewhere and their appointments (ADR 0047, 0048).
 //!
 //! A calendar is the user's: they add it, name it, colour it. Its source –

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! When tasks and projects remind (ADR 0030).
 //!
 //! An open task or project with a `due` reminds at it; a `reminder` object

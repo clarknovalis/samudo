@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu scope …` (ADR 0035): scopes are objects of their own, made and
 //! changed over `POST /changes`. Which one is chosen belongs to this device
 //! (§4) and is kept next to the session token, never on the server. What a

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Block perspectives (ADR 0116): several perspectives and fixed views one
 //! below the other, like org's block agenda.
 //!

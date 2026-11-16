@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Appointments written back into iCalendar (ADR 0068 §6).
 //!
 //! Line by line, not through a model: a resource from elsewhere keeps

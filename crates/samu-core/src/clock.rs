@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The arithmetic of the hybrid logical clock and last-writer-wins
 //! (ADR 0004 §3/§4, ADR 0016 §1/§4).
 //!

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Building elements without a framework (as catastr's web/lib/dom.js).
 //
 // `el` takes text, never HTML: a task titled `<b>` stays a title.

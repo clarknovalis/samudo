@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Comments and attachments in the inspector (ADR 0039 §3, §5, §6).
 //
 // One composer under the comments takes text and files: pasted or dropped

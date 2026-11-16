@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Export and restore of an account (ADR 0074 §2, §4, §6).
 //!
 //! The export reads every live object with what the server keeps beside it

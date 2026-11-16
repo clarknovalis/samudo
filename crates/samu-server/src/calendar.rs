@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Fetching calendars (ADR 0047 §7): a loop asks every account once a
 //! minute which calendars are due, fetches them outside the account's lock,
 //! and lays what came over what is stored.

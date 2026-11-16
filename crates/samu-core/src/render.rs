@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A note or comment as a document tree (ADR 0058).
 //!
 //! The parsers are a copy of catastr's (catastr ADR 0097): Markdown through

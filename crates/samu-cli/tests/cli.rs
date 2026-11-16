@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The command line against a real `samu-server`, started from its binary
 //! with a data directory of its own and stopped by its PID, never by name:
 //! a kill by name would hit every samu-server on the machine. Exit codes

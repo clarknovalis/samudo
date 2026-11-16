@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Appointments written by clients in a writable calendar (ADR 0068):
 //! taken, queued for the writer, logged, left alone by a fetch while
 //! queued, and settled with what the writer learns. Asked of the database

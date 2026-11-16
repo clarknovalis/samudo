@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! An iCalendar file cut into one resource per UID for an import
 //! (ADR 0100 §4). Line by line like the rest of `write`: what samu does not
 //! know (VALARM, ATTENDEE, X- properties) goes on as it came.

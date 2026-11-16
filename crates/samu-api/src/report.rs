@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
+
 //! The clock report, as `GET /clocks/report` returns it (ADR 0046 §5), and
 //! the report of done, worked on and time, as `GET /report` returns it
 //! (ADR 0080).

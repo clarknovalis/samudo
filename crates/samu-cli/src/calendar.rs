@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu calendar …` and `samu appointments` (ADR 0047, 0048): calendars
 //! are the user's objects over `POST /changes`; the source goes to
 //! `PUT /calendars/{id}/source` and never comes back; the occurrences of

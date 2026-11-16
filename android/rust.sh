@@ -1,4 +1,9 @@
 #!/bin/sh
+
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Builds samu-mobile for the phone and writes its Kotlin bindings, both
 # under the directory given (ADR 0028 §1). Called by Gradle before every
 # build, so Rust and Kotlin cannot drift apart. As catastr's android/rust.sh.

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu appointment …` (ADR 0068): appointments of a writable calendar
 //! made, changed and deleted. A new one is a `create` over `POST /changes`;
 //! an edit or a deletion goes to `POST /appointments/{id}/edit`, where the

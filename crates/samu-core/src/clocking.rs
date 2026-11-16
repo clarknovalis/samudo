@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Clocking (ADR 0046): one running clock per account, a clock stops with
 //! its task, and the report.
 //!

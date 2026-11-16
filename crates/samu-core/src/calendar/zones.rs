@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! TZIDs of calendars as IANA zones (ADR 0047 §6).
 //!
 //! Exchange and Outlook name zones the Windows way („W. Europe Standard

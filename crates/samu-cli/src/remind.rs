@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu remind` and `samu reminders` (ADR 0030): reminders are objects of
 //! their own, made and listed over the ordinary routes. When they go off is
 //! computed by samu-core on the phone; this lists what is set.

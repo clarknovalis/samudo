@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Making an account over HTTP (ADR 0099 §1–3) and deleting one's own
 //! (§5).
 

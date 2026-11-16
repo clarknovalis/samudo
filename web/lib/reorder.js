@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Moving a task within its project's tree (ADR 0062 §7–§10): Shift+↑/↓
 // one visible place on, into an open group and out of its own, and
 // dropping a row before, after or into another. Every move writes

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The Android app (ADR 0028). The Rust side is built by rust.sh before every
 // build: the library for the phone and the Kotlin bindings from it, so the
 // two cannot drift apart. Needs the SDK, the NDK and cargo-ndk, see

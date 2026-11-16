@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Editing tasks on the phone (ADR 0040): every field the task page edits,
 //! the targets and the move with the descendants, and deleting.
 //!

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // One object's address, `/o/<uuid>` (ADR 0075 §1): read when the page
 // starts, resolved once the objects are loaded, and kept in the address bar
 // while a task is open, so it can be copied, shared or handed over by

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `samu-server profile <name>` (ADR 0086 §2–§4): a local profile is a
 //! server of its own on the loopback, an online one the replica; both
 //! answer only to their own `Host`. Every process is stopped by its PID.

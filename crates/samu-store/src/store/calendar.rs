@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Calendars in the account file (ADR 0047): the sealed source, which
 //! calendars are due, and laying what was fetched over what is stored.
 //!

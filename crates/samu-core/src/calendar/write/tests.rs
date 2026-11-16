@@ -1,5 +1,9 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, reason = "tests may unwrap")]
 
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 use jiff::civil::date;
 use samu_api::{Id, Period};
 

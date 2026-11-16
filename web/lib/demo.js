@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // The banner of a public demo (ADR 0098 §2, ADR 0099 §4, §9). The server
 // puts <meta name="samu-demo" content="N"> into the page when the demo is
 // reset every N minutes, counted from midnight; then the banner says so.

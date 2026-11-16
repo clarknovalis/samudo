@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2026 Marc Seibert
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
 -- samu, the account database (ADR 0018).
 --
 -- Conventions, as in catastr (catastr ADR 0016):

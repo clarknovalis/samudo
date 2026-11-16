@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What a text shared to samu makes (ADR 0013): a title, a note and the
 //! addresses in it as links. The quick-capture parser does not run on it;
 //! only what one types oneself is parsed (ADR 0013 §2, ADR 0010 §8).

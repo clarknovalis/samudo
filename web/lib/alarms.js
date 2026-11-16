@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 // Reminders in this browser (ADR 0101 §6, §8): two switches that live
 // here alone, never in the account, both off at first. With one on, the
 // page asks once for permission to notify, asks the server what goes off
