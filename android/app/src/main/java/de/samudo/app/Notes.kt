@@ -65,7 +65,6 @@ import java.io.File
 /** A file taken or picked, not yet handed to samu-mobile. */
 private data class Draft(val path: String, val name: String, val mediaType: String)
 
-private const val AUTHORITY = "de.samudo.app.files"
 
 /** Where taken and picked files wait until they are sent; samu-mobile moves them away. */
 private fun drafts(context: Context): File = context.cacheDir.resolve("notes").also { it.mkdirs() }
@@ -298,7 +297,7 @@ private fun Composer(owner: String, act: (Samu.() -> Unit) -> Unit) {
         OutlinedButton(onClick = {
             val file = drafts(context).resolve("foto-${stamp()}.jpg")
             photo = file
-            take.launch(FileProvider.getUriForFile(context, AUTHORITY, file))
+            take.launch(FileProvider.getUriForFile(context, context.packageName + ".files", file))
         }, enabled = recorder == null) { Text(tr("Foto")) }
         if (recorder == null) {
             OutlinedButton(onClick = {
@@ -383,7 +382,7 @@ private fun preview(path: String): Bitmap? {
 
 /** Hands a file to another app to show; the file is named by its hash, so the type goes along. */
 private fun open(context: Context, path: String, mediaType: String) {
-    val uri = FileProvider.getUriForFile(context, AUTHORITY, File(path))
+    val uri = FileProvider.getUriForFile(context, context.packageName + ".files", File(path))
     val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mediaType)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }

@@ -1,0 +1,15 @@
+<p>The Android app of <b>samudo</b>, a self-hosted task manager. It takes the best of OmniFocus and Todoist, and from org-mode capture templates, refile, clocking and free properties.</p>
+
+<p><b>It needs a samudo server</b>, which you run yourself (a single binary or a Docker container). The server is the single writer of every task; web UI, command line, Emacs and this app are its clients. To look around first, try the demo at https://demo.samudo.de/.</p>
+
+<ul>
+<li><b>Available, not just due:</b> defer and due dates are kept apart. What is available right now is computed, and every view says why a task is not.</li>
+<li><b>Projects:</b> sequential and parallel projects, action groups, single-action lists, workflows with states, folders.</li>
+<li><b>Capture in one line:</b> "Call the tiler #Bathroom @phone d:fri ~15m" – project, tag, date and duration in one sentence. Also from the share menu of other apps.</li>
+<li><b>Forecast and perspectives:</b> overdue, today and flagged with your appointments; saved searches in a search language.</li>
+<li><b>Clocking, habits, reminders</b>, comments and attachments, widgets for today and for habits.</li>
+<li><b>Offline first:</b> every change goes into an outbox on the phone and is sent with the next sync. The same Rust core as the server computes availability, so it agrees offline too.</li>
+<li>Sign in with password or by scanning a pairing code from the web UI. German and English.</li>
+</ul>
+
+<p>Free software under the AGPL-3.0. Documentation: https://docs.samudo.de/</p>

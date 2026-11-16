@@ -1,0 +1,86 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Builds the Android app's release APK for a tag v<version> and puts it into
+# a draft GitHub release. The APK is unsigned: the release key never leaves
+# the maintainer, who downloads it, signs it with apksigner, uploads the
+# signed APK and only then publishes the release. So nobody, Obtainium
+# included, ever sees an unsigned APK or a release without an installable
+# file. The tag has to name the version in Cargo.toml, and the fastlane
+# changelog of its versionCode has to exist; its text is the release note.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # The same as on the maintainer's machine: cargo-ndk, the NDK and the
+  # SDK platform of compileSdk in android/app/build.gradle.kts.
+  CARGO_NDK_VERSION: "4.1.2"
+  NDK_VERSION: "29.0.14206865"
+  SDK_PLATFORM: "platforms;android-37.0"
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag, version and changelog
+        run: |
+          read -r version code < <(scripts/app-version.sh)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not name the version $version in Cargo.toml" >&2
+            exit 1
+          fi
+          notes=fastlane/metadata/android/en-US/changelogs/$code.txt
+          test -s "$notes" || { echo "no changelog $notes" >&2; exit 1; }
+          {
+            echo "VERSION=$version"
+            echo "NOTES=$notes"
+          } >> "$GITHUB_ENV"
+
+      # rust-toolchain.toml names the channel; the phone's target on top.
+      - name: Rust
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo-ndk
+        run: cargo install cargo-ndk --version "$CARGO_NDK_VERSION" --locked
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # ANDROID_HOME and sdkmanager are in the image; rust.sh takes the NDK
+      # from ANDROID_NDK_HOME.
+      - name: Android SDK and NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "$SDK_PLATFORM" "ndk;$NDK_VERSION"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+      # Without samudo.keystore the build is unsigned (build.gradle.kts).
+      - name: assembleRelease
+        working-directory: android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=samudo-$VERSION-unsigned.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk "$apk"
+          gh release create "$GITHUB_REF_NAME" "$apk" --draft \
+            --title "samudo $VERSION" --notes-file "$NOTES"

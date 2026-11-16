@@ -1,0 +1,1 @@
+The first release: the app that was in daily use, now as a signed release (de.samudo.app). A build signed with another key cannot be updated in place: uninstall it first, after a sync has emptied its outbox.

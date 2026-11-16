@@ -1,0 +1,15 @@
+<p>Die Android-App von <b>samudo</b>, einer selbst gehosteten Aufgabenverwaltung. Sie nimmt das Beste aus OmniFocus und Todoist, und aus org-mode Erfassungsvorlagen, Refile, Zeiterfassung und freie Properties.</p>
+
+<p><b>Sie braucht einen samudo-Server</b>, den du selbst betreibst (ein einzelnes Binary oder ein Docker-Container). Der Server ist der einzige Schreiber jeder Aufgabe; Web-Oberfläche, Kommandozeile, Emacs und diese App sind seine Clients. Zum Umsehen gibt es die Demo unter https://demo.samudo.de/.</p>
+
+<ul>
+<li><b>Verfügbar statt nur fällig:</b> Zurückstellen und Fälligkeit sind getrennt. Was gerade verfügbar ist, wird berechnet, und jede Ansicht sagt, warum etwas nicht verfügbar ist.</li>
+<li><b>Projekte:</b> sequenzielle und parallele Projekte, Aktionsgruppen, Einzelaktionslisten, Abläufe mit Zuständen, Ordner.</li>
+<li><b>Erfassen in einer Zeile:</b> „Fliesenleger anrufen #Bad @telefon d:fr ~15m“ – Projekt, Tag, Termin und Dauer in einem Satz. Auch aus dem Teilen-Menü anderer Apps.</li>
+<li><b>Forecast und Perspektiven:</b> Überfälliges, Heutiges und Markiertes mit deinen Terminen; gespeicherte Suchen in einer Suchsprache.</li>
+<li><b>Zeiterfassung, Gewohnheiten, Erinnerungen</b>, Kommentare und Anhänge, Widgets für heute und für Gewohnheiten.</li>
+<li><b>Offline zuerst:</b> jede Änderung geht in einen Ausgang auf dem Handy und wird beim nächsten Sync gesendet. Derselbe Rust-Kern wie auf dem Server berechnet die Verfügbarkeit, darum stimmt sie auch offline.</li>
+<li>Anmelden mit Passwort oder per Kopplungscode aus der Web-Oberfläche. Deutsch und Englisch.</li>
+</ul>
+
+<p>Freie Software unter der AGPL-3.0. Dokumentation: https://docs.samudo.de/</p>

@@ -39,7 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
          mirror comes back from the server anyway. -->
     <application
         android:allowBackup="false"
-        android:label="samudo"
+        android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Samu">
@@ -111,7 +111,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
              writes a photo into the cache, another app opens a stored file. -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="de.samudo.app.files"
+            android:authorities="${applicationId}.files"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

@@ -17,6 +17,7 @@ path = [
     "web/favicon.svg",
     "testdata/**",
     "site/**",
+    "fastlane/**",
     ".github/ISSUE_TEMPLATE/**",
 ]
 precedence = "closest"

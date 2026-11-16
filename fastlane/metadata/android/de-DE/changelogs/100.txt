@@ -1,0 +1,1 @@
+Das erste Release: die App aus dem täglichen Gebrauch, jetzt signiert als Release (de.samudo.app). Ein mit anderem Schlüssel signierter Build lässt sich nicht darüber installieren: zuerst synchronisieren, bis der Ausgang leer ist, dann deinstallieren.
