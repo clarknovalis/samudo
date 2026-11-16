@@ -6,7 +6,8 @@ cascade:
 
 Die Dokumentation von samudo. Was samudo ist und wie es aussieht, steht
 auf [samudo.de](https://samudo.de/); ausprobieren lässt es sich in der
-[Demo](https://demo.samudo.de/).
+[Demo](https://demo.samudo.de/). Der Quellcode, und diese Seiten als
+Markdown, liegen auf [GitHub](https://github.com/clarknovalis/samudo).
 
 ## Einstieg
 

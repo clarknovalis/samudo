@@ -6,7 +6,8 @@ cascade:
 
 The documentation of samudo. What samudo is and what it looks like is on
 [samudo.de](https://samudo.de/en/); it can be tried in the
-[demo](https://demo.samudo.de/).
+[demo](https://demo.samudo.de/). The source, and these pages as
+Markdown, are on [GitHub](https://github.com/clarknovalis/samudo).
 
 ## Start here
 

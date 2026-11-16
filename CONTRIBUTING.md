@@ -42,11 +42,16 @@ The short version:
 
 ## Pull requests
 
-Development happens in the maintainer's own repository, which is mirrored
-to GitHub. A pull request is fetched and applied there with your
-authorship kept, and then appears on GitHub with the next mirror push;
-the pull request itself is closed rather than merged. That is expected,
-not a rejection.
+Development happens in the maintainer's own repository; this one on
+GitHub receives it as snapshots, one commit per published state. A pull
+request is applied there as a patch with your authorship kept, and its
+change appears here with the next snapshot; the pull request itself is
+then closed rather than merged, with a pointer to that snapshot. That is
+expected, not a rejection.
+
+The desktop widget lives in
+[samudo-dms](https://github.com/clarknovalis/samudo-dms); pull requests
+for it are merged there directly.
 
 ## License
 

@@ -1,5 +1,9 @@
 # samudo
 
+**[samudo.de](https://samudo.de)** · [demo](https://demo.samudo.de) ·
+[documentation](https://docs.samudo.de) ·
+[desktop widget](https://github.com/clarknovalis/samudo-dms)
+
 A self-hosted task manager for Linux, the web and Android, with the best
 parts of org-mode: capture templates, refile, clocking and free properties.
 
@@ -23,15 +27,27 @@ reads as a nod to getting things done. Inside, everything is still called
 - Your data is never locked in: export to plain JSON files and an Org
   outline, readable without samudo.
 
-**Status:** server, command line, web UI and Android app are in daily use;
-there is no release yet.
+**Status:** server, command line, web UI, Android app and Emacs package
+are in daily use; there is no release yet, `main` is what runs.
+
+## Try it
+
+The [public demo](https://demo.samudo.de) needs no installation: sign in
+as `demo-en` (or `demo-de`) with the password `demo4samudo`, or make a
+demo account of your own there. The shared accounts start fresh every
+hour, an own one is deleted seven days after its last use. In the Android
+app or the command line the server is `https://demo.samudo.de`.
+Screenshots of the web UI and the app are on [samudo.de](https://samudo.de/en/).
 
 ## Documentation
 
-Everything is in [`docs/`](docs/README.md):
+The documentation is at **[docs.samudo.de](https://docs.samudo.de/en/)**
+(English and German), built from the Markdown in [`docs/`](docs/README.md),
+which reads just as well here:
 [concepts](docs/concepts.md), [quick capture](docs/quick-capture.md),
 the [web UI](docs/web.md), the [Android app](docs/android.md), the
-[command line](docs/cli.md), [Emacs](docs/emacs.md),
+[command line](docs/cli.md), [Emacs](docs/emacs.md), the
+[desktop widget](docs/desktop-widget.md),
 [self-hosting](docs/self-hosting.md) and the
 [architecture](docs/architecture.md), which also gives the reasons behind
 the design.
@@ -40,15 +56,23 @@ the design.
 
 ```sh
 make install                                       # the command line
-samu login --server https://samu.example.org --account private
+samu login --server https://demo.samudo.de --account demo-en   # password demo4samudo
 samu add "Call the tiler #Bathroom @phone d:fri ~15m"
 samu add "Buy milk" --dry-run                      # show, write nothing
 samu list --available
 samu done 4f2a91c3
 ```
 
-Running the server: [Self-hosting](docs/self-hosting.md). Checking a
-change: `make check-public`.
+Running your own server: [Self-hosting](docs/self-hosting.md). Checking
+a change: `make check-public`.
+
+## Repositories
+
+- [clarknovalis/samudo](https://github.com/clarknovalis/samudo), this one:
+  server, web UI, Android app, command line, Emacs package, documentation
+  (`docs/`, `site/`).
+- [clarknovalis/samudo-dms](https://github.com/clarknovalis/samudo-dms):
+  samuAgenda, the widget for the bar of DankMaterialShell, MIT licensed.
 
 ## Sister project
 

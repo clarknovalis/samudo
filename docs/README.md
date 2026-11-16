@@ -1,7 +1,10 @@
 # samudo documentation
 
 How to run and use samudo. The reasons behind the design are in
-[Architecture](architecture.md).
+[Architecture](architecture.md). These pages are also published, in
+English and German, at <https://docs.samudo.de>; what samudo is and what
+it looks like is on <https://samudo.de>, and it can be tried in the
+[demo](https://demo.samudo.de).
 
 ## Start here
 

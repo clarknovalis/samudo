@@ -103,7 +103,6 @@ nothing in the workspace.
 | `deploy/` | systemd units, export script |
 | `docs/` | this documentation; `docs/de/` is the German translation |
 | `site/` | the documentation site (Hugo), built from `docs/` |
-| `www/` | the product page (Hugo) |
 | `testdata/` | synthetic data only |
 
 ## Data flow

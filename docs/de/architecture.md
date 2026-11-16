@@ -106,7 +106,6 @@ Abhängigkeiten zeigen in eine Richtung: `samu-api` ← `samu-core` ←
 | `deploy/` | systemd-Units, Export-Skript |
 | `docs/` | diese Dokumentation; `docs/de/` ist die deutsche Übersetzung |
 | `site/` | die Doku-Site (Hugo), gebaut aus `docs/` |
-| `www/` | die Produktseite (Hugo) |
 | `testdata/` | nur synthetische Daten |
 
 ## Datenfluss
