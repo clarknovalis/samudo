@@ -8,8 +8,7 @@ use anyhow::{Result, bail};
 use clap::{Subcommand, ValueEnum};
 use samu_api::{
     AnyObject, Change, ChangesPage, Folder, Id, InspectorPart, NoteMode, ObjectKind, Project,
-    ScheduledScope, Scope, ScopeCapture, ScopeChip, ScopeChipKind, ScopeLayout, ScopeWindow, Tag,
-    Weekday,
+    ScheduledScope, Scope, ScopeCapture, ScopeChip, ScopeLayout, ScopeWindow, Tag, Weekday,
 };
 use serde_json::{Value, json};
 
@@ -17,6 +16,7 @@ use crate::config::Config;
 use crate::output::{Format, emit};
 use crate::{placeholder, short, signed_in, write};
 use samu_client::{Client, Error as Failure};
+use samu_core::query::{self, ParseError};
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum ScopeCommand {
@@ -168,6 +168,19 @@ pub(crate) struct Snapshot {
     pub(crate) tags: Vec<Tag>,
     /// ADR 0090.
     pub(crate) perspectives: Vec<samu_api::Perspective>,
+}
+
+impl Snapshot {
+    /// What samu-core reads names from; no tasks, links or clocks.
+    pub(crate) fn core(&self) -> samu_core::availability::Snapshot<'_> {
+        samu_core::availability::Snapshot {
+            folders: &self.folders,
+            projects: &self.projects,
+            tags: &self.tags,
+            scopes: &self.scopes,
+            ..Default::default()
+        }
+    }
 }
 
 pub(crate) fn snapshot(client: &Client) -> Result<Snapshot> {
@@ -330,12 +343,6 @@ fn tag_path(snapshot: &Snapshot, id: Id) -> String {
     path(&snapshot.tags, id, |t| (t.id, t.parent, t.title.as_str()))
 }
 
-fn folder_path(snapshot: &Snapshot, id: Id) -> String {
-    path(&snapshot.folders, id, |f| {
-        (f.id, f.parent, f.title.as_str())
-    })
-}
-
 /// By path first, then by title alone when that is unique; as `one` says.
 fn by_path<T>(items: &[T], name: &str, of: impl Fn(&T) -> (Id, String, &str)) -> Vec<(Id, Id)> {
     let want = name.to_lowercase();
@@ -354,122 +361,33 @@ fn by_path<T>(items: &[T], name: &str, of: impl Fn(&T) -> (Id, String, &str)) ->
         .collect()
 }
 
-/// The date words before the colon and their kinds (ADR 0042 §2).
-pub(crate) const DATE_WORDS: &[(&str, ScopeChipKind)] = &[
-    ("fällig", ScopeChipKind::Due),
-    ("faellig", ScopeChipKind::Due),
-    ("geplant", ScopeChipKind::Planned),
-    ("start", ScopeChipKind::Defer),
-    ("erledigt", ScopeChipKind::Completed),
-    ("erstellt", ScopeChipKind::Created),
-    ("geändert", ScopeChipKind::Modified),
-    ("geaendert", ScopeChipKind::Modified),
-];
-
-/// One word of the search language as a chip, names resolved to ids.
-/// Ranges, `ist:` and estimates go as they are; the server checks them.
+/// One word of the search language as a chip, names resolved to ids and
+/// the value checked by samu-core, as the web and the server read it.
 pub(crate) fn parse_chip(snapshot: &Snapshot, word: &str) -> Result<ScopeChip> {
-    let (not, text) = match word.strip_prefix('-') {
-        Some(rest) if !rest.is_empty() => (true, rest),
-        _ => (false, word),
-    };
-    let chip = |kind, value: String| ScopeChip { kind, value, not };
-    if let Some(name) = text.strip_prefix('#') {
-        if name.eq_ignore_ascii_case("inbox") {
-            return Ok(chip(ScopeChipKind::Project, "inbox".into()));
+    query::parse_chip(word, &snapshot.core()).map_err(|e| refused(word, e))
+}
+
+/// Why a word is no chip, a name that is not there as not found.
+pub(crate) fn refused(word: &str, error: ParseError) -> anyhow::Error {
+    match error {
+        ParseError::Free(_) => {
+            anyhow::anyhow!("{word:?} is no chip; free text has no place in a filter")
         }
-        let found = by_path(&snapshot.projects, name, |p| {
-            (p.id, p.title.clone(), p.title.as_str())
-        });
-        return Ok(chip(
-            ScopeChipKind::Project,
-            one(name, "project", &found)?.to_string(),
-        ));
-    }
-    if let Some(name) = text.strip_prefix('@') {
-        let found = by_path(&snapshot.tags, name, |t| {
-            (t.id, tag_path(snapshot, t.id), t.title.as_str())
-        });
-        return Ok(chip(
-            ScopeChipKind::Tag,
-            one(name, "tag", &found)?.to_string(),
-        ));
-    }
-    if let Some(value) = text.strip_prefix('~') {
-        return Ok(chip(ScopeChipKind::Estimate, value.to_owned()));
-    }
-    let Some((key, value)) = text.split_once(':') else {
-        bail!("{word:?} is no chip; free text has no place in a filter");
-    };
-    let key = key.to_lowercase();
-    if let Some((_, kind)) = DATE_WORDS.iter().find(|(k, _)| *k == key) {
-        return Ok(chip(*kind, value.to_lowercase()));
-    }
-    match key.as_str() {
-        "ist" => Ok(chip(ScopeChipKind::Is, value.to_lowercase())),
-        // ADR 0056 §4: `prio:-` is `prio:ohne`.
-        "prio" => Ok(chip(
-            ScopeChipKind::Priority,
-            if value == "-" {
-                "ohne".to_owned()
-            } else {
-                value.to_lowercase()
-            },
-        )),
-        "ordner" => {
-            let found = by_path(&snapshot.folders, value, |f| {
-                (f.id, folder_path(snapshot, f.id), f.title.as_str())
-            });
-            Ok(chip(
-                ScopeChipKind::Folder,
-                one(value, "folder", &found)?.to_string(),
-            ))
-        }
-        "zustand" => {
-            let states: Vec<&Tag> = snapshot
-                .tags
-                .iter()
-                .filter(|t| {
-                    t.parent
-                        .and_then(|p| snapshot.tags.iter().find(|g| g.id == p))
-                        .is_some_and(|g| g.exclusive)
-                })
-                .collect();
-            let found: Vec<(Id, Id)> = states
-                .iter()
-                .filter(|t| t.title.eq_ignore_ascii_case(value))
-                .map(|t| (t.id, t.id))
-                .collect();
-            Ok(chip(
-                ScopeChipKind::State,
-                one(value, "state", &found)?.to_string(),
-            ))
-        }
-        _ => bail!("{word:?}: no chip starts with {key}:"),
+        ParseError::NotFound { .. } => Failure::NotFound(error.to_string()).into(),
+        e => e.into(),
     }
 }
 
-/// The words of a text, split at white space; a name in double quotes stays
-/// one word, its quotes dropped (`@"Ort mit Raum"`).
-pub(crate) fn split_words(text: &str) -> Vec<String> {
-    let mut words = Vec::new();
-    let mut word = String::new();
-    let mut quoted = false;
-    for c in text.chars() {
-        match c {
-            '"' => quoted = !quoted,
-            c if c.is_whitespace() && !quoted => {
-                if !word.is_empty() {
-                    words.push(std::mem::take(&mut word));
-                }
-            }
-            c => word.push(c),
+/// Words as chips, each argument split as the search splits it.
+pub(crate) fn parse_chips(snapshot: &Snapshot, words: &[String]) -> Result<Vec<ScopeChip>> {
+    let mut chips: Vec<ScopeChip> = Vec::new();
+    for word in words.iter().flat_map(|w| query::split_words(w)) {
+        let chip = parse_chip(snapshot, &word)?;
+        if !chips.contains(&chip) {
+            chips.push(chip);
         }
     }
-    if !word.is_empty() {
-        words.push(word);
-    }
-    words
+    Ok(chips)
 }
 
 /// The days of the week in order, German first, English accepted.
@@ -565,54 +483,9 @@ pub(crate) fn effective_scope(client: &Client, config: &Config) -> Result<Option
     config.chosen_scope()
 }
 
-/// A chip as the word that makes it.
+/// A chip as the word that makes it; `?` for a name that is gone.
 pub(crate) fn chip_word(snapshot: &Snapshot, chip: &ScopeChip) -> String {
-    let sign = if chip.not { "-" } else { "" };
-    let quote = |name: String| {
-        if name.contains(' ') {
-            format!("\"{name}\"")
-        } else {
-            name
-        }
-    };
-    let id = chip.value.parse::<Id>().ok();
-    let body = match chip.kind {
-        ScopeChipKind::Project if chip.value == "inbox" => "#Inbox".to_owned(),
-        ScopeChipKind::Project => format!(
-            "#{}",
-            quote(
-                id.and_then(|i| snapshot.projects.iter().find(|p| p.id == i))
-                    .map_or("?".into(), |p| p.title.clone())
-            )
-        ),
-        ScopeChipKind::Tag => format!(
-            "@{}",
-            quote(id.map_or("?".into(), |i| tag_path(snapshot, i)))
-        ),
-        ScopeChipKind::Folder => format!(
-            "ordner:{}",
-            quote(id.map_or("?".into(), |i| folder_path(snapshot, i)))
-        ),
-        ScopeChipKind::State => format!(
-            "zustand:{}",
-            quote(
-                id.and_then(|i| snapshot.tags.iter().find(|t| t.id == i))
-                    .map_or("?".into(), |t| t.title.clone())
-            )
-        ),
-        ScopeChipKind::Is => format!("ist:{}", chip.value),
-        ScopeChipKind::Estimate => format!("~{}", chip.value),
-        ScopeChipKind::Priority => format!("prio:{}", chip.value),
-        ScopeChipKind::Unknown => format!("?:{}", chip.value),
-        kind => {
-            let key = DATE_WORDS
-                .iter()
-                .find(|(_, k)| *k == kind)
-                .map_or("?", |(w, _)| w);
-            format!("{key}:{}", chip.value)
-        }
-    };
-    format!("{sign}{body}")
+    query::words(std::slice::from_ref(chip), &snapshot.core())
 }
 
 fn mode_name(scope: &Scope) -> String {
@@ -964,11 +837,7 @@ pub(crate) fn run(config: &Config, format: Format, command: ScopeCommand) -> Res
                 )?;
                 return Ok(());
             }
-            let chips = words
-                .iter()
-                .flat_map(|w| split_words(w))
-                .map(|w| parse_chip(&snapshot, &w))
-                .collect::<Result<Vec<_>>>()?;
+            let chips = parse_chips(&snapshot, &words)?;
             write(
                 &client,
                 &[set(found.id, "filter", serde_json::to_value(&chips)?)],

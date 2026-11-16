@@ -13,9 +13,10 @@ use serde_json::{Value, json};
 
 use crate::config::Config;
 use crate::output::{Format, emit};
-use crate::scopes::{DATE_WORDS, Snapshot, chip_word, parse_chip, snapshot, split_words};
+use crate::scopes::{Snapshot, chip_word, parse_chips, refused, snapshot};
 use crate::{placeholder, short, signed_in, write};
 use samu_client::{Client, Error as Failure};
+use samu_core::query::{self, ParseError};
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum PerspectiveCommand {
@@ -162,32 +163,18 @@ fn sort_of(text: &str) -> Result<PerspectiveSort> {
     word(text, "sorting", SORTS)
 }
 
-/// Whether a word is meant as a chip: it starts with `#`, `@` or `~`, or
-/// with a key the search language knows (ADR 0042 §2).
-fn chip_like(word: &str) -> bool {
-    let text = word
-        .strip_prefix('-')
-        .filter(|r| !r.is_empty())
-        .unwrap_or(word);
-    if text.starts_with(['#', '@', '~']) {
-        return true;
-    }
-    text.split_once(':').is_some_and(|(key, _)| {
-        let key = key.to_lowercase();
-        DATE_WORDS.iter().any(|(k, _)| *k == key)
-            || ["ist", "prio", "ordner", "zustand", "prop"].contains(&key.as_str())
-    })
-}
-
-/// Words as chips and free text, names resolved to ids.
+/// Words as chips and free text, names resolved to ids: a word samu-core
+/// takes for no chip at all stays text, a chip that does not hold (an
+/// unknown tag, a wrong value) is refused.
 fn split_search(snapshot: &Snapshot, words: &[String]) -> Result<(Vec<ScopeChip>, String)> {
-    let mut chips = Vec::new();
+    let mut chips: Vec<ScopeChip> = Vec::new();
     let mut text = Vec::new();
-    for word in words.iter().flat_map(|w| split_words(w)) {
-        if chip_like(&word) {
-            chips.push(parse_chip(snapshot, &word)?);
-        } else {
-            text.push(word);
+    for word in words.iter().flat_map(|w| query::split_words(w)) {
+        match query::parse_chip(&word, &snapshot.core()) {
+            Err(ParseError::Free(_)) => text.push(word),
+            Err(e) => return Err(refused(&word, e)),
+            Ok(chip) if !chips.contains(&chip) => chips.push(chip),
+            Ok(_) => {}
         }
     }
     Ok((chips, text.join(" ")))
@@ -319,6 +306,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
                     PerspectiveView::List
                 },
                 board: None,
+                table: None,
                 position,
             };
             write(
@@ -365,11 +353,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             let chips = if clear {
                 Vec::new()
             } else {
-                words
-                    .iter()
-                    .flat_map(|w| split_words(w))
-                    .map(|w| parse_chip(&snapshot, &w))
-                    .collect::<Result<Vec<_>>>()?
+                parse_chips(&snapshot, &words)?
             };
             write(
                 &client,

@@ -38,7 +38,7 @@ searches and perspectives (see [Android app](android.md#search)).
 | `is:appointment` | appointments instead of tasks, by title, place and note; a repeating one once, with its next occurrence; date chips apply to the start (web only, not in a scope's filter) |
 | `~<15m`, `~>=1h`, `~30m`, `~any`, `~none` | by estimate (`<`, `<=`, `>`, `>=`, equal; with or without one) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:any`, `prio:none` (or `prio:-`) | by priority |
-| `prop:jira`, `prop:jira=ABC-1` | with the property, own or inherited; with a value, ignoring case (web only for now; the command line does not take it yet) |
+| `prop:jira`, `prop:jira=ABC-1` | with the property, own or inherited; with a value, ignoring case |
 
 ### Ranges
 

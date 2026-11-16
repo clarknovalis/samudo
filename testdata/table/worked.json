@@ -1,0 +1,242 @@
+{
+ "about": "Shared cases for the time worked per task and subtree in the table (ADR 0115 §4): samu_core::table::worked and the web's table must give these. Synthetic data. Seconds. A running clock counts up to `now`; a booked one is a clock as well; completed and dropped tasks count in their parent's subtree; clocks on a project or on a task not in the list add to nothing; a clock that ends before it starts counts zero.",
+ "tasks": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Steuererklärung",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Belege sammeln",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01",
+   "estimate": "PT1H"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Formular ausfüllen",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Anlage N",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03",
+   "completed_at": "2026-11-14T09:00:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Anlage KAP",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
+   "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03",
+   "dropped_at": "2026-11-14T09:00:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Fahrrad putzen",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07",
+   "created": "2026-11-01T10:00:00Z",
+   "modified": "2026-11-01T10:00:00Z",
+   "title": "Rasen mähen",
+   "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10"
+  }
+ ],
+ "clocks": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f41",
+   "created": "2026-11-16T08:00:00Z",
+   "modified": "2026-11-16T08:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01",
+   "start": "2026-11-16T08:00:00Z",
+   "end": "2026-11-16T08:30:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f42",
+   "created": "2026-11-15T09:00:00Z",
+   "modified": "2026-11-15T09:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02",
+   "start": "2026-11-15T09:00:00Z",
+   "end": "2026-11-15T10:00:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f43",
+   "created": "2026-11-15T23:30:00Z",
+   "modified": "2026-11-15T23:30:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02",
+   "start": "2026-11-15T23:30:00Z",
+   "end": "2026-11-16T00:15:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f44",
+   "created": "2026-11-14T07:00:00Z",
+   "modified": "2026-11-14T07:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04",
+   "start": "2026-11-14T07:00:00Z",
+   "end": "2026-11-14T07:45:00Z",
+   "note": "nachgebucht"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f45",
+   "created": "2026-11-13T07:00:00Z",
+   "modified": "2026-11-13T07:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05",
+   "start": "2026-11-13T07:00:00Z",
+   "end": "2026-11-13T07:10:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f46",
+   "created": "2026-11-16T10:00:00Z",
+   "modified": "2026-11-16T10:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03",
+   "start": "2026-11-16T10:00:00Z"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f47",
+   "created": "2026-11-16T06:00:00Z",
+   "modified": "2026-11-16T06:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
+   "start": "2026-11-16T06:00:00Z",
+   "end": "2026-11-16T08:00:00Z",
+   "note": "on the project"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f48",
+   "created": "2026-11-16T06:00:00Z",
+   "modified": "2026-11-16T06:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f30",
+   "start": "2026-11-16T06:00:00Z",
+   "end": "2026-11-16T07:00:00Z",
+   "note": "on a task not in the list"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f49",
+   "created": "2026-11-16T09:00:00Z",
+   "modified": "2026-11-16T09:00:00Z",
+   "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07",
+   "start": "2026-11-16T09:00:00Z",
+   "end": "2026-11-16T08:00:00Z",
+   "note": "ends before it starts"
+  }
+ ],
+ "cases": [
+  {
+   "about": "a clock running for an hour",
+   "now": "2026-11-16T11:00:00Z",
+   "worked": {
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01": {
+     "own": 1800,
+     "subtree": 15000
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02": {
+     "own": 6300,
+     "subtree": 6300
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03": {
+     "own": 3600,
+     "subtree": 6900
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04": {
+     "own": 2700,
+     "subtree": 2700
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05": {
+     "own": 600,
+     "subtree": 600
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06": {
+     "own": 0,
+     "subtree": 0
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07": {
+     "own": 0,
+     "subtree": 0
+    }
+   }
+  },
+  {
+   "about": "the same clock at half past twelve",
+   "now": "2026-11-16T12:30:00Z",
+   "worked": {
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01": {
+     "own": 1800,
+     "subtree": 20400
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02": {
+     "own": 6300,
+     "subtree": 6300
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03": {
+     "own": 9000,
+     "subtree": 12300
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04": {
+     "own": 2700,
+     "subtree": 2700
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05": {
+     "own": 600,
+     "subtree": 600
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06": {
+     "own": 0,
+     "subtree": 0
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07": {
+     "own": 0,
+     "subtree": 0
+    }
+   }
+  },
+  {
+   "about": "now before the running clock began",
+   "now": "2026-11-16T09:00:00Z",
+   "worked": {
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01": {
+     "own": 1800,
+     "subtree": 11400
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02": {
+     "own": 6300,
+     "subtree": 6300
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03": {
+     "own": 0,
+     "subtree": 3300
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04": {
+     "own": 2700,
+     "subtree": 2700
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05": {
+     "own": 600,
+     "subtree": 600
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06": {
+     "own": 0,
+     "subtree": 0
+    },
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07": {
+     "own": 0,
+     "subtree": 0
+    }
+   }
+  }
+ ]
+}

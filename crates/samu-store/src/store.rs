@@ -2100,7 +2100,8 @@ fn check_habit_entry(
 /// create (ADR 0090 §1): a title no other live perspective has, ignoring
 /// case; an icon like a project's (ADR 0059); chips as a scope's filter;
 /// no value from a newer samu, which is read, never written (ADR 0015);
-/// a board's workflow and tags live tags.
+/// a board's workflow and tags live tags; a table's columns known ones,
+/// each once (ADR 0115 §2).
 fn check_perspective(
     tx: &Connection,
     perspective: &crate::core::api::Perspective,
@@ -2160,6 +2161,20 @@ fn check_perspective(
         for tag in board.workflow.iter().chain(&board.tags) {
             if !head(tx, *tag)?.is_some_and(|h| !h.deleted && h.kind == ObjectKind::Tag) {
                 return Ok(Err(format!("no tag {tag}")));
+            }
+        }
+    }
+    if writes("table")
+        && let Some(table) = &perspective.table
+    {
+        for (n, column) in table.columns.iter().enumerate() {
+            if !crate::core::table::known_column(column) {
+                return Ok(Err(format!(
+                    "a column this server does not know: {column:?}"
+                )));
+            }
+            if table.columns[..n].contains(column) {
+                return Ok(Err(format!("the column {column:?} twice")));
             }
         }
     }
@@ -2955,7 +2970,8 @@ pub(crate) mod tests {
                 "0022_habit",
                 "0023_daily_reminder",
                 "0024_own_scope",
-                "0025_appointment_alarms"
+                "0025_appointment_alarms",
+                "0026_perspective_table"
             ]
         );
         drop(store);
@@ -3000,7 +3016,8 @@ pub(crate) mod tests {
                     "0022_habit",
                     "0023_daily_reminder",
                     "0024_own_scope",
-                    "0025_appointment_alarms"
+                    "0025_appointment_alarms",
+                    "0026_perspective_table"
                 ]
             );
             // The settings object, made on opening (ADR 0045 §4).
@@ -3014,7 +3031,7 @@ pub(crate) mod tests {
         let history: i64 = conn
             .query_row("SELECT count(*) FROM schema_history", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(history, 25);
+        assert_eq!(history, 26);
         let journal: String = conn
             .query_row("PRAGMA journal_mode", [], |r| r.get(0))
             .unwrap();
@@ -3123,7 +3140,8 @@ pub(crate) mod tests {
                 "0022_habit",
                 "0023_daily_reminder",
                 "0024_own_scope",
-                "0025_appointment_alarms"
+                "0025_appointment_alarms",
+                "0026_perspective_table"
             ]
         );
         let id: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3219,7 +3237,8 @@ pub(crate) mod tests {
                 "0022_habit",
                 "0023_daily_reminder",
                 "0024_own_scope",
-                "0025_appointment_alarms"
+                "0025_appointment_alarms",
+                "0026_perspective_table"
             ]
         );
         let reminder: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e22".parse().unwrap();
@@ -3318,7 +3337,8 @@ pub(crate) mod tests {
                 "0022_habit",
                 "0023_daily_reminder",
                 "0024_own_scope",
-                "0025_appointment_alarms"
+                "0025_appointment_alarms",
+                "0026_perspective_table"
             ]
         );
 
@@ -3517,7 +3537,8 @@ pub(crate) mod tests {
                 "0022_habit",
                 "0023_daily_reminder",
                 "0024_own_scope",
-                "0025_appointment_alarms"
+                "0025_appointment_alarms",
+                "0026_perspective_table"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3624,7 +3645,8 @@ pub(crate) mod tests {
                 "0022_habit",
                 "0023_daily_reminder",
                 "0024_own_scope",
-                "0025_appointment_alarms"
+                "0025_appointment_alarms",
+                "0026_perspective_table"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();

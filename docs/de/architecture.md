@@ -93,7 +93,8 @@ crates/
 Abhängigkeiten zeigen in eine Richtung: `samu-api` ← `samu-core` ←
 `samu-store` ← `samu-server`; `samu-api` ← `samu-client` ← `samu-cli`,
 `samu-mobile`; `samu-core`, `samu-client` ← `samu-replica` ←
-`samu-mobile`, `samu-server`. Nichts hängt von `samu-server` ab;
+`samu-mobile`, `samu-server`; `samu-core` ← `samu-cli`, die damit die
+Suchsprache liest. Nichts hängt von `samu-server` ab;
 `samu-api` hängt von nichts im Workspace ab.
 
 ## Weitere Teile

@@ -89,6 +89,11 @@ impl Server {
     fn samu(&self, args: &[&str], stdin: Option<&str>) -> Output {
         run_samu(&self.url, &self.dir, args, stdin)
     }
+
+    /// As `samu`, on a computer in the zone `tz`.
+    fn samu_in_zone(&self, tz: &str, args: &[&str]) -> Output {
+        run_samu_env(&self.url, &self.dir, args, None, &[("TZ", tz)])
+    }
 }
 
 impl Drop for Server {
@@ -101,8 +106,19 @@ impl Drop for Server {
 }
 
 fn run_samu(url: &str, dir: &Path, args: &[&str], stdin: Option<&str>) -> Output {
+    run_samu_env(url, dir, args, stdin, &[])
+}
+
+fn run_samu_env(
+    url: &str,
+    dir: &Path,
+    args: &[&str],
+    stdin: Option<&str>,
+    env: &[(&str, &str)],
+) -> Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_samu"))
         .args(args)
+        .envs(env.iter().copied())
         .env("SAMU_SERVER", url)
         .env("SAMU_ACCOUNT", "privat")
         .env("SAMU_DEVICE", "test")
@@ -1662,6 +1678,19 @@ fn a_scope_is_made_chosen_and_narrows_list_and_projects() {
     assert_eq!(titles(&[]), vec!["Milch"]);
     ok(server.samu(&["scope", "filter", "Nur IT", "#inbox prio:a"], None));
     assert!(titles(&[]).is_empty());
+    // ADR 0054 §8: the property chip, read by samu-core as the web reads
+    // it; nobody here has a `jira`, so it hides both and its negation none.
+    ok(server.samu(&["scope", "filter", "Nur IT", "prop:Jira"], None));
+    assert!(titles(&[]).is_empty());
+    let filter = json_out(&server.samu(&["scope", "filter", "Nur IT", "--format", "json"], None));
+    assert_eq!(filter[0]["filter"], "prop:jira");
+    ok(server.samu(&["scope", "filter", "Nur IT", "-prop:jira=HAUS-1"], None));
+    assert_eq!(titles(&[]), vec!["Milch", "Rasen mähen"]);
+    // ADR 0105 §3: English keys and values, kept in German.
+    ok(server.samu(&["scope", "filter", "Nur IT", "is:open prio:none"], None));
+    let filter = json_out(&server.samu(&["scope", "filter", "Nur IT", "--format", "json"], None));
+    assert_eq!(filter[0]["filter"], "ist:offen prio:ohne");
+    assert_eq!(titles(&[]), vec!["Milch", "Rasen mähen"]);
     ok(server.samu(&["scope", "filter", "Nur IT", "-#Inbox"], None));
     assert_eq!(titles(&[]), vec!["Rasen mähen"]);
     assert_ne!(
@@ -2742,6 +2771,16 @@ fn bulk_acts_on_many_tasks() {
     assert_eq!(show(&c)["due"]["date"], "2026-12-01");
     ok(server.samu(&["bulk", "date", "due", "none", &c], None));
     assert!(show(&c).get("due").is_none());
+    // Today is the account's, whatever this computer's zone: these two
+    // are on different dates at any instant, so before the fix they
+    // differed.
+    let mut dues = Vec::new();
+    for tz in ["Etc/GMT+12", "Pacific/Kiritimati"] {
+        ok(server.samu_in_zone(tz, &["bulk", "date", "due", "today", &c]));
+        dues.push(show(&c)["due"]["date"].clone());
+    }
+    assert_eq!(dues[0], dues[1], "{dues:?}");
+    ok(server.samu(&["bulk", "date", "due", "none", &c], None));
 
     // From stdin, as `samu list --format tsv` prints it.
     let listed = stdout(&ok(server.samu(&["list", "--format", "tsv"], None)));
@@ -3466,6 +3505,18 @@ fn report_shows_done_worked_and_booked_time() {
         None,
     ));
     assert!(only.as_array().unwrap().is_empty());
+    // Today is the account's (Europe/Berlin), whatever this computer's
+    // zone: at any instant one of these two is on another date than
+    // Berlin, so before the fix one of them missed the completion.
+    for tz in ["Etc/GMT+12", "Pacific/Kiritimati"] {
+        let done = json_out(&server.samu_in_zone(
+            tz,
+            &[
+                "report", "--days", "1", "--part", "done", "--format", "json",
+            ],
+        ));
+        assert_eq!(done.as_array().unwrap().len(), 1, "TZ={tz}: {done}");
+    }
     let tsv = stdout(&server.samu(&["report", "--part", "done", "--format", "tsv"], None));
     assert!(tsv.contains("Review Angebot"), "{tsv}");
     // A person's work is named by the account: the same as without a chip.
@@ -3864,6 +3915,20 @@ fn a_perspective_shows_what_its_search_meets() {
         code(&server.samu(&["perspective", "filter", "Im Büro", "irgendwas"], None)),
         0
     );
+    // ADR 0054 §8: a property chip in the search, a wrong one refused.
+    ok(server.samu(
+        &["perspective", "search", "Im Büro", "prop:jira angebot"],
+        None,
+    ));
+    let list = json_out(&ok(
+        server.samu(&["perspective", "list", "--format", "json"], None)
+    ));
+    assert_eq!(list[0]["search"], "prop:jira angebot");
+    assert!(titles("Im Büro").is_empty());
+    assert_ne!(
+        code(&server.samu(&["perspective", "search", "Im Büro", "prop:1jira"], None)),
+        0
+    );
     assert_eq!(
         code(&server.samu(&["list", "--perspective", "Nirgends"], None)),
         3
@@ -3969,6 +4034,16 @@ fn a_habit_is_entered_and_counted() {
         server.samu(&["habit", "entries", &id, "--format", "json"], None)
     ));
     assert_eq!(entries.as_array().unwrap().len(), 3);
+    // One day is the account's today, whatever this computer's zone: one
+    // of these two is on another date than Berlin at any instant, so
+    // before the fix it got yesterday's entry too or none at all.
+    for tz in ["Etc/GMT+12", "Pacific/Kiritimati"] {
+        let today = json_out(&ok(server.samu_in_zone(
+            tz,
+            &["habit", "entries", &id, "--days", "1", "--format", "json"],
+        )));
+        assert_eq!(today.as_array().unwrap().len(), 2, "TZ={tz}: {today}");
+    }
     let last_tap = entries
         .as_array()
         .unwrap()

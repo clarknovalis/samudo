@@ -1,0 +1,18 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e92",
+  "created": "2026-11-16T08:00:00Z",
+  "modified": "2026-11-16T09:30:00Z",
+  "title": "Aufwand",
+  "filter": "all",
+  "view": "table",
+  "table": {
+    "columns": [
+      "state",
+      "estimate",
+      "worked",
+      "remaining",
+      "prop:jira"
+    ]
+  },
+  "position": 3
+}

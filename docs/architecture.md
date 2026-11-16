@@ -90,7 +90,8 @@ crates/
 Dependencies point one way: `samu-api` ← `samu-core` ← `samu-store` ←
 `samu-server`; `samu-api` ← `samu-client` ← `samu-cli`, `samu-mobile`;
 `samu-core`, `samu-client` ← `samu-replica` ← `samu-mobile`,
-`samu-server`. Nothing depends on `samu-server`; `samu-api` depends on
+`samu-server`; `samu-core` ← `samu-cli`, which reads the search language
+with it. Nothing depends on `samu-server`; `samu-api` depends on
 nothing in the workspace.
 
 ## Other parts

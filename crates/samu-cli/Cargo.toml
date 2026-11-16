@@ -12,12 +12,13 @@ publish = false
 name = "samu"
 path = "src/main.rs"
 
-# The command line speaks to the server over the API only, so it depends on
-# the wire types and the client and nothing else from this workspace
-# (docs/architecture.md, ADR 0028).
+# The command line speaks to the server over the API only: the wire types
+# and the client. samu-core, which has no I/O, reads the search language,
+# so the CLI's chips are the web's and the server's (docs/architecture.md).
 [dependencies]
 samu-api = { workspace = true }
 samu-client = { workspace = true }
+samu-core = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
 clap_complete = { workspace = true }

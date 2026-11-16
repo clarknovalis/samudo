@@ -34,5 +34,6 @@ pub mod repeat;
 pub mod report;
 pub mod scope;
 pub mod share;
+pub mod table;
 pub mod views;
 pub mod workflow;

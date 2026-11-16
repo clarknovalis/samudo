@@ -895,6 +895,9 @@ pub struct Perspective {
     /// The board's columns (ADR 0061); none = from the default workflow.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub board: Option<PerspectiveBoard>,
+    /// The table's columns (ADR 0115 §7); none = the default ones.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub table: Option<PerspectiveTable>,
     #[serde(default)]
     pub position: i64,
 }
@@ -968,13 +971,15 @@ pub enum PerspectiveSort {
     Unknown,
 }
 
-/// List or board (ADR 0061 §1).
+/// List, board or table (ADR 0061 §1, ADR 0115 §1).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PerspectiveView {
     #[default]
     List,
     Board,
+    /// Since samu-api 0.1.53; an older reader shows a list.
+    Table,
     /// A value from a newer samu (ADR 0015): read as `list`, never written.
     #[serde(other)]
     Unknown,
@@ -1013,6 +1018,19 @@ impl Default for PerspectiveBoard {
             wip: BTreeMap::new(),
         }
     }
+}
+
+/// The columns of a perspective's table (ADR 0115 §2, §7).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerspectiveTable {
+    /// The shown columns after the title, in order, by name: `state`,
+    /// `priority`, `project`, `tags`, `defer`, `due`, `planned`, `created`,
+    /// `modified`, `completed`, `estimate`, `worked`, `remaining`,
+    /// `blocked_by`, or `prop:<key>` for a property. Plain strings, so a
+    /// column from a newer samu survives an older client; a reader skips
+    /// the names it does not know.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub columns: Vec<String>,
 }
 
 /// Where a board's columns come from (ADR 0061 §2).

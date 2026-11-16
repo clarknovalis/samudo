@@ -191,6 +191,12 @@ const PERSPECTIVE: &[Column] = &[
     col("arrange", Ty::Json),
     col("view", Ty::Text),
     col("board", Ty::Json),
+    // ADR 0115 §7; `table` is a word of SQL.
+    Column {
+        key: "table",
+        column: "table_view",
+        ty: Ty::Json,
+    },
     col("position", Ty::Int),
 ];
 

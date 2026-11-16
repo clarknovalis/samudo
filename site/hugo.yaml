@@ -18,12 +18,18 @@ languages:
     weight: 1
     params:
       description: "Die Dokumentation von samudo, der selbst gehosteten Aufgabenverwaltung für Linux, Web und Android."
+      banner:
+        key: early-stage-banner
+        message: "**Frühes Stadium.** Entwicklung seit dem 7. November 2026. Funktioniert, ist aber noch nicht vollständig. Ohne Gewährleistung."
   en:
     label: English
     locale: en-us
     weight: 2
     params:
       description: "The documentation of samudo, self-hosted task management for Linux, the web and Android."
+      banner:
+        key: early-stage-banner
+        message: "**Early stage.** Development started on 7 November 2026. Working, but not feature-complete. No warranty."
 
 module:
   imports:

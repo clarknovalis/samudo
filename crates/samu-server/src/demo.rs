@@ -1166,6 +1166,7 @@ impl<'a> Seeder<'a> {
                     PerspectiveView::List
                 },
                 board: None,
+                table: None,
                 position,
             };
             self.apply(create_of(

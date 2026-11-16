@@ -175,6 +175,12 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0025_appointment_alarms.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 26,
+        name: "0026_perspective_table",
+        sql: include_str!("migrations/0026_perspective_table.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The migrations of the server file: accounts and sessions (ADR 0019 §2).

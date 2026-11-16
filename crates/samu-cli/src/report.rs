@@ -5,7 +5,8 @@ use anyhow::{Result, anyhow, bail};
 use clap::{Args, ValueEnum};
 use jiff::ToSpan;
 use jiff::civil::Date;
-use samu_api::{Report, ReportList, ReportReason};
+use samu_api::{Report, ReportList, ReportReason, SessionInfo};
+use samu_client::Client;
 use serde_json::{Value, json};
 
 use crate::clock::{By, by_name, length, report_records, titles};
@@ -66,6 +67,23 @@ impl Part {
 fn day(name: &str, text: &str) -> Result<Date> {
     text.parse()
         .map_err(|e| anyhow!("--{name} {text:?} is not a day: {e}"))
+}
+
+/// Today in the account's zone, which the server counts the report's days
+/// in; this computer's zone may be another (a CI runner in UTC shortly
+/// after midnight in Berlin asked for yesterday). This computer's zone
+/// when the server names none or one unknown here.
+pub(crate) fn account_today(client: &Client) -> Result<Date> {
+    let session: SessionInfo =
+        serde_json::from_value(client.call("GET", "/session", None)?.json()?)?;
+    Ok(today_in(session.zone.as_deref(), jiff::Timestamp::now()))
+}
+
+fn today_in(zone: Option<&str>, now: jiff::Timestamp) -> Date {
+    zone.and_then(|z| jiff::tz::TimeZone::get(z).ok())
+        .unwrap_or_else(jiff::tz::TimeZone::system)
+        .to_datetime(now)
+        .date()
 }
 
 /// The query string: `from` and `to` always, the rest when given.
@@ -203,7 +221,7 @@ pub(crate) fn records(
 pub(crate) fn run(config: &Config, format: Format, args: &ReportArgs) -> Result<()> {
     let client = signed_in(config)?;
     let scope = scopes::query_scope(&client, config, args.scope.as_deref(), args.no_scope)?;
-    let today = jiff::Zoned::now().date();
+    let today = account_today(&client)?;
     let path = format!("/report?{}", query(args, today, scope)?);
     let report: Report = serde_json::from_value(client.call("GET", &path, None)?.json()?)?;
     let names = titles(&client)?;
@@ -231,6 +249,17 @@ mod tests {
         let mut all = vec!["report"];
         all.extend(line);
         Wrap::try_parse_from(all).unwrap().args
+    }
+
+    #[test]
+    fn today_is_the_accounts_not_this_computers() {
+        // 23:30 UTC is already the next day in Berlin.
+        let now: jiff::Timestamp = "2026-11-15T23:30:00Z".parse().unwrap();
+        assert_eq!(
+            today_in(Some("Europe/Berlin"), now),
+            jiff::civil::date(2026, 11, 16)
+        );
+        assert_eq!(today_in(Some("UTC"), now), jiff::civil::date(2026, 11, 15));
     }
 
     #[test]

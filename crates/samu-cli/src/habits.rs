@@ -218,9 +218,10 @@ pub(crate) fn run(config: &Config, format: Format, command: HabitCommand) -> Res
 fn fetch(client: &Client, id: Id, days: Option<u32>) -> Result<HabitStatus> {
     let mut path = format!("/habits/{id}");
     if let Some(days) = days {
-        // The server's today is the account's; asking a little more is
-        // harmless and the history starts where it was asked.
-        let from = jiff::Zoned::now().date() - i64::from(days.max(1) - 1).days();
+        // The server's history starts where it was asked, so count back
+        // from the account's today, not this computer's.
+        let today = crate::report::account_today(client)?;
+        let from = today - i64::from(days.max(1) - 1).days();
         path = format!("{path}?from={from}");
     }
     Ok(serde_json::from_value(

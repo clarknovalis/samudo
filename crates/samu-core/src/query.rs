@@ -334,7 +334,8 @@ fn find(
 
 /// The words of a text, split at white space; a name in double quotes
 /// stays one word, its quotes dropped (`@"Ort mit Raum"`).
-fn split_words(text: &str) -> Vec<String> {
+#[must_use]
+pub fn split_words(text: &str) -> Vec<String> {
     let mut words = Vec::new();
     let mut word = String::new();
     let mut quoted = false;
@@ -364,8 +365,7 @@ fn split_words(text: &str) -> Vec<String> {
 pub fn parse(text: &str, snapshot: &Snapshot<'_>) -> Result<Vec<ScopeChip>, ParseError> {
     let mut chips: Vec<ScopeChip> = Vec::new();
     for word in split_words(text) {
-        let chip = parse_word(&word, snapshot)?;
-        check(&chip).map_err(|e| ParseError::Chip(word.clone(), e))?;
+        let chip = parse_chip(&word, snapshot)?;
         if !chips
             .iter()
             .any(|c| c.kind == chip.kind && c.value == chip.value)
@@ -374,6 +374,19 @@ pub fn parse(text: &str, snapshot: &Snapshot<'_>) -> Result<Vec<ScopeChip>, Pars
         }
     }
     Ok(chips)
+}
+
+/// One word of the search language as a chip, names resolved to ids and
+/// the value checked. [`ParseError::Free`] says the word is no chip at all,
+/// which a search keeps as free text; the CLI takes this.
+///
+/// # Errors
+///
+/// [`ParseError`] when the word is no chip or not a valid one.
+pub fn parse_chip(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, ParseError> {
+    let chip = parse_word(word, snapshot)?;
+    check(&chip).map_err(|e| ParseError::Chip(word.to_owned(), e))?;
+    Ok(chip)
 }
 
 /// A search as the web's field reads it (ADR 0042 §2): each word that is a
@@ -1077,6 +1090,39 @@ mod tests {
         let (chips, text) = split_search("@fehlt erstellt:bald 10:30", &snapshot);
         assert!(chips.is_empty(), "{chips:?}");
         assert_eq!(text, "@fehlt erstellt:bald 10:30");
+    }
+
+    #[test]
+    fn one_word_says_whether_it_is_no_chip_or_a_wrong_one() {
+        let tags = [tag(1, None)];
+        let snapshot = Snapshot {
+            tags: &tags,
+            ..Snapshot::default()
+        };
+        assert_eq!(
+            parse_chip("prop:Jira=HAUS-1", &snapshot),
+            Ok(chip(Kind::Property, "jira=HAUS-1", false))
+        );
+        assert_eq!(
+            parse_chip("-is:flagged", &snapshot),
+            Ok(chip(Kind::Is, "markiert", true))
+        );
+        assert_eq!(
+            parse_chip("@TAG1", &snapshot),
+            Ok(chip(Kind::Tag, &id(1).to_string(), false))
+        );
+        assert_eq!(
+            parse_chip("10:30", &snapshot),
+            Err(ParseError::Free("10:30".into()))
+        );
+        assert!(matches!(
+            parse_chip("@fehlt", &snapshot),
+            Err(ParseError::NotFound { kind: "tag", .. })
+        ));
+        assert!(matches!(
+            parse_chip("prop:1jira", &snapshot),
+            Err(ParseError::Chip(..))
+        ));
     }
 
     #[test]

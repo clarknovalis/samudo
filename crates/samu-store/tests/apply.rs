@@ -477,6 +477,69 @@ fn a_perspective_is_checked_on_create_and_set() {
     }
 }
 
+/// ADR 0115 §2, §7: a table's columns are kept with the perspective, known
+/// names only, each once.
+#[test]
+fn a_perspective_keeps_its_table_columns() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let mut wall = 1_000;
+    let mut next = || {
+        wall += 1;
+        stamp(wall, "laptop")
+    };
+    let id = Id::new();
+    let effort = json!({
+        "id": id.to_string(),
+        "created": "2026-11-16T08:00:00Z",
+        "modified": "2026-11-16T08:00:00Z",
+        "title": "Aufwand",
+        "position": 0,
+        "view": "table",
+        "table": {"columns": ["estimate", "worked", "prop:jira"]}
+    });
+    assert!(is_applied(&create(
+        &mut store,
+        ObjectKind::Perspective,
+        effort,
+        next()
+    )));
+    for bad in [
+        json!({"columns": ["ist"]}),
+        json!({"columns": ["prop:"]}),
+        json!({"columns": ["due", "due"]}),
+        json!({"columns": ["title"]}),
+    ] {
+        let outcome = set(&mut store, id, "table", bad.clone(), next());
+        assert!(is_rejected(&outcome), "{bad}: {outcome:?}");
+    }
+    assert!(is_applied(&set(
+        &mut store,
+        id,
+        "table",
+        json!({"columns": ["state", "remaining", "prop:kunde"]}),
+        next()
+    )));
+    match store.get(id).unwrap() {
+        Some(Object::Perspective(p)) => {
+            assert_eq!(p.view, samu_store::core::api::PerspectiveView::Table);
+            let columns = p.table.map(|t| t.columns).unwrap_or_default();
+            assert_eq!(columns, ["state", "remaining", "prop:kunde"]);
+        }
+        other => panic!("not a perspective: {other:?}"),
+    }
+    assert!(is_applied(&set(
+        &mut store,
+        id,
+        "table",
+        Value::Null,
+        next()
+    )));
+    match store.get(id).unwrap() {
+        Some(Object::Perspective(p)) => assert_eq!(p.table, None),
+        other => panic!("not a perspective: {other:?}"),
+    }
+}
+
 /// ADR 0084 §1: a template's key is one letter or digit, no other live
 /// template's; `h` and `H` are two keys, and a deleted template frees its.
 #[test]
@@ -2948,6 +3011,7 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
             "ALTER TABLE folder DROP COLUMN own_scope; \
              ALTER TABLE project DROP COLUMN own_scope; ALTER TABLE tag DROP COLUMN own_scope; \
              ALTER TABLE appointment DROP COLUMN alarms; \
+             ALTER TABLE perspective DROP COLUMN table_view; \
              DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
         )
         .unwrap();
@@ -2959,7 +3023,11 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
     let store = AccountStore::open(&path).unwrap();
     assert_eq!(
         store.migration().applied,
-        vec!["0024_own_scope", "0025_appointment_alarms"]
+        vec![
+            "0024_own_scope",
+            "0025_appointment_alarms",
+            "0026_perspective_table"
+        ]
     );
     assert_eq!(
         store.migration().notes.len(),
@@ -3031,13 +3099,17 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
              SELECT id, zeroblob(64), '\"ctag-7\"', 'Mon, 09 Nov 2026 08:00:00 GMT', \
              '2026-11-14T10:00:00Z' FROM object WHERE hex(uuid) = upper('{}'); \
              ALTER TABLE appointment DROP COLUMN alarms; \
+             ALTER TABLE perspective DROP COLUMN table_view; \
              DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
             id_of(&calendar).to_string().replace('-', "")
         ))
         .unwrap();
     }
     let store = AccountStore::open(&path).unwrap();
-    assert_eq!(store.migration().applied, vec!["0025_appointment_alarms"]);
+    assert_eq!(
+        store.migration().applied,
+        vec!["0025_appointment_alarms", "0026_perspective_table"]
+    );
     drop(store);
     let conn = rusqlite::Connection::open(&path).unwrap();
     let (rows, forgotten): (i64, i64) = conn

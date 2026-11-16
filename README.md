@@ -4,8 +4,13 @@
 [documentation](https://docs.samudo.de) ·
 [desktop widget](https://github.com/clarknovalis/samudo-dms)
 
-A self-hosted task manager for Linux, the web and Android, with the best
-parts of org-mode: capture templates, refile, clocking and free properties.
+> [!WARNING]
+> **Early stage.** Development started on 7 November 2026. Working, but
+> not feature-complete. No warranty.
+
+A self-hosted task manager for Linux, the web and Android. It takes the
+best of OmniFocus and Todoist, and from org-mode capture templates,
+refile, clocking and free properties.
 
 The name is samu plus *dō*, the way (as in Aikidō); in English the "do"
 reads as a nod to getting things done. Inside, everything is still called
@@ -29,6 +34,11 @@ reads as a nod to getting things done. Inside, everything is still called
 
 **Status:** server, command line, web UI, Android app and Emacs package
 are in daily use; there is no release yet, `main` is what runs.
+
+**Platforms:** built and used on Linux and Android. The server runs
+anywhere through Docker. On macOS the command line should build, but is
+untested; on Windows it does not build yet. An iOS app is not planned so
+far; contributions are welcome.
 
 ## Try it
 

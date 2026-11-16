@@ -267,7 +267,7 @@ pub(crate) fn run(config: &Config, format: Format, command: BulkCommand) -> Resu
             tasks,
         } => {
             let picked = pick(&snapshot, &tasks)?;
-            let value = day(&value)?;
+            let value = day(&value, || crate::report::account_today(&client))?;
             let changes = picked
                 .iter()
                 .map(|t| set(t.id, field.name(), value.clone()))
@@ -587,12 +587,12 @@ fn state_change(
 }
 
 /// `today`, `tomorrow`, a date or `none` as the value of a date field.
-fn day(value: &str) -> Result<Value> {
-    let today = jiff::Zoned::now().date();
+/// `today` is the account's, asked only when the value needs it.
+fn day(value: &str, today: impl FnOnce() -> Result<jiff::civil::Date>) -> Result<Value> {
     let date = match value.to_ascii_lowercase().as_str() {
         "none" => return Ok(Value::Null),
-        "today" => today,
-        "tomorrow" => today.tomorrow()?,
+        "today" => today()?,
+        "tomorrow" => today()?.tomorrow()?,
         other => match other.parse::<jiff::civil::Date>() {
             Ok(date) => date,
             Err(_) => bail!("{value:?} is no date: today, tomorrow, YYYY-MM-DD or none"),
@@ -663,9 +663,17 @@ mod tests {
 
     #[test]
     fn days_are_words_dates_or_none() {
-        assert_eq!(day("none").unwrap(), Value::Null);
-        assert_eq!(day("2026-11-20").unwrap(), json!({"date": "2026-11-20"}));
-        assert!(day("today").unwrap()["date"].is_string());
-        assert!(day("morgen").is_err());
+        let today = || Ok(jiff::civil::date(2026, 11, 16));
+        assert_eq!(day("none", today).unwrap(), Value::Null);
+        assert_eq!(
+            day("2026-11-20", today).unwrap(),
+            json!({"date": "2026-11-20"})
+        );
+        assert_eq!(day("today", today).unwrap(), json!({"date": "2026-11-16"}));
+        assert_eq!(
+            day("Tomorrow", today).unwrap(),
+            json!({"date": "2026-11-17"})
+        );
+        assert!(day("morgen", today).is_err());
     }
 }

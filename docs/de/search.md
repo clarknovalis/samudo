@@ -39,7 +39,7 @@ schnelle Filter, die letzten Suchen und die Perspektiven (siehe
 | `ist:termin` | Termine statt Aufgaben, nach Titel, Ort und Notiz; ein wiederholter einmal, mit seinem nächsten Vorkommen; Datumschips gelten für den Beginn (nur im Web, nicht im Filter eines Scopes) |
 | `~<15m`, `~>=1h`, `~30m`, `~mit`, `~ohne` | nach Schätzung (`<`, `<=`, `>`, `>=`, gleich; mit oder ohne) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:mit`, `prio:ohne` (oder `prio:-`) | nach Priorität |
-| `prop:jira`, `prop:jira=ABC-1` | mit der Property, eigen oder geerbt; mit Wert, ohne auf Groß- und Kleinschreibung zu achten (vorerst nur im Web; die Kommandozeile nimmt es noch nicht) |
+| `prop:jira`, `prop:jira=ABC-1` | mit der Property, eigen oder geerbt; mit Wert, ohne auf Groß- und Kleinschreibung zu achten |
 
 ### Bereiche
 
