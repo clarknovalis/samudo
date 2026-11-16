@@ -45,6 +45,10 @@ anywhere through Docker. On macOS the command line should build, but is
 untested; on Windows it does not build yet. An iOS app is not planned so
 far; contributions are welcome.
 
+**How it is made:** samudo is developed by its maintainer together with
+Claude Code, Anthropic's coding agent. Most commits are co-authored by
+Claude, and the snapshots here name it as co-author.
+
 ## Try it
 
 The [public demo](https://demo.samudo.de) needs no installation: sign in

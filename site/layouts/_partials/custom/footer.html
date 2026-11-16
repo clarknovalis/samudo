@@ -1,0 +1,7 @@
+{{- /* Every page links the legal notice and the privacy policy, which live on samudo.de. */ -}}
+{{- $base := "https://samudo.de/" -}}
+{{- if ne $.context.Site.Language.Lang "de" }}{{ $base = printf "%s%s/" $base $.context.Site.Language.Lang }}{{ end -}}
+<div class="hx:flex hx:justify-center hx:gap-6 hx:py-6 hx:text-sm hx:md:justify-start">
+  <a class="hx:text-current hx:underline hx:underline-offset-2" href="{{ $base }}impressum/">{{ T "legalNotice" }}</a>
+  <a class="hx:text-current hx:underline hx:underline-offset-2" href="{{ $base }}datenschutz/">{{ T "privacy" }}</a>
+</div>

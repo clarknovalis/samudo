@@ -49,6 +49,9 @@ change appears here with the next snapshot; the pull request itself is
 then closed rather than merged, with a pointer to that snapshot. That is
 expected, not a rejection.
 
+Most of the code is written with Claude Code, Anthropic's coding agent; a
+snapshot names Claude as co-author when commits in it were co-authored.
+
 The desktop widget lives in
 [samudo-dms](https://github.com/clarknovalis/samudo-dms); pull requests
 for it are merged there directly.
