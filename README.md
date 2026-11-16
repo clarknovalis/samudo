@@ -96,6 +96,7 @@ Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md)
 and, for security problems, [SECURITY.md](SECURITY.md).
 
 samudo is licensed under the [GNU Affero General Public License v3.0 or
-later](LICENSE). The wire types in `crates/samu-api` may in addition be
-used under the MIT or Apache-2.0 license, so clients can embed them
-without copyleft.
+later](LICENSE). The wire types in `crates/samu-api` and the HTTP client
+in `crates/samu-client` may in addition be used under the MIT or
+Apache-2.0 license, so other programs can talk to a samudo server without
+copyleft.

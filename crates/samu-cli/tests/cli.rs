@@ -1135,6 +1135,43 @@ fn review_marks_a_due_project_reviewed() {
     assert_ne!(code(&server.samu(&["review"], None)), 0);
 }
 
+/// `samu set` and `samu unset` take a project by title, like `samu review`;
+/// a reference that is neither an id nor a title is still not found.
+#[test]
+fn set_takes_a_project_by_title() {
+    let server = signed_in_server();
+    let id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b79";
+    let create = format!(
+        r#"{{"op":"create","object":"{id}","kind":"project","value":{{"id":"{id}","created":"2020-01-01T08:00:00Z","modified":"2020-01-01T08:00:00Z","title":"Keller","kind":"parallel","status":"active","flagged":false,"position":0}},"hlc":{{"wall":1,"counter":0,"device":"test"}}}}"#
+    );
+    assert_eq!(code(&server.samu(&["apply", "-"], Some(&create))), 0);
+
+    assert_eq!(
+        code(&server.samu(&["set", "Keller", "review_interval", "P2W"], None)),
+        0
+    );
+    let shown = json_out(&server.samu(&["show", id, "--format", "json"], None));
+    assert_eq!(shown[0]["object"]["review_interval"], "P2W", "{shown:#}");
+
+    assert_eq!(
+        code(&server.samu(&["unset", "kel", "review_interval"], None)),
+        0
+    );
+    let shown = json_out(&server.samu(&["show", id, "--format", "json"], None));
+    assert!(
+        shown[0]["object"].get("review_interval").is_none(),
+        "{shown:#}"
+    );
+
+    let missing = server.samu(&["set", "Dachboden", "flagged", "true"], None);
+    assert_eq!(
+        code(&missing),
+        3,
+        "{}",
+        String::from_utf8_lossy(&missing.stderr)
+    );
+}
+
 #[test]
 fn events_follow_a_change() {
     let server = signed_in_server();
@@ -3946,6 +3983,126 @@ fn a_perspective_shows_what_its_search_meets() {
     assert_eq!(list.as_array().unwrap().len(), 1);
 }
 
+/// ADR 0116 §7: a block perspective is made of other perspectives and
+/// fixed views, `samu list --perspective` shows it block by block from
+/// `/blocks`, a task once unless `dedupe` is off.
+#[test]
+fn a_block_perspective_lists_block_by_block() {
+    let server = signed_in_server();
+    let ok = |out: Output| {
+        assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+        out
+    };
+    ok(server.samu(&["tag", "add", "Büro"], None));
+    ok(server.samu(&["add", "Angebot schreiben @Büro"], None));
+    ok(server.samu(&["add", "Steuer @Büro"], None));
+    ok(server.samu(&["add", "Milch"], None));
+    ok(server.samu(&["perspective", "add", "Büro", "@Büro"], None));
+    ok(server.samu(
+        &[
+            "perspective",
+            "add",
+            "Morgen",
+            "--icon",
+            "🌅",
+            "--blocks",
+            "Büro=Kurz im Büro",
+            ":inbox",
+        ],
+        None,
+    ));
+    let sections = |name: &str| -> Vec<(String, Vec<String>)> {
+        let shown = json_out(&ok(
+            server.samu(&["list", "--perspective", name, "--format", "json"], None)
+        ));
+        shown
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| {
+                let mut titles: Vec<String> = s["tasks"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|t| t["title"].as_str().unwrap().to_owned())
+                    .collect();
+                titles.sort();
+                (s["title"].as_str().unwrap().to_owned(), titles)
+            })
+            .collect()
+    };
+    let office = vec!["Angebot schreiben".to_owned(), "Steuer".to_owned()];
+    assert_eq!(
+        sections("Morgen"),
+        [
+            ("Kurz im Büro".to_owned(), office.clone()),
+            ("inbox".to_owned(), vec!["Milch".to_owned()]),
+        ]
+    );
+    let list = json_out(&ok(
+        server.samu(&["perspective", "list", "--format", "json"], None)
+    ));
+    assert_eq!(list[1]["blocks"], "Büro=Kurz im Büro, :inbox");
+
+    // Without dedupe the inbox shows the office's tasks again, as in org.
+    ok(server.samu(&["perspective", "dedupe", "Morgen", "off"], None));
+    assert_eq!(sections("Morgen")[1].1.len(), 3);
+
+    // Plain: a heading before each block; tsv: the block first.
+    let plain = ok(server.samu(&["list", "--perspective", "Morgen"], None));
+    let plain = String::from_utf8_lossy(&plain.stdout);
+    assert!(plain.contains("▸ Kurz im Büro (2)"), "{plain}");
+    assert!(plain.contains("▸ inbox (3)"), "{plain}");
+    let tsv = ok(server.samu(
+        &["list", "--perspective", "Morgen", "--format", "tsv"],
+        None,
+    ));
+    let tsv = String::from_utf8_lossy(&tsv.stdout);
+    assert_eq!(tsv.lines().count(), 5);
+    assert!(
+        tsv.lines()
+            .all(|l| l.starts_with("Kurz im Büro\t") || l.starts_with("inbox\t"))
+    );
+
+    // A plain perspective lists as before, without sections.
+    let plain = json_out(&ok(
+        server.samu(&["list", "--perspective", "Büro", "--format", "json"], None)
+    ));
+    assert_eq!(plain.as_array().unwrap().len(), office.len());
+    assert!(plain[0]["tasks"].is_null());
+
+    // What only a plain perspective has is refused on a block one; a block
+    // of itself, of a block perspective, an unknown view, and blocks on a
+    // perspective that is a block are refused.
+    for refused in [
+        vec!["perspective", "text", "Morgen", "angebot"],
+        vec!["perspective", "filter", "Morgen", "all"],
+        vec!["perspective", "blocks", "Morgen", "Morgen"],
+        vec!["perspective", "blocks", "Morgen", ":forecast"],
+        vec!["perspective", "blocks", "Morgen", "Büro="],
+        vec!["perspective", "blocks", "Büro", ":today"],
+        vec!["perspective", "dedupe", "Morgen", "vielleicht"],
+        vec!["list", "--perspective", "Morgen", "--today"],
+    ] {
+        assert_eq!(code(&server.samu(&refused, None)), 1, "{refused:?}");
+    }
+    assert_eq!(
+        code(&server.samu(&["perspective", "blocks", "Morgen", "Nirgends"], None)),
+        3
+    );
+    // Its blocks printed, then cleared: a plain perspective again.
+    let blocks = json_out(&ok(server.samu(
+        &["perspective", "blocks", "Morgen", "--format", "json"],
+        None,
+    )));
+    assert_eq!(blocks[1]["block"], ":inbox");
+    ok(server.samu(&["perspective", "blocks", "Morgen", "--clear"], None));
+    let list = json_out(&ok(
+        server.samu(&["perspective", "list", "--format", "json"], None)
+    ));
+    assert_eq!(list[1]["blocks"], "");
+}
+
 /// ae5a3206: `samu block` lets a task wait for another, the server's
 /// availability says so, and `samu unblock` takes it back. Itself, twice
 /// and a circle are refused.
@@ -4122,5 +4279,157 @@ fn demo_data_into_the_account() {
         code(&server.samu(&["demo", "fr"], None)),
         2,
         "clap refuses another language"
+    );
+}
+
+/// ADR 0115 §8: `samu list --columns` shows the table's columns, an action
+/// group's estimate and worked time count its subtree, and a table
+/// perspective brings its own columns.
+#[test]
+fn list_shows_columns_and_a_table_perspective_its_own() {
+    let server = signed_in_server();
+    let ok = |out: Output| {
+        assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+        out
+    };
+    let id_of = |out: Output| json_out(&ok(out))[0]["id"].as_str().unwrap().to_string();
+    let group = id_of(server.samu(&["add", "Steuer ~1h", "--format", "json"], None));
+    let child = id_of(server.samu(
+        &["add", "Belege ~30m", "--parent", &group, "--format", "json"],
+        None,
+    ));
+    ok(server.samu(&["set", &child, "properties.jira", "ST-7"], None));
+    ok(server.samu(&["clock", "add", &child, "1h"], None));
+    let later = id_of(server.samu(&["add", "Abgabe", "--format", "json"], None));
+    ok(server.samu(&["block", &later, &child], None));
+
+    let rows = json_out(&ok(server.samu(
+        &[
+            "list",
+            "--columns",
+            "estimate,worked,remaining,prop:jira,blocked_by",
+            "--format",
+            "json",
+        ],
+        None,
+    )));
+    let row = |id: &str| {
+        rows.as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == id)
+            .unwrap()["columns"]
+            .clone()
+    };
+    // The group counts its subtree: 1h + 30m estimated, 1h worked below.
+    assert_eq!(row(&group)["estimate"], 5400);
+    assert_eq!(row(&group)["worked"], 3600);
+    assert_eq!(row(&group)["remaining"], 1800);
+    assert_eq!(row(&group)["prop:jira"], serde_json::Value::Null);
+    assert_eq!(row(&group)["blocked_by"], serde_json::Value::Null);
+    assert_eq!(
+        row(&later)["blocked_by"],
+        serde_json::json!([format!("samu:{child}")])
+    );
+    // Beyond the estimate: the rest is negative.
+    assert_eq!(row(&child)["remaining"], -1800);
+    assert_eq!(row(&child)["prop:jira"], "ST-7");
+
+    // plain: a head, then short, the columns and the title.
+    let plain = stdout(&ok(
+        server.samu(&["list", "--columns", "worked,prop:jira"], None)
+    ));
+    let lines: Vec<&str> = plain.lines().collect();
+    assert!(lines[0].starts_with("id"), "{plain}");
+    assert!(lines[0].ends_with("title"), "{plain}");
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("1:00") && l.contains("ST-7") && l.ends_with("Belege")),
+        "{plain}"
+    );
+    // tsv: no head, every column in place, empty ones too.
+    let tsv = stdout(&ok(server.samu(
+        &["list", "--columns", "priority,worked", "--format", "tsv"],
+        None,
+    )));
+    assert!(
+        tsv.lines().any(|l| l.ends_with("\t\t1:00\tBelege")),
+        "{tsv}"
+    );
+    // Without a value: the default columns.
+    let rows = json_out(&ok(
+        server.samu(&["list", "--columns", "--format", "json"], None)
+    ));
+    let keys: Vec<&String> = rows[0]["columns"].as_object().unwrap().keys().collect();
+    assert_eq!(keys, ["due", "estimate", "priority", "state", "worked"]);
+    // Unknown and doubled columns are refused.
+    assert_eq!(code(&server.samu(&["list", "--columns", "ist"], None)), 1);
+    assert_eq!(
+        code(&server.samu(&["list", "--columns", "due,due"], None)),
+        1
+    );
+
+    // A table perspective: its columns on the server, used by list.
+    ok(server.samu(
+        &[
+            "perspective",
+            "add",
+            "Zeit",
+            "Belege",
+            "--table",
+            "--columns",
+            "worked",
+        ],
+        None,
+    ));
+    let rows = json_out(&ok(
+        server.samu(&["list", "--perspective", "Zeit", "--format", "json"], None)
+    ));
+    let keys: Vec<&String> = rows[0]["columns"]
+        .as_object()
+        .unwrap_or_else(|| panic!("{rows}"))
+        .keys()
+        .collect();
+    assert_eq!(keys, ["worked"]);
+    ok(server.samu(
+        &[
+            "perspective",
+            "view",
+            "Zeit",
+            "table",
+            "--columns",
+            "estimate,prop:jira",
+        ],
+        None,
+    ));
+    let list = json_out(&ok(
+        server.samu(&["perspective", "list", "--format", "json"], None)
+    ));
+    assert_eq!(list[0]["view"], "table");
+    assert_eq!(list[0]["columns"], "estimate,prop:jira");
+    assert_eq!(
+        list[0]["perspective"]["table"]["columns"],
+        serde_json::json!(["estimate", "prop:jira"])
+    );
+    // As a list it keeps its columns, and list shows no table.
+    ok(server.samu(&["perspective", "view", "Zeit", "list"], None));
+    let rows = json_out(&ok(
+        server.samu(&["list", "--perspective", "Zeit", "--format", "json"], None)
+    ));
+    assert!(rows[0].get("columns").is_none());
+    let list = json_out(&ok(
+        server.samu(&["perspective", "list", "--format", "json"], None)
+    ));
+    assert_eq!(
+        list[0]["perspective"]["table"]["columns"],
+        serde_json::json!(["estimate", "prop:jira"])
+    );
+    assert_ne!(
+        code(&server.samu(
+            &["perspective", "view", "Zeit", "table", "--columns", "x"],
+            None
+        )),
+        0
     );
 }

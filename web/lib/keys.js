@@ -30,6 +30,7 @@ import { foldHeadings, order, setDone } from "./list.js";
 import { copyLink, menuKey, menuOpen, openMenuHere } from "./menu.js";
 import { shiftTask } from "./reorder.js";
 import { indent, openBlockPalette, openPalette, outdent } from "./palette.js";
+import { tableKey } from "./table.js";
 import { closeSettings, openSettings } from "./settings.js";
 import { chooseView, cycleSidebar } from "./sidebar.js";
 import { isOpen, shown, state, statusOf, update } from "./state.js";
@@ -48,6 +49,7 @@ export const keyOf = (id) => bindings().byId.get(id) ?? null;
 const NOTES = [
   [tr("x f m s t … mit Auswahl"), tr("wirken auf alle ausgewählten; Esc hebt die Auswahl auf")],
   [tr("⌫ im leeren Suchfeld"), tr("letzten Chip entfernen")],
+  [tr("← → Enter in der Tabelle"), tr("Zelle wählen und bearbeiten; Esc bricht ab")],
   ["Esc", tr("zurück, Feld verlassen")],
 ];
 
@@ -278,6 +280,11 @@ export function wireKeys() {
       const a = bound(`${first} ${key}`);
       if (a) run(a, event);
       else event.preventDefault();
+      return;
+    }
+    // In the table ← → choose a cell and Enter opens it (ADR 0115 §6).
+    if (tableKey(key)) {
+      event.preventDefault();
       return;
     }
     const a = bound(key);

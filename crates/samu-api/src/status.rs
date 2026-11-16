@@ -243,6 +243,27 @@ pub struct ScheduledScope {
     pub until: Option<Timestamp>,
 }
 
+/// One block of a perspective, as `GET /blocks` returns them in order
+/// (ADR 0116 §4); a plain perspective is one section.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BlockSection {
+    /// The heading: the block's own, else the name of its perspective or
+    /// view.
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    /// The block as the perspective holds it; none for a plain
+    /// perspective.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block: Option<crate::PerspectiveBlock>,
+    /// It points at a perspective that is gone, a block perspective or a
+    /// view this server does not know, and shows nothing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub missing: bool,
+    #[serde(default)]
+    pub tasks: Vec<TaskStatus>,
+}
+
 /// One section of Forecast (ADR 0045), as `GET /forecast` returns them in
 /// order: overdue, today, flagged, the next days, later.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

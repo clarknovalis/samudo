@@ -93,7 +93,7 @@ function save(owner, key, value) {
 }
 
 // Every key in the account, for the suggestions when adding one.
-function knownKeys() {
+export function knownKeys() {
   const keys = new Set(Object.keys(state.accountSettings?.property_links ?? {}));
   for (const o of [...state.tasks, ...state.projects]) {
     for (const k of Object.keys(o.properties ?? {})) keys.add(k);

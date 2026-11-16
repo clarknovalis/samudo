@@ -1,5 +1,5 @@
 # The definition of done (AGENTS.md).
-.PHONY: check check-public secret-scan fmt clippy test api-standalone web-check emacs-check install install-replica install-front android
+.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check web-check emacs-check install install-replica install-front android
 
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
@@ -10,7 +10,7 @@ check: check-public
 # What the public CI runs (.github/workflows/ci.yml), and what a
 # contribution needs. A local.mk beside this file, if there is one, can add
 # checks of its own to `check`.
-check-public: fmt clippy test api-standalone web-check emacs-check
+check-public: fmt clippy test api-standalone license-check web-check emacs-check
 
 fmt:
 	cargo fmt --all --check
@@ -27,6 +27,11 @@ test:
 # crate builds from exactly the files that would be uploaded.
 api-standalone:
 	cargo package -p samu-api --allow-dirty
+
+# The crates that may also be used under MIT must not depend on one that
+# is only AGPL (ADR 0117).
+license-check:
+	scripts/license-check.sh
 
 # A secret scan of exactly what is committed (ADR 0108 §7), with the
 # exceptions in .gitleaks.toml. Needs gitleaks; not part of check, since it
@@ -46,6 +51,8 @@ web-check:
 	node web/tests/offers.mjs
 	node web/tests/author.mjs
 	node web/tests/i18n.mjs
+	node web/tests/table.mjs
+	node web/tests/blocks.mjs
 
 # samu.el: compiled with warnings as errors, then its ERT tests, both
 # without a CLI or a server (ADR 0082 §8). Skipped, and

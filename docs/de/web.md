@@ -56,6 +56,17 @@ Wahl bleibt im Browser. Ordner und Projekte lassen sich hier anlegen,
 umbenennen, verschieben und zuklappen, und Aufgaben lassen sich auf ein
 Projekt oder die Inbox ziehen.
 
+„+“ bei Perspektiven legt eine Perspektive oder eine
+[Block-Perspektive](concepts.md#perspektiven) an; „Blöcke …“ im Menü
+einer Block-Perspektive listet ihre Blöcke: Perspektiven oder die
+Ansichten Inbox, Heute und Markiert hinzufügen, einem eine eigene
+Überschrift geben, per Ziehen oder ↑ ↓ ordnen, entfernen, und „Doppelte
+nur einmal“ schalten. In der Liste ist jeder Block ein Abschnitt zum
+Zuklappen; seine Überschrift öffnet die Perspektive oder Ansicht des
+Blocks, und seine Zeilen sind angeordnet wie in dieser Perspektive, als
+Liste oder Tabelle (ein Board erscheint als Liste). Das Suchfeld sucht
+dort über alles.
+
 ### Liste
 
 - Ein Schalter für **Verfügbar / Verbleibend / Alle**.
@@ -72,6 +83,25 @@ Projekt oder die Inbox ziehen.
   Tags, dazu „Ohne“ und „Erledigt“ (die letzten 7 Tage), jede mit einem
   optionalen WIP-Limit. Eine Karte ziehen setzt den Zustand, tauscht den
   Tag, erledigt oder öffnet wieder. `z` zeigt das Board im Vollbild.
+- **Tabelle** („Liste | Board | Tabelle“): dieselben Zeilen wie die Liste,
+  je Feld eine Spalte. „Spalten“ wählt sie: Zustand, Priorität, Projekt,
+  Tags, Start, Fällig, Geplant, Erstellt, Geändert, Erledigt, Schätzung,
+  Ist, Rest (Schätzung − Ist), Blocker und jede Property; ein Kopf lässt
+  sich ziehen, um die Spalte zu verschieben. Eine Aktionsgruppe zeigt
+  Schätzung, Ist und Rest ihres ganzen Teilbaums, ein Gruppenkopf die
+  Summen seiner Zeilen, die letzte Zeile die Summe über alles; Ist zählt
+  jede Uhr, eine laufende bis jetzt, also dieselbe Zahl wie der Bericht.
+  Ein Klick auf einen Kopf sortiert danach, ein zweiter umgekehrt
+  (Properties, Ist und Tags sortieren noch nicht). Eine Perspektive merkt
+  sich ihre Spalten auf dem Server, sonst merkt sie sich dieser Browser.
+- **Bearbeiten in der Tabelle:** ein Klick auf eine Zelle bearbeitet sie
+  dort: Zustand und Priorität als Knöpfe (ihre Kürzel wählen sofort),
+  Daten, Schätzung und eine Property als Feld (Enter oder Verlassen
+  schreibt, leer nimmt den Wert weg), Tags als Chips mit ✕ und ein Feld,
+  das einen Tag per Name hinzufügt (⌫ im leeren Feld nimmt den letzten).
+  Ist, Erstellt, Geändert, Projekt, Erledigt und Blocker werden nur
+  gezeigt. Mit der Tastatur wählen ← → eine Zelle der gewählten Zeile,
+  Enter öffnet sie, Esc schließt ohne zu schreiben.
 
 ### Details
 
@@ -222,6 +252,7 @@ nicht übersetzt, und Fehlermeldungen des Servers bleiben englisch.
 | Umschalt+F10, Rechtsklick | das Menü der Aufgabe |
 | Alt+← Alt+→ | im Board: Karte eine Spalte weiter |
 | `z` | Board im Vollbild |
+| ← → Enter | in der Tabelle: Zelle wählen, bearbeiten (Esc bricht ab) |
 | `[` | Seitenleiste: voll, schmal, weg |
 | `]` | Aufgabe über die ganze Breite |
 | `g i`, `g f`, `g m`, `g p`, `g r`, `g z`, `g k`, `g s` | zu Inbox, Forecast, Markiert, Projekte, Review, Bericht, Kalender, Einstellungen |

@@ -53,6 +53,16 @@ initials or the emoji of a folder or project) and hidden; the choice is
 kept in the browser. Folders and projects can be created, renamed, moved
 and folded here, and tasks can be dragged onto a project or the inbox.
 
+"+" at Perspectives makes a perspective or a
+[block perspective](concepts.md#perspectives); "Blocks …" in a block
+perspective's menu lists its blocks: add perspectives or the views Inbox,
+Today and Flagged, give one a heading of its own, order them by dragging
+or ↑ ↓, remove them, and switch "Duplicates once". In the list each block
+is a section that folds; its heading opens the block's perspective or
+view, and its rows are arranged as that perspective arranges them, as a
+list or a table (a board shows as a list). The search field there
+searches everything.
+
 ### List
 
 - A switch for **Available / Remaining / All**.
@@ -68,6 +78,25 @@ and folded here, and tasks can be dragged onto a project or the inbox.
   "None" and "Completed" (the last 7 days), each with an optional
   work-in-progress limit. Dragging a card sets the state, swaps the tag,
   completes or reopens. `z` shows the board full screen.
+- **Table** ("List | Board | Table"): the same rows as the list, one
+  column per field. "Columns" chooses them: state, priority, project,
+  tags, defer, due, planned, created, modified, completed, estimate,
+  worked, remaining (estimate − worked), blockers, and any property; drag
+  a head to move its column. An action group shows estimate, worked and
+  remaining of its whole subtree, a group's head the sums of its rows,
+  the last row the sum of all; worked counts every clock, a running one
+  up to now, the same number as the report. A click on a head sorts by
+  it, a second click reverses (properties, worked and tags do not sort
+  yet). A perspective keeps its columns on the server; elsewhere they are
+  kept in this browser.
+- **Editing in the table:** a click on a cell edits it there: state and
+  priority as buttons (their keys pick at once), dates, the estimate and a
+  property as a field (Enter or leaving it writes, empty takes the value
+  away), tags as chips with ✕ and a field that adds one by name (⌫ in the
+  empty field takes the last off). Worked, created, modified, project,
+  completed and blockers are only shown. With the keyboard ← → choose a
+  cell of the selected row, Enter opens it, Escape closes it without
+  writing.
 
 ### Inspector
 
@@ -210,6 +239,7 @@ server stay English.
 | Shift+F10, right click | the task's menu |
 | Alt+← Alt+→ | on the board: move the card a column |
 | `z` | board full screen |
+| ← → Enter | in the table: choose a cell, edit it (Escape cancels) |
 | `[` | sidebar: full, narrow, hidden |
 | `]` | task across the full width |
 | `g i`, `g f`, `g m`, `g p`, `g r`, `g z`, `g k`, `g s` | go to inbox, forecast, flagged, projects, review, report, calendar, settings |

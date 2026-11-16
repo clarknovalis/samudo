@@ -24,7 +24,9 @@ is `samu`: the crates, the command, the `samu:` URIs.
   ISO 8601 text with `Z`.
 - Dependencies point one way (see the architecture page). `samu-api`
   depends on nothing in this workspace, because other projects build it
-  inside their own; nothing depends on `samu-server`; no cycles.
+  inside their own; `samu-client` depends on `samu-api` only, because
+  both may also be used under MIT (`make license-check`); nothing
+  depends on `samu-server`; no cycles.
 - `samu-core` has no I/O and no async runtime.
 
 ## Rust
@@ -51,6 +53,7 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo package -p samu-api     # builds without the rest of the workspace
+scripts/license-check.sh      # MIT crates depend on no AGPL-only crate
 ```
 
 plus the web UI's and the Emacs package's tests.

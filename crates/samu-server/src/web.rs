@@ -31,6 +31,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
     ),
     ("lib/api.js", include_str!("../../../web/lib/api.js"), JS),
     (
+        "lib/blockdialog.js",
+        include_str!("../../../web/lib/blockdialog.js"),
+        JS,
+    ),
+    (
+        "lib/blocks.js",
+        include_str!("../../../web/lib/blocks.js"),
+        JS,
+    ),
+    (
         "lib/board.js",
         include_str!("../../../web/lib/board.js"),
         JS,
@@ -237,6 +247,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
     (
         "lib/state.js",
         include_str!("../../../web/lib/state.js"),
+        JS,
+    ),
+    (
+        "lib/table.js",
+        include_str!("../../../web/lib/table.js"),
+        JS,
+    ),
+    (
+        "lib/tabledata.js",
+        include_str!("../../../web/lib/tabledata.js"),
         JS,
     ),
     (

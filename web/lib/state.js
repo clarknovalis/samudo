@@ -257,8 +257,12 @@ export const onlyIn = (object) => {
 };
 // Whether the search has text or chips.
 // In a perspective the field is its search, not one of its own (ADR 0090 §6).
+// A block perspective has no search of its own: there the field searches
+// everything, as in a fixed view (ADR 0116 §6).
+const blockPerspective = () =>
+  state.view.kind === "perspective" && Boolean(byId(state.perspectives, state.view.perspective)?.blocks?.length);
 export const searching = () =>
-  state.view.kind !== "perspective" && Boolean(state.search.trim() || state.searchChips.length);
+  (state.view.kind !== "perspective" || blockPerspective()) && Boolean(state.search.trim() || state.searchChips.length);
 // What the middle shows: the search while there is one, else the view.
 export const shown = () => (searching() ? { kind: "search", project: null } : state.view);
 export const isOpen = (task) => !task.completed_at && !task.dropped_at;

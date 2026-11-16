@@ -5,8 +5,8 @@
 use anyhow::{Result, bail};
 use clap::Subcommand;
 use samu_api::{
-    Change, Id, ObjectKind, Perspective, PerspectiveArrange, PerspectiveFilter, PerspectiveGroup,
-    PerspectiveSort, PerspectiveView, ScopeChip,
+    Change, Id, ObjectKind, Perspective, PerspectiveArrange, PerspectiveBlock, PerspectiveFilter,
+    PerspectiveGroup, PerspectiveSort, PerspectiveTable, PerspectiveView, ScopeChip,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -43,9 +43,39 @@ pub(crate) enum PerspectiveCommand {
         #[arg(long)]
         sort: Option<String>,
         /// Show it as a board.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "table")]
         board: bool,
+        /// Show it as a table (ADR 0115).
+        #[arg(long)]
+        table: bool,
+        /// The table's columns, like `state,due,worked,prop:jira`; the
+        /// default ones without.
+        #[arg(long, requires = "table")]
+        columns: Option<String>,
+        /// Make a block perspective (ADR 0116) of these blocks, as in
+        /// `samu perspective blocks`.
+        #[arg(
+            long,
+            num_args = 1..,
+            conflicts_with_all = ["words", "filter", "group", "sort", "board", "table"]
+        )]
+        blocks: Vec<String>,
     },
+    /// Set the blocks of a block perspective (ADR 0116): each a
+    /// perspective's name, or a fixed view as `:inbox`, `:today` or
+    /// `:flagged`; `=Heading` after it gives a heading of its own, like
+    /// `Büro=Kurz im Büro`. Without blocks it prints them.
+    Blocks {
+        name: String,
+        #[arg(conflicts_with = "clear")]
+        blocks: Vec<String>,
+        /// No blocks: a plain perspective again.
+        #[arg(long)]
+        clear: bool,
+    },
+    /// on: a task several blocks show stands only in the first; off: in
+    /// every one, as in org.
+    Dedupe { name: String, value: String },
     /// Replace a perspective's search: chips and free text together, as
     /// in `add`; without words it prints them.
     Search {
@@ -92,8 +122,15 @@ pub(crate) enum PerspectiveCommand {
         #[arg(long, conflicts_with_all = ["group", "sort", "desc", "then", "then_desc"])]
         clear: bool,
     },
-    /// list or board.
-    View { name: String, view: String },
+    /// list, board or table; `--columns` sets the table's columns, which
+    /// stay while it shows a list or board. Without a value the default
+    /// ones.
+    View {
+        name: String,
+        view: String,
+        #[arg(long, num_args = 0..=1, default_missing_value = "")]
+        columns: Option<String>,
+    },
     /// Give a perspective another name.
     Rename { name: String, title: String },
     /// Give a perspective an emoji, or take it off with `--none`.
@@ -130,10 +167,10 @@ pub(crate) fn find<'a>(perspectives: &'a [Perspective], name: &str) -> Result<&'
     }
 }
 
-/// The id of the perspective `name` names, for `samu list --perspective`.
-pub(crate) fn resolve(client: &Client, name: &str) -> Result<Id> {
+/// The perspective `name` names, for `samu list --perspective`.
+pub(crate) fn resolve(client: &Client, name: &str) -> Result<Perspective> {
     let snapshot = snapshot(client)?;
-    Ok(find(&snapshot.perspectives, name)?.id)
+    Ok(find(&snapshot.perspectives, name)?.clone())
 }
 
 /// A word the server knows for one of the enums, never a newer one.
@@ -149,7 +186,7 @@ fn word<T: DeserializeOwned + serde::Serialize>(text: &str, what: &str, known: &
 const FILTERS: &str = "available, remaining or all";
 const GROUPS: &str = "project, folder, tag, state, priority, date or none";
 const SORTS: &str = "position, due, planned, defer, title, created, modified, estimate or priority";
-const VIEWS: &str = "list or board";
+const VIEWS: &str = "list, board or table";
 
 fn filter_of(text: &str) -> Result<PerspectiveFilter> {
     word(text, "filter", FILTERS)
@@ -180,6 +217,92 @@ fn split_search(snapshot: &Snapshot, words: &[String]) -> Result<(Vec<ScopeChip>
     Ok((chips, text.join(" ")))
 }
 
+/// A block in the words of `samu perspective blocks`.
+fn block_word(perspectives: &[Perspective], block: &PerspectiveBlock) -> String {
+    let name = match (&block.perspective, &block.view) {
+        (Some(id), _) => perspectives
+            .iter()
+            .find(|p| p.id == *id)
+            .map_or_else(|| short(id), |p| p.title.clone()),
+        (None, Some(view)) => format!(":{view}"),
+        (None, None) => "?".into(),
+    };
+    match &block.title {
+        Some(title) => format!("{name}={title}"),
+        None => name,
+    }
+}
+
+/// A block perspective's blocks as words, comma-separated; empty for a
+/// plain one.
+fn blocks_words(perspectives: &[Perspective], p: &Perspective) -> String {
+    p.blocks
+        .iter()
+        .map(|b| block_word(perspectives, b))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Blocks from words: `:view` or a plain perspective's name, each with
+/// an optional `=Heading` (ADR 0116 §2, §7). `of` is the perspective that
+/// gets them, which is no block of itself.
+fn parse_blocks(
+    perspectives: &[Perspective],
+    of: Option<Id>,
+    words: &[String],
+) -> Result<Vec<PerspectiveBlock>> {
+    words
+        .iter()
+        .map(|word| {
+            let (name, title) = match word.split_once('=') {
+                Some((name, title)) if !title.trim().is_empty() => {
+                    (name.trim(), Some(title.trim().to_owned()))
+                }
+                Some(_) => bail!("{word:?}: a heading after = is not blank"),
+                None => (word.trim(), None),
+            };
+            if let Some(view) = name.strip_prefix(':') {
+                if !samu_core::blocks::known_view(view) {
+                    bail!(
+                        "{view:?} is no view a block shows: {}",
+                        samu_core::blocks::VIEWS.join(", ")
+                    );
+                }
+                return Ok(PerspectiveBlock {
+                    perspective: None,
+                    view: Some(view.to_owned()),
+                    title,
+                });
+            }
+            let found = find(perspectives, name)?;
+            if Some(found.id) == of {
+                bail!("a perspective is no block of itself");
+            }
+            if !found.blocks.is_empty() {
+                bail!("{:?} has blocks itself and is no block", found.title);
+            }
+            Ok(PerspectiveBlock {
+                perspective: Some(found.id),
+                view: None,
+                title,
+            })
+        })
+        .collect()
+}
+
+/// A plain perspective, for the commands that change what only a plain
+/// one has (ADR 0116 §7).
+fn plain<'a>(perspectives: &'a [Perspective], name: &str) -> Result<&'a Perspective> {
+    let found = find(perspectives, name)?;
+    if !found.blocks.is_empty() {
+        bail!(
+            "{:?} is a block perspective: change its blocks with `samu perspective blocks`",
+            found.title
+        );
+    }
+    Ok(found)
+}
+
 /// A perspective's search as the words that make it.
 fn search_words(snapshot: &Snapshot, p: &Perspective) -> String {
     let mut words: Vec<String> = p.chips.iter().map(|c| chip_word(snapshot, c)).collect();
@@ -194,6 +317,21 @@ fn name_of<T: serde::Serialize>(value: &T) -> String {
         .ok()
         .and_then(|v| v.as_str().map(str::to_owned))
         .unwrap_or_default()
+}
+
+/// The columns of a table perspective, comma-separated; empty for the
+/// others.
+fn columns_words(p: &Perspective) -> String {
+    if p.view != PerspectiveView::Table {
+        return String::new();
+    }
+    crate::table::or_default(
+        p.table
+            .as_ref()
+            .map(|t| t.columns.clone())
+            .unwrap_or_default(),
+    )
+    .join(",")
 }
 
 fn arrange_words(arrange: Option<&PerspectiveArrange>) -> String {
@@ -239,6 +377,8 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
                         "filter": name_of(&p.filter),
                         "arrange": arrange_words(p.arrange.as_ref()),
                         "view": name_of(&p.view),
+                        "columns": columns_words(p),
+                        "blocks": blocks_words(all, p),
                         "perspective": p,
                     })
                 })
@@ -247,7 +387,8 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
                 format,
                 &records,
                 &[
-                    "short", "icon", "title", "search", "filter", "arrange", "view",
+                    "short", "icon", "title", "search", "filter", "arrange", "view", "columns",
+                    "blocks",
                 ],
             )?;
         }
@@ -259,7 +400,12 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             group,
             sort,
             board,
+            table,
+            columns,
+            blocks,
         } => {
+            let columns = columns.as_deref().map(crate::table::parse).transpose()?;
+            let blocks = parse_blocks(all, None, &blocks)?;
             if all
                 .iter()
                 .any(|p| p.title.to_lowercase() == name.to_lowercase())
@@ -302,11 +448,15 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
                 arrange,
                 view: if board {
                     PerspectiveView::Board
+                } else if table {
+                    PerspectiveView::Table
                 } else {
                     PerspectiveView::List
                 },
                 board: None,
-                table: None,
+                table: columns.map(|columns| PerspectiveTable { columns }),
+                blocks,
+                dedupe: true,
                 position,
             };
             write(
@@ -325,7 +475,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             )?;
         }
         PerspectiveCommand::Search { name, words, clear } => {
-            let found = find(all, &name)?;
+            let found = plain(all, &name)?;
             if !clear && words.is_empty() {
                 emit(
                     format,
@@ -349,7 +499,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             )?;
         }
         PerspectiveCommand::Chips { name, words, clear } => {
-            let found = find(all, &name)?;
+            let found = plain(all, &name)?;
             let chips = if clear {
                 Vec::new()
             } else {
@@ -361,7 +511,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             )?;
         }
         PerspectiveCommand::Text { name, words, clear } => {
-            let found = find(all, &name)?;
+            let found = plain(all, &name)?;
             let text = if clear {
                 String::new()
             } else {
@@ -370,7 +520,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             write(&client, &[set(found.id, "text", json!(text))])?;
         }
         PerspectiveCommand::Filter { name, filter } => {
-            let found = find(all, &name)?;
+            let found = plain(all, &name)?;
             let filter = filter_of(&filter)?;
             write(
                 &client,
@@ -386,7 +536,7 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             then_desc,
             clear,
         } => {
-            let found = find(all, &name)?;
+            let found = plain(all, &name)?;
             let value = if clear {
                 Value::Null
             } else {
@@ -411,13 +561,63 @@ pub(crate) fn run(config: &Config, format: Format, command: PerspectiveCommand) 
             };
             write(&client, &[set(found.id, "arrange", value)])?;
         }
-        PerspectiveCommand::View { name, view } => {
-            let found = find(all, &name)?;
+        PerspectiveCommand::View {
+            name,
+            view,
+            columns,
+        } => {
+            let found = plain(all, &name)?;
             let view: PerspectiveView = word(&view, "presentation", VIEWS)?;
+            let mut changes = vec![set(found.id, "view", serde_json::to_value(view)?)];
+            if let Some(columns) = columns {
+                let columns = crate::table::parse(&columns)?;
+                changes.push(set(
+                    found.id,
+                    "table",
+                    serde_json::to_value(PerspectiveTable { columns })?,
+                ));
+            }
+            write(&client, &changes)?;
+        }
+        PerspectiveCommand::Blocks {
+            name,
+            blocks,
+            clear,
+        } => {
+            let found = find(all, &name)?;
+            if !clear && blocks.is_empty() {
+                let records: Vec<Value> = found
+                    .blocks
+                    .iter()
+                    .map(|b| json!({"block": block_word(all, b), "value": b}))
+                    .collect();
+                emit(format, &records, &["block"])?;
+                return Ok(());
+            }
+            if !clear
+                && all
+                    .iter()
+                    .any(|p| p.blocks.iter().any(|b| b.perspective == Some(found.id)))
+            {
+                bail!(
+                    "{:?} is a block of another perspective and gets no blocks",
+                    found.title
+                );
+            }
+            let blocks = parse_blocks(all, Some(found.id), &blocks)?;
             write(
                 &client,
-                &[set(found.id, "view", serde_json::to_value(view)?)],
+                &[set(found.id, "blocks", serde_json::to_value(&blocks)?)],
             )?;
+        }
+        PerspectiveCommand::Dedupe { name, value } => {
+            let found = find(all, &name)?;
+            let dedupe = match value.to_lowercase().as_str() {
+                "on" | "true" | "yes" => true,
+                "off" | "false" | "no" => false,
+                _ => bail!("{value:?} is neither on nor off"),
+            };
+            write(&client, &[set(found.id, "dedupe", json!(dedupe))])?;
         }
         PerspectiveCommand::Rename { name, title } => {
             let found = find(all, &name)?;

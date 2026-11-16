@@ -3,7 +3,12 @@ name = "samu-client"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+# The rest of samudo is AGPL-3.0-or-later; like samu-api, this client may
+# in addition be used under MIT or Apache-2.0, so other programs can talk
+# to a samudo server without copyleft (ADR 0117). It must therefore depend
+# on nothing in this workspace but samu-api (`make license-check`).
+# Texts: LICENSE-MIT, LICENSE-APACHE beside this file.
+license = "AGPL-3.0-or-later OR MIT OR Apache-2.0"
 repository.workspace = true
 description = "Talking to a samu server over HTTP: the command line's client, shared with the Android app (ADR 0028)."
 publish = false

@@ -125,6 +125,13 @@ A perspective is a saved search: words and chips of the
 grouping and sorting, and list or board. Perspectives appear in the
 sidebar; the command line shows one with `samu list --perspective <name>`.
 
+A **block perspective** shows several perspectives and the views Inbox,
+Today and Flagged one below the other, like org-mode's block agenda: say
+first today, then the short tasks at the office, then what waits for
+others. Each block keeps its own search, filter and arrangement and may
+have a heading of its own. A task that several blocks show stands only in
+the first, unless "Duplicates once" is off.
+
 ## Scopes
 
 A **scope** is a lens over every view: it names folders, projects and tags

@@ -1,0 +1,23 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e93",
+  "created": "2026-11-16T08:00:00Z",
+  "modified": "2026-11-16T09:30:00Z",
+  "title": "Morgen",
+  "icon": "🌅",
+  "filter": "available",
+  "view": "list",
+  "blocks": [
+    {
+      "view": "today"
+    },
+    {
+      "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e92",
+      "title": "Kurz im Büro"
+    },
+    {
+      "view": "flagged"
+    }
+  ],
+  "dedupe": false,
+  "position": 4
+}

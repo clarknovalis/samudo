@@ -197,6 +197,9 @@ const PERSPECTIVE: &[Column] = &[
         column: "table_view",
         ty: Ty::Json,
     },
+    // ADR 0116 §1; `dedupe` as JSON, so a missing one stays the default.
+    col("blocks", Ty::Json),
+    col("dedupe", Ty::Json),
     col("position", Ty::Int),
 ];
 

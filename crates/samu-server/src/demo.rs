@@ -1167,6 +1167,8 @@ impl<'a> Seeder<'a> {
                 },
                 board: None,
                 table: None,
+                blocks: Vec::new(),
+                dedupe: true,
                 position,
             };
             self.apply(create_of(

@@ -41,6 +41,7 @@ for ten minutes; `POST /pair` trades it for a session on the new device.
 | Route | |
 |---|---|
 | `GET /available` | open tasks with availability, every reason, state and next state; filters: available only, today, project, all, scope, perspective |
+| `GET /blocks?perspective=<id>` | what a perspective shows, block by block: `[{title, icon, block, missing, tasks}]`, `tasks` as in `/available`; a plain perspective is one block, and `/available` answers a block perspective with every block's tasks once; with `scope` |
 | `GET /available/projects`, `/available/folders` | projects (stuck, review due) and folders |
 | `GET /forecast` | the forecast sections, each row with why it is there |
 | `GET /objects/{id}` | one object of any kind |

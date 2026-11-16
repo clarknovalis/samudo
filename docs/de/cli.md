@@ -132,6 +132,7 @@ samu list --flagged
 samu list --project Bad --all
 samu list --search fliesen
 samu list --perspective "Kurze Anrufe"
+samu list --columns state,due,estimate,worked,prop:jira   # als Tabelle
 samu projects                  # Projekte mit ihrer Verfügbarkeit
 samu projects --stuck          # aktiv, ohne verfügbare Aufgabe
 samu projects --review         # Review fällig
@@ -145,6 +146,15 @@ samu blockers 4f2a91c3         # die Aufgaben, auf die es wartet
 Der gewählte [Scope](concepts.md#scopes) gilt; `--scope <name>` wählt
 einen anderen, `--no-scope` keinen. Ohne Scope fehlt, was einen eigenen
 Scope hat; diesen Scope wählen, um es zu sehen.
+
+`--columns` gibt eine Tabelle aus, mit denselben Spaltennamen wie die
+Web-Oberfläche (`worked` ist die Zeit auf den Uhren, `remaining` Schätzung
+minus Ist; eine Aktionsgruppe zählt ihren Teilbaum); ohne Wert die
+Vorgabe-Spalten, eine Tabellen-Perspektive bringt ihre eigenen mit.
+
+Eine Block-Perspektive bekommt vor jedem Block eine Überschrift
+(`▸ Titel (n)`), in tsv die Überschrift als erste Spalte, in json die
+Blöcke mit ihren Aufgaben.
 
 ## Ändern
 
@@ -263,6 +273,10 @@ samu scope schedule Arbeit "mo-fr 08:00-17:00"
 samu set <id> own_scope Arbeit         # ein Ordner, Projekt oder Tag nur in Arbeit
 samu unset <id> own_scope              # wieder überall
 samu perspective add "Kurze Anrufe" '@telefon ~<15m'
+samu perspective view "Kurze Anrufe" table --columns state,due,estimate,worked
+samu perspective add Morgen --blocks :today "Kurze Anrufe=Am Schreibtisch" :flagged
+samu perspective blocks Morgen                   # zeigt die Blöcke; --clear macht sie einfach
+samu perspective dedupe Morgen off               # eine Aufgabe in jedem Block, der sie zeigt
 samu settings                          # die Einstellungen des Kontos
 samu settings set remind-time 08:00
 samu settings set due-soon P3D

@@ -1,5 +1,5 @@
 {
- "about": "Shared cases for the time worked per task and subtree in the table (ADR 0115 §4): samu_core::table::worked and the web's table must give these. Synthetic data. Seconds. A running clock counts up to `now`; a booked one is a clock as well; completed and dropped tasks count in their parent's subtree; clocks on a project or on a task not in the list add to nothing; a clock that ends before it starts counts zero.",
+ "about": "Shared cases for the time worked per task and subtree in the table (ADR 0115 §4): samu_core::table::worked and the web's table must give these. Synthetic data. Seconds. A running clock counts up to `now`; a booked one is a clock as well; completed and dropped tasks count in their parent's subtree; clocks on a project or on a task not in the list add to nothing; a clock that ends before it starts counts zero. `estimated` holds the estimate per task and subtree in seconds (samu_core::table::estimated): null where nothing below has one; a dropped task keeps its own but adds nothing above it, a completed one adds.",
  "tasks": [
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01",
@@ -32,7 +32,8 @@
    "title": "Anlage N",
    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
    "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03",
-   "completed_at": "2026-11-14T09:00:00Z"
+   "completed_at": "2026-11-14T09:00:00Z",
+   "estimate": "PT30M"
   },
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05",
@@ -41,7 +42,8 @@
    "title": "Anlage KAP",
    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f10",
    "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03",
-   "dropped_at": "2026-11-14T09:00:00Z"
+   "dropped_at": "2026-11-14T09:00:00Z",
+   "estimate": "PT2H"
   },
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06",
@@ -135,6 +137,36 @@
    "note": "ends before it starts"
   }
  ],
+ "estimated": {
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01": {
+   "own": null,
+   "subtree": 5400
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f02": {
+   "own": 3600,
+   "subtree": 3600
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f03": {
+   "own": null,
+   "subtree": 1800
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f04": {
+   "own": 1800,
+   "subtree": 1800
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f05": {
+   "own": 7200,
+   "subtree": 7200
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f06": {
+   "own": null,
+   "subtree": null
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07": {
+   "own": null,
+   "subtree": null
+  }
+ },
  "cases": [
   {
    "about": "a clock running for an hour",

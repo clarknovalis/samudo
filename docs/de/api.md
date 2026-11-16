@@ -42,6 +42,7 @@ gegen eine Sitzung.
 | Route | |
 |---|---|
 | `GET /available` | offene Aufgaben mit Verfügbarkeit, jedem Grund, Zustand und nächstem Zustand; Filter: nur verfügbar, heute, Projekt, alle, Scope, Perspektive |
+| `GET /blocks?perspective=<id>` | was eine Perspektive zeigt, Block für Block: `[{title, icon, block, missing, tasks}]`, `tasks` wie bei `/available`; eine einfache Perspektive ist ein Block, und `/available` antwortet für eine Block-Perspektive mit den Aufgaben aller Blöcke, jede einmal; mit `scope` |
 | `GET /available/projects`, `/available/folders` | Projekte (stuck, Review fällig) und Ordner |
 | `GET /forecast` | die Abschnitte des Forecasts, jede Zeile mit dem Grund, warum sie dort steht |
 | `GET /objects/{id}` | ein Objekt beliebiger Art |

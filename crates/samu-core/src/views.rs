@@ -174,6 +174,15 @@ impl<'a> PerspectiveTest<'a> {
     pub fn task(&self, task: &Task, state: &TaskState) -> bool {
         self.filter.matches(task, state) && crate::query::text_matches(self.text, task)
     }
+
+    /// Whether the perspective shows a task the scope shows: its chips,
+    /// its free text and its filter.
+    pub fn shows(&self, status: &TaskStatus, state: &TaskState) -> bool {
+        let open = status.task.completed_at.is_none() && status.task.dropped_at.is_none();
+        (open || self.all)
+            && (status.available || !self.available)
+            && self.task(&status.task, state)
+    }
 }
 
 /// The perspective a query names, or [`ViewError::NoPerspective`].
@@ -208,8 +217,13 @@ pub fn available(
         now,
         &settings.zone,
     );
-    let asked = chosen_perspective(objects, filter.perspective)?
-        .map(|p| PerspectiveTest::new(p, &view, now, &settings.zone));
+    let chosen = chosen_perspective(objects, filter.perspective)?;
+    if let Some(perspective) = chosen.filter(|p| !p.blocks.is_empty()) {
+        // A block perspective: every block's tasks once (ADR 0116 §4).
+        let sections = blocks_of(objects, settings, now, filter.scope, perspective)?;
+        return Ok(crate::blocks::union(sections));
+    }
+    let asked = chosen.map(|p| PerspectiveTest::new(p, &view, now, &settings.zone));
     let all = filter.all || asked.as_ref().is_some_and(|a| a.all);
     let only_available = filter.available || asked.as_ref().is_some_and(|a| a.available);
     let inheritance = Inheritance::new(&objects.tasks, &objects.projects);
@@ -261,6 +275,57 @@ pub fn available(
         )
     });
     Ok(statuses)
+}
+
+/// `GET /blocks`: what a perspective shows, block by block (ADR 0116 §3-4);
+/// a plain perspective is one block. Only what the scope shows, no task
+/// marked `outside`.
+pub fn blocks(
+    objects: &Objects,
+    settings: &Settings,
+    now: Timestamp,
+    scope: Option<Id>,
+    perspective: Id,
+) -> Result<Vec<crate::api::BlockSection>, ViewError> {
+    let chosen = chosen_perspective(objects, Some(perspective))?
+        .ok_or(ViewError::NoPerspective(perspective))?;
+    blocks_of(objects, settings, now, scope, chosen)
+}
+
+fn blocks_of(
+    objects: &Objects,
+    settings: &Settings,
+    now: Timestamp,
+    scope: Option<Id>,
+    perspective: &crate::api::Perspective,
+) -> Result<Vec<crate::api::BlockSection>, ViewError> {
+    let everything = AvailableFilter {
+        all: true,
+        scope,
+        ..AvailableFilter::default()
+    };
+    let statuses: Vec<TaskStatus> = available(objects, settings, now, &everything)?
+        .into_iter()
+        .filter(|s| !s.outside)
+        .collect();
+    let view = objects.snapshot();
+    let evaluation = evaluate(&view, now, settings);
+    let tests: HashMap<Id, PerspectiveTest<'_>> = objects
+        .perspectives
+        .iter()
+        .filter(|p| p.blocks.is_empty())
+        .map(|p| (p.id, PerspectiveTest::new(p, &view, now, &settings.zone)))
+        .collect();
+    Ok(crate::blocks::assemble(
+        perspective,
+        &objects.perspectives,
+        &statuses,
+        |p, status| {
+            let test = tests.get(&p.id);
+            let state = evaluation.tasks.get(&status.task.id);
+            test.zip(state).is_some_and(|(t, s)| t.shows(status, s))
+        },
+    ))
 }
 
 /// A task with what was computed for it, as `/available` and `/forecast`
@@ -1381,6 +1446,68 @@ mod tests {
         objects.scopes.push(scope);
         objects.perspectives.push(p);
         assert_eq!(shown_in(&objects, &filter), ["Angebot drinnen"]);
+    }
+
+    /// ADR 0116 §3-4: a block perspective shows its blocks one below the
+    /// other, each as its perspective or view alone, inside the scope, a
+    /// task once; `/available` answers with all of them together.
+    #[test]
+    fn a_block_perspective_shows_its_blocks() {
+        let mut objects = Objects::default();
+        let mut flagged = task("Angebot schreiben", 0);
+        flagged.flagged = true;
+        let offer = task("Angebot lesen", 1);
+        let mut done = task("Angebot alt", 2);
+        done.completed_at = Some(now());
+        let tax = task("Steuer", 3);
+        objects.tasks = vec![flagged, offer, done, tax];
+        let offers = perspective(serde_json::json!({ "title": "Angebote", "text": "angebot" }));
+        let morning = perspective(serde_json::json!({
+            "title": "Morgen",
+            "blocks": [
+                {"view": "flagged"},
+                {"perspective": offers.id, "title": "Alle Angebote"},
+                {"perspective": Id::new()},
+            ],
+        }));
+        let (offers_id, morning_id) = (offers.id, morning.id);
+        objects.perspectives = vec![offers, morning];
+        let titles = |s: &crate::api::BlockSection| -> Vec<String> {
+            s.tasks.iter().map(|t| t.task.title.clone()).collect()
+        };
+        let sections = blocks(&objects, &settings(), now(), None, morning_id).unwrap();
+        let heads: Vec<(&str, bool)> = sections
+            .iter()
+            .map(|s| (s.title.as_str(), s.missing))
+            .collect();
+        assert_eq!(heads[..2], [("flagged", false), ("Alle Angebote", false)]);
+        assert!(sections[2].missing);
+        assert_eq!(titles(&sections[0]), ["Angebot schreiben"]);
+        assert_eq!(
+            titles(&sections[1]),
+            ["Angebot lesen"],
+            "once, not the closed"
+        );
+
+        let filter = AvailableFilter {
+            perspective: Some(morning_id),
+            ..AvailableFilter::default()
+        };
+        assert_eq!(
+            shown_in(&objects, &filter),
+            ["Angebot lesen", "Angebot schreiben"]
+        );
+
+        // A plain perspective is one section under its name.
+        let one = blocks(&objects, &settings(), now(), None, offers_id).unwrap();
+        assert_eq!(one.len(), 1);
+        assert_eq!(one[0].title, "Angebote");
+        assert_eq!(titles(&one[0]).len(), 2);
+        let missing = Id::new();
+        assert_eq!(
+            blocks(&objects, &settings(), now(), None, missing),
+            Err(ViewError::NoPerspective(missing))
+        );
     }
 
     #[test]

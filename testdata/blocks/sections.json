@@ -1,0 +1,307 @@
+{
+ "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden, and gives the sections in order and the union `/available` answers with.",
+ "perspectives": [
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01",
+   "created": "2026-11-16T08:00:00Z",
+   "modified": "2026-11-16T08:00:00Z",
+   "title": "Büro",
+   "position": 1,
+   "icon": "🏢"
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a02",
+   "created": "2026-11-16T08:00:00Z",
+   "modified": "2026-11-16T08:00:00Z",
+   "title": "Wartet",
+   "position": 2
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a03",
+   "created": "2026-11-16T08:00:00Z",
+   "modified": "2026-11-16T08:00:00Z",
+   "title": "Morgen",
+   "position": 3,
+   "icon": "🌅",
+   "blocks": [
+    {
+     "view": "today"
+    },
+    {
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01",
+     "title": "Kurz im Büro"
+    },
+    {
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a02"
+    },
+    {
+     "view": "flagged"
+    }
+   ]
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a04",
+   "created": "2026-11-16T08:00:00Z",
+   "modified": "2026-11-16T08:00:00Z",
+   "title": "Lücken",
+   "position": 4,
+   "blocks": [
+    {
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7aff"
+    },
+    {
+     "view": "forecast"
+    },
+    {
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a03"
+    },
+    {
+     "view": "inbox"
+    },
+    {}
+   ]
+  }
+ ],
+ "statuses": [
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Anruf Steuerberater"
+   },
+   "available": true,
+   "today": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Drucker Toner",
+    "flagged": true
+   },
+   "available": true,
+   "today": false
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Angebot prüfen",
+    "flagged": true
+   },
+   "available": true,
+   "today": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Antwort Vermieter"
+   },
+   "available": false,
+   "today": false
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b05",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Idee notieren"
+   },
+   "available": true,
+   "today": false,
+   "inbox": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b06",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Inbox, wartet"
+   },
+   "available": false,
+   "today": false,
+   "inbox": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b07",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Erledigt heute",
+    "completed_at": "2026-11-15T08:00:00Z"
+   },
+   "available": true,
+   "today": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b08",
+    "created": "2026-11-10T08:00:00Z",
+    "modified": "2026-11-10T08:00:00Z",
+    "title": "Markiert, wartet",
+    "flagged": true
+   },
+   "available": false,
+   "today": false
+  }
+ ],
+ "shows": {
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01": [
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+  ],
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a02": [
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04",
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+  ]
+ },
+ "cases": [
+  {
+   "about": "blocks in order, a task in the first block that shows it; Today shows what is open, Flagged what is available",
+   "perspective": "Morgen",
+   "sections": [
+    {
+     "title": "today",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    },
+    {
+     "title": "Kurz im Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02"
+     ]
+    },
+    {
+     "title": "Wartet",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+     ]
+    },
+    {
+     "title": "flagged",
+     "missing": false,
+     "tasks": []
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+   ]
+  },
+  {
+   "about": "without dedupe a task stands in every block, as in org; the union has each once",
+   "perspective": "Morgen",
+   "dedupe": false,
+   "sections": [
+    {
+     "title": "today",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    },
+    {
+     "title": "Kurz im Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    },
+    {
+     "title": "Wartet",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+     ]
+    },
+    {
+     "title": "flagged",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+   ]
+  },
+  {
+   "about": "a gone perspective, an unknown view, a block perspective and an empty block are missing and empty; the inbox shows what is available",
+   "perspective": "Lücken",
+   "sections": [
+    {
+     "title": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7aff",
+     "missing": true,
+     "tasks": []
+    },
+    {
+     "title": "forecast",
+     "missing": true,
+     "tasks": []
+    },
+    {
+     "title": "Morgen",
+     "missing": true,
+     "tasks": []
+    },
+    {
+     "title": "inbox",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b05"
+     ]
+    },
+    {
+     "title": "",
+     "missing": true,
+     "tasks": []
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b05"
+   ]
+  },
+  {
+   "about": "a plain perspective is one section under its name",
+   "perspective": "Büro",
+   "sections": [
+    {
+     "title": "Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+   ]
+  }
+ ]
+}

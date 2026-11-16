@@ -818,6 +818,14 @@ const fn yes() -> bool {
     true
 }
 
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's skip_serializing_if"
+)]
+const fn is_yes(value: &bool) -> bool {
+    *value
+}
+
 /// A comment on a task or project (ADR 0039 §3). Changed or deleted only
 /// from a session of the kind that wrote it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -898,8 +906,36 @@ pub struct Perspective {
     /// The table's columns (ADR 0115 §7); none = the default ones.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub table: Option<PerspectiveTable>,
+    /// Since samu-api 0.1.54: the blocks of a block perspective (ADR 0116
+    /// §1), changed as a whole. Not empty, the perspective shows these one
+    /// below the other, and its search, filter, arrangement and
+    /// presentation do not count; an older reader shows it as a plain
+    /// perspective with no search, which `/available` answers with all
+    /// blocks together.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub blocks: Vec<PerspectiveBlock>,
+    /// Since samu-api 0.1.54: a task that several blocks match stands only
+    /// in the first (ADR 0116 §3); false, in every one, as in org.
+    #[serde(default = "yes", skip_serializing_if = "is_yes")]
+    pub dedupe: bool,
     #[serde(default)]
     pub position: i64,
+}
+
+/// One block of a block perspective (ADR 0116 §2): another perspective or
+/// a fixed view, exactly one of the two.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerspectiveBlock {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub perspective: Option<Id>,
+    /// A fixed view by name: `inbox`, `today` or `flagged`. A plain string,
+    /// so a view from a newer samu survives an older client; a reader
+    /// shows a block it does not know as missing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<String>,
+    /// A heading of its own; none = the name of the perspective or view.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
 }
 
 /// Available, remaining or all (ADR 0020 §1, ADR 0090 §1).

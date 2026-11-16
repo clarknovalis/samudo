@@ -2101,7 +2101,9 @@ fn check_habit_entry(
 /// case; an icon like a project's (ADR 0059); chips as a scope's filter;
 /// no value from a newer samu, which is read, never written (ADR 0015);
 /// a board's workflow and tags live tags; a table's columns known ones,
-/// each once (ADR 0115 §2).
+/// each once (ADR 0115 §2); blocks that each show one live plain
+/// perspective or a known view, on a perspective no block shows
+/// (ADR 0116 §2).
 fn check_perspective(
     tx: &Connection,
     perspective: &crate::core::api::Perspective,
@@ -2176,6 +2178,73 @@ fn check_perspective(
             if table.columns[..n].contains(column) {
                 return Ok(Err(format!("the column {column:?} twice")));
             }
+        }
+    }
+    if writes("blocks")
+        && !perspective.blocks.is_empty()
+        && let Err(reason) = check_blocks(tx, perspective)?
+    {
+        return Ok(Err(reason));
+    }
+    Ok(Ok(()))
+}
+
+/// The blocks of a block perspective (ADR 0116 §2): each shows exactly one
+/// of a live plain perspective other than this one, or a fixed view this
+/// server knows, under a heading that is not blank when given; and no
+/// block of another live perspective shows this one, which would make it
+/// a block in a block.
+fn check_blocks(
+    tx: &Connection,
+    perspective: &crate::core::api::Perspective,
+) -> Result<Result<(), Refused>> {
+    for block in &perspective.blocks {
+        if block.title.as_ref().is_some_and(|t| t.trim().is_empty()) {
+            return Ok(Err("a block's heading is not blank".into()));
+        }
+        match (&block.perspective, &block.view) {
+            (Some(id), None) => {
+                if *id == perspective.id {
+                    return Ok(Err("a perspective is not a block of itself".into()));
+                }
+                if !head(tx, *id)?.is_some_and(|h| !h.deleted && h.kind == ObjectKind::Perspective)
+                {
+                    return Ok(Err(format!("no perspective {id}")));
+                }
+                let blocks: Option<String> = tx.query_row(
+                    "SELECT p.blocks FROM perspective p JOIN object o ON o.id = p.object \
+                     WHERE o.uuid = ?1",
+                    [uuid_blob(*id)],
+                    |row| row.get(0),
+                )?;
+                if blocks.is_some() {
+                    return Ok(Err(format!(
+                        "the perspective {id} has blocks itself, and is no block"
+                    )));
+                }
+            }
+            (None, Some(view)) => {
+                if !crate::core::blocks::known_view(view) {
+                    return Ok(Err(format!("a view this server does not know: {view:?}")));
+                }
+            }
+            _ => {
+                return Ok(Err("a block shows one perspective or one view".into()));
+            }
+        }
+    }
+    let mut others = tx.prepare(
+        "SELECT p.blocks FROM perspective p JOIN object o ON o.id = p.object \
+         WHERE o.deleted_at IS NULL AND o.uuid != ?1 AND p.blocks IS NOT NULL",
+    )?;
+    let others = others.query_map([uuid_blob(perspective.id)], |row| row.get::<_, String>(0))?;
+    for blocks in others {
+        let blocks: Vec<crate::core::api::PerspectiveBlock> =
+            serde_json::from_str(&blocks?).unwrap_or_default();
+        if blocks.iter().any(|b| b.perspective == Some(perspective.id)) {
+            return Ok(Err(
+                "this perspective is a block of another, and gets no blocks".into(),
+            ));
         }
     }
     Ok(Ok(()))
@@ -2971,7 +3040,8 @@ pub(crate) mod tests {
                 "0023_daily_reminder",
                 "0024_own_scope",
                 "0025_appointment_alarms",
-                "0026_perspective_table"
+                "0026_perspective_table",
+                "0027_perspective_blocks"
             ]
         );
         drop(store);
@@ -3017,7 +3087,8 @@ pub(crate) mod tests {
                     "0023_daily_reminder",
                     "0024_own_scope",
                     "0025_appointment_alarms",
-                    "0026_perspective_table"
+                    "0026_perspective_table",
+                    "0027_perspective_blocks"
                 ]
             );
             // The settings object, made on opening (ADR 0045 §4).
@@ -3031,7 +3102,7 @@ pub(crate) mod tests {
         let history: i64 = conn
             .query_row("SELECT count(*) FROM schema_history", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(history, 26);
+        assert_eq!(history, 27);
         let journal: String = conn
             .query_row("PRAGMA journal_mode", [], |r| r.get(0))
             .unwrap();
@@ -3141,7 +3212,8 @@ pub(crate) mod tests {
                 "0023_daily_reminder",
                 "0024_own_scope",
                 "0025_appointment_alarms",
-                "0026_perspective_table"
+                "0026_perspective_table",
+                "0027_perspective_blocks"
             ]
         );
         let id: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3238,7 +3310,8 @@ pub(crate) mod tests {
                 "0023_daily_reminder",
                 "0024_own_scope",
                 "0025_appointment_alarms",
-                "0026_perspective_table"
+                "0026_perspective_table",
+                "0027_perspective_blocks"
             ]
         );
         let reminder: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e22".parse().unwrap();
@@ -3338,7 +3411,8 @@ pub(crate) mod tests {
                 "0023_daily_reminder",
                 "0024_own_scope",
                 "0025_appointment_alarms",
-                "0026_perspective_table"
+                "0026_perspective_table",
+                "0027_perspective_blocks"
             ]
         );
 
@@ -3538,7 +3612,8 @@ pub(crate) mod tests {
                 "0023_daily_reminder",
                 "0024_own_scope",
                 "0025_appointment_alarms",
-                "0026_perspective_table"
+                "0026_perspective_table",
+                "0027_perspective_blocks"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3646,7 +3721,8 @@ pub(crate) mod tests {
                 "0023_daily_reminder",
                 "0024_own_scope",
                 "0025_appointment_alarms",
-                "0026_perspective_table"
+                "0026_perspective_table",
+                "0027_perspective_blocks"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();

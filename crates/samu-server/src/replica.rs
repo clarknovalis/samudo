@@ -65,6 +65,7 @@ pub(crate) fn locality(route: &Route) -> Option<Where> {
         | ("GET", "/objects/{id}")
         | ("POST", "/objects/{id}/delete")
         | ("GET", "/available")
+        | ("GET", "/blocks")
         | ("GET", "/available/projects")
         | ("GET", "/available/folders")
         | ("GET", "/scopes/scheduled")
@@ -897,6 +898,22 @@ async fn available(
     Ok(Json(statuses).into_response())
 }
 
+/// `GET /blocks` from the mirror (ADR 0116 §4).
+async fn blocks(
+    State(replica): State<Arc<Replica>>,
+    Query(query): Query<crate::app::BlocksQuery>,
+) -> Result<Response, Failure> {
+    let (objects, settings) = replica.read()?;
+    let sections = views::blocks(
+        &objects,
+        &settings,
+        Timestamp::now(),
+        query.scope,
+        query.perspective,
+    )?;
+    Ok(Json(sections).into_response())
+}
+
 /// `GET /habits` from the mirror (ADR 0091 §4).
 async fn habits(
     State(replica): State<Arc<Replica>>,
@@ -1416,6 +1433,7 @@ pub(crate) fn router(replica: Arc<Replica>) -> Router {
         .route("/objects/{id}", get(get_object))
         .route("/objects/{id}/delete", post(delete_object))
         .route("/available", get(available))
+        .route("/blocks", get(blocks))
         .route("/habits", get(habits))
         .route("/habits/{id}", get(habit))
         .route("/available/projects", get(available_projects))

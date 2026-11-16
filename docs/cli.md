@@ -129,6 +129,7 @@ samu list --flagged
 samu list --project Bathroom --all
 samu list --search tiler
 samu list --perspective "Quick calls"
+samu list --columns state,due,estimate,worked,prop:jira   # as a table
 samu projects                  # projects with their availability
 samu projects --stuck          # active, with no available task
 samu projects --review         # review due
@@ -142,6 +143,14 @@ samu blockers 4f2a91c3         # the tasks it waits for
 The chosen [scope](concepts.md#scopes) applies; `--scope <name>` picks
 another, `--no-scope` none. Without a scope, what has an own scope is
 missing; choose that scope to see it.
+
+`--columns` prints a table with the same column names as the web UI
+(`worked` is the time on the clocks, `remaining` estimate minus worked;
+an action group counts its subtree); without a value the default columns,
+and a table perspective brings its own.
+
+A block perspective prints a heading before each block (`▸ Title (n)`), in
+tsv the heading as the first column, in json the blocks with their tasks.
 
 ## Changing
 
@@ -258,6 +267,10 @@ samu scope schedule Work "mo-fr 08:00-17:00"
 samu set <id> own_scope Work           # a folder, project or tag only in Work
 samu unset <id> own_scope              # everywhere again
 samu perspective add "Quick calls" '@phone ~<15m'
+samu perspective view "Quick calls" table --columns state,due,estimate,worked
+samu perspective add Morning --blocks :today "Quick calls=At the desk" :flagged
+samu perspective blocks Morning                  # prints its blocks; --clear makes it plain
+samu perspective dedupe Morning off              # a task in every block that shows it
 samu settings                          # the account's settings
 samu settings set remind-time 08:00
 samu settings set due-soon P3D

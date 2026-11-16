@@ -14,8 +14,8 @@ use std::path::{Path, PathBuf};
 use samu_api::{
     AccountDelete, AccountSettings, Alert, AnyObject, ApiError, Appointment, AppointmentAlarm,
     AppointmentEdit, AppointmentEditResponse, AppointmentInstance, Attachment, BareStatus, Blob,
-    Calendar, CalendarImport, CalendarSource, CaptureRequest, CaptureResponse, Change,
-    ChangeNotice, ChangeOutcome, ChangesPage, Clock, ClockReport, ClockReportRow, Comment,
+    BlockSection, Calendar, CalendarImport, CalendarSource, CaptureRequest, CaptureResponse,
+    Change, ChangeNotice, ChangeOutcome, ChangesPage, Clock, ClockReport, ClockReportRow, Comment,
     DeleteRequest, DeleteResponse, DemoAdded, DemoRequest, DiscoveredCalendar, Document, Export,
     ExportManifest, ExportedObject, Folder, ForecastSection, Grant, HabitEntry, HabitStatus, Hlc,
     HookChange, HookChangeResponse, HookDelivery, HookView, Link, LogEntry, Login, PairCode,
@@ -46,6 +46,7 @@ const TYPES: &[(&str, RoundTrip)] = &[
     ("scope", round_trip::<Scope>),
     ("template", round_trip::<Template>),
     ("perspective", round_trip::<Perspective>),
+    ("block_section", round_trip::<BlockSection>),
     ("habit_entry", round_trip::<HabitEntry>),
     ("habit_status", round_trip::<HabitStatus>),
     ("account_settings", round_trip::<AccountSettings>),

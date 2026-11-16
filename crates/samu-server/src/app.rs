@@ -1348,6 +1348,32 @@ async fn available(
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct BlocksQuery {
+    /// The perspective whose blocks to show (ADR 0116 §4).
+    pub(crate) perspective: Id,
+    /// Only what this scope shows (ADR 0035 §5).
+    pub(crate) scope: Option<Id>,
+}
+
+/// `GET /blocks`: what a perspective shows, block by block, computed in
+/// samu-core (ADR 0116 §3-4).
+async fn blocks(
+    State(state): State<Arc<AppState>>,
+    Extension(session): Extension<Session>,
+    Query(query): Query<BlocksQuery>,
+) -> Result<Response, Failure> {
+    let (objects, settings) = read(&state, &session)?;
+    let sections = views::blocks(
+        &objects,
+        &settings,
+        Timestamp::now(),
+        query.scope,
+        query.perspective,
+    )?;
+    Ok(Json(sections).into_response())
+}
+
+#[derive(Debug, Deserialize)]
 pub(crate) struct HabitsQuery {
     /// Only what this scope shows (ADR 0035 §5).
     pub(crate) scope: Option<Id>,
@@ -2002,6 +2028,7 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route("/objects/{id}/logbook", get(get_logbook))
         .route("/objects/{id}/delete", post(delete_object))
         .route("/available", get(available))
+        .route("/blocks", get(blocks))
         .route("/habits", get(habits))
         .route("/habits/{id}", get(habit))
         .route("/available/projects", get(available_projects))

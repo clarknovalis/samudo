@@ -12,6 +12,7 @@ import {
   createPerspective,
   deletePerspective,
   duplicate,
+  filterOf,
   holds,
   movePerspective,
   perspectiveOf,
@@ -20,6 +21,8 @@ import {
   searchOf,
   setIcon,
 } from "./perspectives.js";
+import { assemble, isBlocks, passes, union } from "./blocks.js";
+import { isBlockOfAnother, openBlocks } from "./blockdialog.js";
 import { openSettings } from "./settings.js";
 import { matcher } from "./query.js";
 import { byId, isOpen, onlyIn, searching, shown, state, toggleFold, update } from "./state.js";
@@ -108,6 +111,24 @@ function found(status) {
   return search.test(status);
 }
 
+// The tasks of a block perspective's blocks (ADR 0116 §5), made again
+// only when what they read changes.
+let unions = { key: [], sets: new Map() };
+function blockSet(p) {
+  const key = [state.statuses, state.perspectives, state.tags, state.folders];
+  if (key.some((k, i) => k !== unions.key[i])) unions = { key, sets: new Map() };
+  const own = JSON.stringify([p.blocks, p.dedupe]);
+  let made = unions.sets.get(p.id);
+  if (!made || made.own !== own) {
+    const statuses = state.statuses.filter((s) => !s.outside);
+    const shows = (q, s) => holds(q, s) && passes(filterOf(q), s);
+    const ids = union(assemble(p, perspectives(), statuses, shows)).map((s) => s.task.id);
+    made = { own, set: new Set(ids) };
+    unions.sets.set(p.id, made);
+  }
+  return made.set;
+}
+
 export function inView(status, view = shown()) {
   const task = status.task;
   switch (view.kind) {
@@ -128,6 +149,7 @@ export function inView(status, view = shown()) {
     // after, as for every view.
     case "perspective": {
       const p = perspectiveOf(view.perspective);
+      if (isBlocks(p)) return blockSet(p).has(task.id);
       return Boolean(p) && holds(p, status);
     }
     case "forecast": {
@@ -268,10 +290,16 @@ async function commitDraft() {
     if (!title) {
       draft = null;
     } else if (d.kind === "perspective" && d.mode === "new") {
-      const id = await createPerspective(title, d.from);
+      const { blocks: asBlocks, ...from } = d.from ?? {};
+      const id = await createPerspective(title, from);
       if (id) {
         draft = null;
         chooseView({ kind: "perspective", perspective: id });
+        // A block perspective is made with its blocks next (ADR 0116 §6).
+        if (asBlocks === true) {
+          const made = perspectiveOf(id);
+          if (made) openBlocks(made);
+        }
       }
     } else if (d.kind === "perspective") {
       const object = objectOf(d.id, d.kind);
@@ -380,6 +408,9 @@ function perspectiveMenu(p) {
   }
   return el("div", { class: "place-menu", role: "menu" }, [
     menuItem(tr("Umbenennen"), () => startDraft({ mode: "rename", id: p.id, kind: "perspective" })),
+    // ADR 0116 §6: a block perspective's blocks; a plain one that is no
+    // block of another may become one.
+    isBlocks(p) || !isBlockOfAnother(p) ? menuItem(isBlocks(p) ? tr("Blöcke …") : tr("Zu Block-Perspektive …"), () => openBlocks(p)) : null,
     el(
       "div",
       { class: "emoji-row", role: "group", "aria-label": "Icon" },
@@ -510,9 +541,17 @@ function drawPerspectives(step) {
       text: "+",
       onclick: (event) => {
         event.stopPropagation();
-        startPerspectiveDraft({});
+        // Plain or of blocks (ADR 0116 §6).
+        menu = menu?.id === "persp-new" ? null : { id: "persp-new", kind: "perspective" };
+        update({});
       },
     }),
+    menu?.id === "persp-new"
+      ? el("div", { class: "place-menu", role: "menu" }, [
+          menuItem(tr("Perspektive"), () => startPerspectiveDraft({})),
+          menuItem(tr("Block-Perspektive"), () => startPerspectiveDraft({ blocks: true })),
+        ])
+      : null,
   ]);
   replace($("perspectives"), rows);
 }

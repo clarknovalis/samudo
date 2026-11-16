@@ -48,19 +48,25 @@ export function holds(p, status) {
 
 // --- Arrangement: the browser's form and the wire's (ADR 0090 §1) ------
 
+const DISPLAYS = ["list", "board", "table"];
+const viewOf = (view) => (DISPLAYS.includes(view) ? view : "list");
+
 const DEFAULT_ARRANGE = { group: "project", sort: "position", desc: false, then: null, thenDesc: false };
 
 // What list.js and board.js read as `chosen`.
 export function orderOf(p) {
   const a = p.arrange ?? {};
   return {
-    view: p.view === "board" ? "board" : "list",
+    view: viewOf(p.view),
     group: a.group ?? DEFAULT_ARRANGE.group,
     sort: a.sort ?? DEFAULT_ARRANGE.sort,
     desc: Boolean(a.desc),
     then: a.then ?? null,
     thenDesc: Boolean(a.then_desc),
     ...(p.board ? { board: p.board } : {}),
+    // The table's columns stay when the view goes back to list or board
+    // (ADR 0115 §7).
+    ...(p.table ? { table: p.table } : {}),
   };
 }
 
@@ -77,7 +83,7 @@ function fieldsOf(chosen) {
         ...(chosen.then ? { then: chosen.then } : {}),
         ...(chosen.then && chosen.thenDesc ? { then_desc: true } : {}),
       };
-  return { arrange, view: chosen.view === "board" ? "board" : "list", board: chosen.board ?? null };
+  return { arrange, view: viewOf(chosen.view), board: chosen.board ?? null, table: chosen.table ?? null };
 }
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -127,7 +133,7 @@ const sameChips = (a, b) => same(plain(a), plain(b));
 // Whether the field differs from what the perspective holds.
 export function edited() {
   const p = current();
-  return Boolean(p) && (!sameChips(state.searchChips, p.chips) || text(state.search) !== text(p.text));
+  return Boolean(p) && !p.blocks?.length && (!sameChips(state.searchChips, p.chips) || text(state.search) !== text(p.text));
 }
 
 // The field as the open perspective holds it.
@@ -194,13 +200,17 @@ export async function createPerspective(title, from = {}) {
     modified: created,
     title,
     filter: from.filter && FILTERS.includes(from.filter) ? from.filter : "available",
-    view: from.view === "board" ? "board" : "list",
+    view: viewOf(from.view),
     position: state.perspectives.reduce((max, p) => Math.max(max, p.position + 1), 0),
   };
   if (from.chips?.length) value.chips = from.chips;
   if (from.text) value.text = from.text;
   if (from.arrange) value.arrange = from.arrange;
   if (from.board) value.board = from.board;
+  if (from.table) value.table = from.table;
+  // A block perspective (ADR 0116 §1).
+  if (from.blocks?.length) value.blocks = from.blocks;
+  if (from.dedupe === false) value.dedupe = false;
   if (!(await write([change.create("perspective", value)]))) return null;
   // The reload after the write may have brought it already.
   if (!perspectiveOf(value.id)) state.perspectives = [...state.perspectives, value];

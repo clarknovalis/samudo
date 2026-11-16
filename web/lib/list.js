@@ -9,11 +9,14 @@ import { rowClick, rowDrag } from "./bulk.js";
 import { $, el, replace } from "./dom.js";
 import { calendarView } from "./calendar.js";
 import { setDone } from "./detail.js";
+import { closeTableMenu, drawTable, drawTables, renderTableMenu, tableMenuOpen, toggleTableMenu } from "./table.js";
+import { assemble, isBlocks, passes } from "./blocks.js";
+import { columnsOf } from "./tabledata.js";
 import { habitControl, habitOf } from "./habits.js";
 import { reportView } from "./report.js";
 import { asksForClosed, asksForWaiting, chipText, minutes, rangeOf, wantsAppointments } from "./query.js";
 import { rowDrop } from "./reorder.js";
-import { baseFilter, captureFrom, current as perspective, filterOf, orderOf } from "./perspectives.js";
+import { baseFilter, captureFrom, current as perspective, filterOf, holds, orderOf, perspectives, searchOf } from "./perspectives.js";
 import { forecastDay, inView, reviewProjects, startPerspectiveDraft, stuckProjects, VIEWS } from "./sidebar.js";
 import { byId, chooseOrder, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
 import { addDays, detailsText, dueText, pathOf, placeOf, reasonText, shortDay, tagPath, today } from "./words.js";
@@ -33,15 +36,14 @@ function filterNow() {
   return state.filter;
 }
 
-const matches = (status) => {
-  const filter = filterNow();
-  if (filter === "available") return isOpen(status.task) && status.available;
-  if (filter === "remaining") return isOpen(status.task);
-  return true;
-};
+const matches = (status) => passes(filterNow(), status);
 
-// The built-in views of time show open tasks whatever the filter.
-const filtered = () => !["today", "forecast", "calendar", "stuck", "review", "time"].includes(shown().kind);
+// The block perspective the middle shows, or null (ADR 0116).
+const blocksShown = () => (shown().kind === "perspective" && isBlocks(perspective()) ? perspective() : null);
+
+// The built-in views of time show open tasks whatever the filter; each
+// block of a block perspective has its own.
+const filtered = () => !["today", "forecast", "calendar", "stuck", "review", "time"].includes(shown().kind) && !blocksShown();
 
 // Completing goes through the inspector, which first sends what it holds
 // (e72d21c3).
@@ -68,6 +70,48 @@ let details = (() => {
 
 // The first lines of a note, for the mark's hover (ADR 0053 §5).
 const noteHint = (note) => (note.length > 300 ? `${note.slice(0, 300)} …` : note);
+
+// What a row starts with, in the list and the table (ADR 0115 §3): the
+// arrow of an action group, the priority bar and the tick.
+function lead(status, bare = false) {
+  const task = status.task;
+  const open = isOpen(task);
+  const group = status.group;
+  const folded = group && (bare ? !state.opened.has(task.id) : state.folded.has(task.id));
+  return [
+    group
+      ? el("button", {
+          type: "button",
+          class: "fold",
+          "aria-label": folded ? tr("aufklappen") : tr("zuklappen"),
+          text: folded ? "▸" : "▾",
+          onclick: (event) => {
+            event.stopPropagation();
+            (bare ? toggleOpened : toggleFold)(task.id);
+          },
+        })
+      : el("span", { class: "fold" }),
+    // The priority as a bar beside the tick (ADR 0089); empty keeps the place.
+    el("span", {
+      class: `prio-bar${task.priority ? ` prio-${task.priority}` : ""}`,
+      title: task.priority ? `${tr("Priorität")} ${task.priority}` : null,
+      "aria-label": task.priority ? `${tr("Priorität")} ${task.priority}` : null,
+      role: task.priority ? "img" : null,
+    }),
+    // An open habit is entered day by day instead (ADR 0091 §6).
+    open && task.habit && habitOf(task.id)
+      ? habitControl(status)
+      : el("input", {
+          type: "checkbox",
+          class: "tick",
+          checked: Boolean(task.completed_at),
+          disabled: Boolean(task.dropped_at),
+          "aria-label": tr("erledigt"),
+          onclick: (event) => event.stopPropagation(),
+          onchange: (event) => setDone(status, event.target.checked),
+        }),
+  ];
+}
 
 // `bare`: a group drawn without its children, which the arrow fetches
 // (ba0590e4); it folds by `state.opened`, not by `state.folded`.
@@ -107,37 +151,7 @@ function row(status, depth, context, why = null, bare = false) {
       ...rowDrop(task.id),
     },
     [
-      group
-        ? el("button", {
-            type: "button",
-            class: "fold",
-            "aria-label": folded ? tr("aufklappen") : tr("zuklappen"),
-            text: folded ? "▸" : "▾",
-            onclick: (event) => {
-              event.stopPropagation();
-              (bare ? toggleOpened : toggleFold)(task.id);
-            },
-          })
-        : el("span", { class: "fold" }),
-      // The priority as a bar beside the tick (ADR 0089); empty keeps the place.
-      el("span", {
-        class: `prio-bar${task.priority ? ` prio-${task.priority}` : ""}`,
-        title: task.priority ? `${tr("Priorität")} ${task.priority}` : null,
-        "aria-label": task.priority ? `${tr("Priorität")} ${task.priority}` : null,
-        role: task.priority ? "img" : null,
-      }),
-      // An open habit is entered day by day instead (ADR 0091 §6).
-      open && task.habit && habitOf(task.id)
-        ? habitControl(status)
-        : el("input", {
-            type: "checkbox",
-            class: "tick",
-            checked: Boolean(task.completed_at),
-            disabled: Boolean(task.dropped_at),
-            "aria-label": tr("erledigt"),
-            onclick: (event) => event.stopPropagation(),
-            onchange: (event) => setDone(status, event.target.checked),
-          }),
+      ...lead(status, bare),
       status.state ? el("span", { class: "state", text: tagTitle(status.state) }) : null,
       lines(task),
       el("span", { class: "meta" }, [
@@ -190,7 +204,9 @@ function descendants(id) {
 // as context above a child that does (ADR 0021 §2). A group whose children
 // the list does not hold (a search hit, a flat grouping) is bare: its
 // arrow draws them from the mirror, with the same filter (ba0590e4).
-function tree(statuses, rows, compare, start = 0) {
+// `make` builds what a row is: an element of the list, or what the table
+// draws (ADR 0115 §3).
+function tree(statuses, rows, compare, start = 0, make = row) {
   const ids = new Set(statuses.map((s) => s.task.id));
   const children = new Map();
   for (const s of statuses) {
@@ -216,11 +232,11 @@ function tree(statuses, rows, compare, start = 0) {
       seen.add(s.task.id);
       const context = filtered() && !matches(s);
       const bare = Boolean(s.group) && !(children.get(s.task.id) ?? []).some((c) => visible(c));
-      rows.push(row(s, depth, context, null, bare));
+      rows.push(make(s, depth, context, null, bare));
       // Under several tags a task shows more than once; j/k visit it once.
       if (!order.includes(s.task.id)) order.push(s.task.id);
       if (bare) {
-        if (state.opened.has(s.task.id)) tree(descendants(s.task.id), rows, compare, depth + 1);
+        if (state.opened.has(s.task.id)) tree(descendants(s.task.id), rows, compare, depth + 1, make);
       } else if (!state.folded.has(s.task.id)) walk(s.task.id, depth + 1, seen);
     }
   };
@@ -261,13 +277,13 @@ function renderFoldAll() {
 
 // A heading with its arrow and count; folded, its rows are left out and
 // j/k skip them.
-function section(title, statuses, compare, subtitle = null, key = null) {
+function section(title, statuses, compare, subtitle = null, key = null, prefix = "") {
   const rows = [];
   const visited = order.length;
   tree(statuses, rows, compare);
   if (!rows.length) return null;
   if (!title) return el("section", {}, [el("ul", { class: "rows" }, rows)]);
-  const fold = laneFold(key);
+  const fold = laneFold(`${prefix}${key ?? "inbox"}`);
   headings.push(fold);
   const folded = state.folded.has(fold);
   if (folded) order.length = visited;
@@ -641,6 +657,13 @@ const boardable = () =>
 
 const asBoard = () => boardable() && chosenOrder().view === "board";
 
+// The table goes where the board goes (ADR 0115 §1).
+const asTable = () => boardable() && chosenOrder().view === "table";
+
+// The columns of the table here: a perspective's on the server, else this
+// browser's for the view (§7).
+const tableColumns = (chosen) => columnsOf(chosen.table);
+
 // With columns from a workflow, the lanes cannot be the states too (§8).
 function laneGroup(chosen) {
   return chosen.group === "state" && boardConfig(chosen).source === "workflow" ? "none" : chosen.group;
@@ -766,24 +789,34 @@ function renderOrder() {
   switcher.classList.toggle("current", details);
   switcher.setAttribute("aria-pressed", String(details));
   const box = $("order");
-  box.hidden = ["stuck", "review", "forecast", "calendar", "time"].includes(shown().kind);
-  if (box.hidden) return;
+  // A block perspective is arranged block by block (ADR 0116 §5).
+  box.hidden = ["stuck", "review", "forecast", "calendar", "time"].includes(shown().kind) || Boolean(blocksShown());
+  if (box.hidden) {
+    $("middle").classList.remove("boarded", "tabled");
+    return;
+  }
   const chosen = chosenOrder();
   const board = asBoard();
+  const table = asTable();
   renderOrderMenu(chosen, board);
   for (const button of document.querySelectorAll("#view-switch button")) {
-    const on = button.dataset.view === (board ? "board" : "list");
+    const on = button.dataset.view === (board ? "board" : table ? "table" : "list");
     button.classList.toggle("current", on);
     button.setAttribute("aria-pressed", String(on));
   }
   $("view-switch").hidden = !boardable();
   $("middle").classList.toggle("boarded", board);
+  $("middle").classList.toggle("tabled", table);
   renderBoardMenu(board ? chosen : { ...chosen, view: "list" }, orderKey(), shown());
+  renderTableMenu(table, tableColumns(chosen), (columns) => chooseOrder(orderKey(), { table: { columns } }));
 }
 
 export function wireOrder() {
   $("order-button").addEventListener("click", () => {
-    if (!orderMenuOpen) closeBoardMenu();
+    if (!orderMenuOpen) {
+      closeBoardMenu();
+      closeTableMenu();
+    }
     setOrderMenu(!orderMenuOpen);
   });
   // Esc or a click beside it closes the menu (ADR 0064 §2), before the
@@ -802,12 +835,31 @@ export function wireOrder() {
   document.addEventListener("mousedown", (event) => {
     if (orderMenuOpen && !event.target.closest("#order-menu, #order-button")) setOrderMenu(false);
   });
+  // The same for the table's menu "Spalten" (ADR 0115 §2).
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (!tableMenuOpen() || event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeTableMenu();
+      $("table-columns").focus();
+    },
+    true,
+  );
+  document.addEventListener("mousedown", (event) => {
+    if (tableMenuOpen() && !event.target.closest("#table-menu, #table-columns")) closeTableMenu();
+  });
   for (const button of document.querySelectorAll("#view-switch button")) {
     button.addEventListener("click", () => chooseOrder(orderKey(), { view: button.dataset.view }));
   }
   $("board-columns").addEventListener("click", () => {
     setOrderMenu(false);
     toggleBoardMenu();
+  });
+  $("table-columns").addEventListener("click", () => {
+    setOrderMenu(false);
+    toggleTableMenu();
   });
   $("board-full").addEventListener("click", () => setBoardFull(!boardFull()));
   $("fold-all").addEventListener("click", foldHeadings);
@@ -838,6 +890,8 @@ function drawList() {
     button.classList.toggle("current", button.dataset.filter === filterNow());
     button.disabled = !filtered() || closed;
   }
+  // Each block has its own filter (ADR 0116 §5).
+  $("filter").hidden = Boolean(blocksShown());
   $("filter").title = closed ? tr("Die Suche fragt danach: es gilt „{filter}“", { filter: { all: tr("Alle"), remaining: tr("Verbleibend") }[filterNow()] }) : "";
   renderOrder();
   // The calendar fills the middle and scrolls its hours itself.
@@ -891,6 +945,11 @@ function drawList() {
     replace($("list"), appointmentSearch());
     return;
   }
+  const blocks = blocksShown();
+  if (blocks) {
+    drawBlocks(blocks);
+    return;
+  }
   const statuses = state.statuses.filter((s) => inView(s));
   const chosen = chosenOrder();
   const compare = comparer(chosen);
@@ -899,9 +958,84 @@ function drawList() {
     replace($("list"), boardView(boardContext(chosen, compare)));
     return;
   }
+  if (asTable()) {
+    drawTable($("list"), tableContext(statuses, chosen, compare));
+    return;
+  }
   const sections = groups(statuses, chosen.group).map(([key, heading, list, subtitle]) => section(heading, list, compare, subtitle, key));
   const drawn = sections.filter(Boolean);
   replace($("list"), drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") }));
+}
+
+// --- Block perspectives (ADR 0116 §5) ----------------------------------
+
+// The arrangement a fixed view has here when nothing is chosen.
+const viewOrder = () => ({ view: "list", group: "project", sort: "position", desc: false, then: null, thenDesc: false });
+
+// Opens what a block shows: its perspective with its search, or the view.
+function openBlock(section) {
+  if (section.target) update({ view: { kind: "perspective", perspective: section.target.id }, ...searchOf(section.target), selected: null });
+  else if (section.block?.view && VIEWS.some((v) => v.kind === section.block.view)) update({ view: { kind: section.block.view, project: null }, search: "", searchChips: [], selected: null });
+}
+
+// A block perspective: each block a section with its heading and count,
+// its rows arranged as its perspective arranges them, as a list or a
+// table (a board is drawn as a list).
+function drawBlocks(p) {
+  place = "full";
+  const statuses = state.statuses.filter((s) => !s.outside);
+  const shows = (q, s) => holds(q, s) && passes(filterOf(q), s);
+  const sections = assemble(p, perspectives(), statuses, shows);
+  drawTables($("list"), (table) => {
+    const drawn = sections.map((block, i) => blockSection(p, block, i, table));
+    return drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") });
+  });
+}
+
+function blockSection(p, block, i, table) {
+  const prefix = `block:${p.id}:${i}:`;
+  const fold = laneFold(`block:${p.id}:${i}`);
+  headings.push(fold);
+  const folded = state.folded.has(fold);
+  const viewTitle = block.block?.view ? VIEWS.find((v) => v.kind === block.block.view)?.title : null;
+  const name = block.block?.title ?? viewTitle ?? block.title;
+  const count = new Set(block.tasks.map((s) => s.task.id)).size;
+  const opens = Boolean(block.target && !block.missing) || Boolean(viewTitle);
+  const head = el("div", { class: "head block-head" }, [
+    el("button", {
+      type: "button",
+      class: "fold",
+      "aria-label": folded ? tr("aufklappen") : tr("zuklappen"),
+      "aria-expanded": String(!folded),
+      title: tr("Alt-Klick: nur diesen Block offen"),
+      text: folded ? "▸" : "▾",
+      onclick: (event) => foldClick(fold, event),
+    }),
+    el("h3", {
+      text: [block.icon, name].filter(Boolean).join(" "),
+      class: opens ? "opens" : null,
+      title: opens ? tr("öffnen") : null,
+      onclick: opens ? () => openBlock(block) : (event) => foldClick(fold, event),
+    }),
+    el("span", { class: "count", text: String(count) }),
+    block.missing ? el("span", { class: "missing", text: tr("fehlt") }) : null,
+  ]);
+  if (folded || block.missing) return el("section", { class: `block${folded ? " folded" : ""}` }, [head]);
+  const visited = order.length;
+  const chosen = block.target && !block.missing ? { ...orderOf(block.target) } : viewOrder();
+  const compare = comparer(chosen);
+  const orderAt = block.target ? `perspective:${block.target.id}` : `block-view:${block.block?.view}`;
+  let body;
+  if (!block.tasks.length) body = el("p", { class: "empty", text: tr("Nichts hier.") });
+  else if (chosen.view === "table") body = table(tableContext(block.tasks, chosen, compare, orderAt, prefix));
+  else {
+    const drawn = groups(block.tasks, chosen.group)
+      .map(([key, heading, list, subtitle]) => section(heading, list, compare, subtitle, key, prefix))
+      .filter(Boolean);
+    body = drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") });
+  }
+  if (order.length < visited) order.length = visited;
+  return el("section", { class: "block" }, [head, el("div", { class: "block-body" }, body)]);
 }
 
 // What the board needs of the list (ADR 0061 §1): the same view, filter
@@ -933,6 +1067,40 @@ function boardContext(chosen, compare) {
     visit: (id) => {
       if (!order.includes(id)) order.push(id);
     },
+  };
+}
+
+// What the table needs of the list (ADR 0115 §3): the list's sections
+// and trees, as entries instead of elements; a heading folds as it does
+// in the list, and j/k visit the rows in the same order.
+function tableContext(statuses, chosen, compare, orderAt = orderKey(), prefix = "") {
+  const entry = (status, depth, context, _why, bare) => ({ status, depth, context, bare });
+  const sections = [];
+  for (const [key, heading, list, subtitle] of groups(statuses, chosen.group)) {
+    const entries = [];
+    const visited = order.length;
+    tree(list, entries, compare, 0, entry);
+    if (!entries.length) continue;
+    if (!heading) {
+      sections.push({ heading: null, entries, folded: false });
+      continue;
+    }
+    const fold = laneFold(`${prefix}${key}`);
+    headings.push(fold);
+    const folded = state.folded.has(fold);
+    if (folded) order.length = visited;
+    sections.push({ fold, heading, subtitle, entries, folded });
+  }
+  return {
+    chosen,
+    columns: tableColumns(chosen),
+    sections,
+    lead,
+    lines,
+    rowClick,
+    foldClick,
+    sortBy: (sort) => chooseOrder(orderAt, chosen.sort === sort ? { desc: !chosen.desc } : { sort, desc: false }),
+    setColumns: (columns) => chooseOrder(orderAt, { table: { columns } }),
   };
 }
 

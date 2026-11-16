@@ -56,7 +56,9 @@ for it are merged there directly.
 ## License
 
 samudo is licensed under the [GNU Affero General Public License v3.0 or
-later](LICENSE). The wire types in `crates/samu-api` may in addition be
-used under the MIT or Apache-2.0 license. By submitting a contribution
+later](LICENSE). The wire types in `crates/samu-api` and the HTTP client
+in `crates/samu-client` may in addition be used under the MIT or
+Apache-2.0 license; they must therefore depend on nothing else in this
+workspace (`make license-check`). By submitting a contribution
 you agree that it is licensed under the same terms as the files it
 changes.

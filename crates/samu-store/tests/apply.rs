@@ -540,6 +540,115 @@ fn a_perspective_keeps_its_table_columns() {
     }
 }
 
+/// ADR 0116 §1-2: a block perspective keeps its blocks and `dedupe`;
+/// a block shows one live plain perspective or a known view, never itself
+/// or another block perspective, and a perspective shown as a block gets
+/// no blocks.
+#[test]
+fn a_block_perspective_keeps_its_blocks() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let mut wall = 1_000;
+    let mut next = || {
+        wall += 1;
+        stamp(wall, "laptop")
+    };
+    let plain = |title: &str| {
+        json!({
+            "id": Id::new().to_string(),
+            "created": "2026-11-16T08:00:00Z",
+            "modified": "2026-11-16T08:00:00Z",
+            "title": title,
+            "position": 0
+        })
+    };
+    let office = plain("Büro");
+    let waiting = plain("Wartet");
+    let morning = plain("Morgen");
+    for p in [&office, &waiting, &morning] {
+        assert!(is_applied(&create(
+            &mut store,
+            ObjectKind::Perspective,
+            p.clone(),
+            next()
+        )));
+    }
+    let [office, waiting, morning] = [&office, &waiting, &morning].map(id_of);
+    let blocks = json!([
+        {"view": "today"},
+        {"perspective": office.to_string(), "title": "Kurz im Büro"},
+        {"perspective": waiting.to_string()}
+    ]);
+    assert!(is_applied(&set(
+        &mut store,
+        morning,
+        "blocks",
+        blocks,
+        next()
+    )));
+    match store.get(morning).unwrap() {
+        Some(Object::Perspective(p)) => {
+            assert_eq!(p.blocks.len(), 3);
+            assert_eq!(p.blocks[1].title.as_deref(), Some("Kurz im Büro"));
+            assert!(p.dedupe, "the default");
+        }
+        other => panic!("not a perspective: {other:?}"),
+    }
+    assert!(is_applied(&set(
+        &mut store,
+        morning,
+        "dedupe",
+        json!(false),
+        next()
+    )));
+    match store.get(morning).unwrap() {
+        Some(Object::Perspective(p)) => assert!(!p.dedupe),
+        other => panic!("not a perspective: {other:?}"),
+    }
+    for bad in [
+        json!([{"view": "forecast"}]),
+        json!([{"view": "today", "perspective": office.to_string()}]),
+        json!([{}]),
+        json!([{"view": "today", "title": " "}]),
+        json!([{"perspective": morning.to_string()}]),
+        json!([{"perspective": Id::new().to_string()}]),
+    ] {
+        let outcome = set(&mut store, morning, "blocks", bad.clone(), next());
+        assert!(is_rejected(&outcome), "{bad}: {outcome:?}");
+    }
+    // A block of Morgen gets no blocks, and Morgen is no block.
+    let outcome = set(
+        &mut store,
+        office,
+        "blocks",
+        json!([{"view": "inbox"}]),
+        next(),
+    );
+    assert!(is_rejected(&outcome), "{outcome:?}");
+    let outcome = set(
+        &mut store,
+        waiting,
+        "blocks",
+        json!([{"view": "inbox"}, {"perspective": office.to_string()}]),
+        next(),
+    );
+    assert!(is_rejected(&outcome), "{outcome:?}");
+    // Without blocks, Morgen is plain again and may be a block.
+    assert!(is_applied(&set(
+        &mut store,
+        morning,
+        "blocks",
+        json!([]),
+        next()
+    )));
+    assert!(is_applied(&set(
+        &mut store,
+        waiting,
+        "blocks",
+        json!([{"perspective": morning.to_string()}]),
+        next()
+    )));
+}
+
 /// ADR 0084 §1: a template's key is one letter or digit, no other live
 /// template's; `h` and `H` are two keys, and a deleted template frees its.
 #[test]
@@ -3012,6 +3121,7 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
              ALTER TABLE project DROP COLUMN own_scope; ALTER TABLE tag DROP COLUMN own_scope; \
              ALTER TABLE appointment DROP COLUMN alarms; \
              ALTER TABLE perspective DROP COLUMN table_view; \
+             ALTER TABLE perspective DROP COLUMN blocks; ALTER TABLE perspective DROP COLUMN dedupe; \
              DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
         )
         .unwrap();
@@ -3026,7 +3136,8 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
         vec![
             "0024_own_scope",
             "0025_appointment_alarms",
-            "0026_perspective_table"
+            "0026_perspective_table",
+            "0027_perspective_blocks"
         ]
     );
     assert_eq!(
@@ -3100,6 +3211,7 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
              '2026-11-14T10:00:00Z' FROM object WHERE hex(uuid) = upper('{}'); \
              ALTER TABLE appointment DROP COLUMN alarms; \
              ALTER TABLE perspective DROP COLUMN table_view; \
+             ALTER TABLE perspective DROP COLUMN blocks; ALTER TABLE perspective DROP COLUMN dedupe; \
              DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
             id_of(&calendar).to_string().replace('-', "")
         ))
@@ -3108,7 +3220,11 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
     let store = AccountStore::open(&path).unwrap();
     assert_eq!(
         store.migration().applied,
-        vec!["0025_appointment_alarms", "0026_perspective_table"]
+        vec![
+            "0025_appointment_alarms",
+            "0026_perspective_table",
+            "0027_perspective_blocks"
+        ]
     );
     drop(store);
     let conn = rusqlite::Connection::open(&path).unwrap();

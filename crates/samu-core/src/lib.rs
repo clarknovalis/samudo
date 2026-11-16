@@ -15,6 +15,7 @@ pub use samu_api as api;
 
 pub mod availability;
 pub mod blockers;
+pub mod blocks;
 pub mod calendar;
 pub mod capture;
 pub mod clock;

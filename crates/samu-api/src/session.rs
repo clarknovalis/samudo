@@ -205,6 +205,10 @@ pub const ROUTES: &[Route] = &[
     },
     Route {
         method: "GET",
+        path: "/blocks",
+    },
+    Route {
+        method: "GET",
         path: "/scopes/scheduled",
     },
     Route {

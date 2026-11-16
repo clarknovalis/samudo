@@ -134,6 +134,14 @@ Gruppierung und Sortierung, und Liste oder Board. Perspektiven stehen in
 der Seitenleiste; die Kommandozeile zeigt eine mit
 `samu list --perspective <name>`.
 
+Eine **Block-Perspektive** zeigt mehrere Perspektiven und die Ansichten
+Inbox, Heute und Markiert untereinander, wie die Block-Agenda von
+org-mode: etwa zuerst den Tag, dann das Kurze im Büro, dann das, was auf
+andere wartet. Jeder Block behält seine Suche, seinen Filter und sein
+Anordnen und kann eine eigene Überschrift tragen. Eine Aufgabe, die
+mehrere Blöcke zeigen, steht nur im ersten, solange „Doppelte nur
+einmal“ an ist.
+
 ## Scopes
 
 Ein **Scope** ist eine Linse über alle Ansichten: Er nennt Ordner, Projekte

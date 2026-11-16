@@ -1,5 +1,5 @@
 //! The table (ADR 0115): the names of its columns and the time worked on
-//! each task and its subtree.
+//! each task and its subtree, and the estimate summed the same way.
 //!
 //! The web computes the same worked time in the browser from the same
 //! clocks; the cases in `testdata/table/worked.json` hold the two to the
@@ -100,6 +100,67 @@ pub fn worked(tasks: &[Task], clocks: &[Clock], now: Timestamp) -> HashMap<Id, W
         .collect()
 }
 
+/// The estimate of one task in seconds (ADR 0115 §4).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Estimated {
+    /// Its own estimate, if it has one.
+    pub own: Option<i64>,
+    /// Its own and those below it: what an action group's row adds up.
+    /// None when nothing in the subtree has an estimate.
+    pub subtree: Option<i64>,
+}
+
+/// The seconds of an estimate; one in days counts them as 24 hours.
+#[must_use]
+pub fn estimate_seconds(task: &Task) -> Option<i64> {
+    let span = task.estimate?.0;
+    let total = span.total(jiff::Unit::Second).ok().or_else(|| {
+        span.total((jiff::Unit::Second, jiff::civil::date(2026, 1, 1)))
+            .ok()
+    })?;
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "the seconds of an estimate fit"
+    )]
+    Some(total as i64)
+}
+
+/// The estimate of each of `tasks`, its own and its subtree's. A dropped
+/// task keeps its own but adds nothing above it: that work will not be
+/// done. A completed one adds, so the remaining time (estimate − worked)
+/// of an action group compares like with like.
+#[must_use]
+pub fn estimated(tasks: &[Task]) -> HashMap<Id, Estimated> {
+    let own: HashMap<Id, Option<i64>> = tasks.iter().map(|t| (t.id, estimate_seconds(t))).collect();
+    let mut children: HashMap<Id, Vec<Id>> = HashMap::new();
+    for task in tasks.iter().filter(|t| t.dropped_at.is_none()) {
+        if let Some(parent) = task.parent.filter(|p| own.contains_key(p)) {
+            children.entry(parent).or_default().push(task.id);
+        }
+    }
+    tasks
+        .iter()
+        .map(|task| {
+            let mut subtree: Option<i64> = None;
+            let mut seen = HashSet::new();
+            let mut stack = vec![task.id];
+            while let Some(id) = stack.pop() {
+                if !seen.insert(id) {
+                    continue;
+                }
+                if let Some(seconds) = own.get(&id).copied().flatten() {
+                    subtree = Some(subtree.unwrap_or(0) + seconds);
+                }
+                if let Some(below) = children.get(&id) {
+                    stack.extend(below);
+                }
+            }
+            let mine = own.get(&task.id).copied().flatten();
+            (task.id, Estimated { own: mine, subtree })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, reason = "tests may unwrap")]
 mod tests {
@@ -147,5 +208,35 @@ mod tests {
                 assert_eq!(got[&id], w, "{} for {id}", case["about"]);
             }
         }
+        let got = estimated(&tasks);
+        let want = doc["estimated"].as_object().unwrap();
+        assert_eq!(got.len(), want.len());
+        assert!(
+            want.values().any(|e| e["subtree"].is_i64()),
+            "a sum is there"
+        );
+        for (id, e) in want {
+            let id: Id = id.parse().unwrap();
+            let e = Estimated {
+                own: e["own"].as_i64(),
+                subtree: e["subtree"].as_i64(),
+            };
+            assert_eq!(got[&id], e, "estimated for {id}");
+        }
+    }
+
+    #[test]
+    fn an_estimate_in_days_counts_whole_days() {
+        let mut task: Task = serde_json::from_value(serde_json::json!({
+            "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01",
+            "created": "2026-11-01T10:00:00Z",
+            "modified": "2026-11-01T10:00:00Z",
+            "title": "x",
+            "estimate": "P1DT2H",
+        }))
+        .unwrap();
+        assert_eq!(estimate_seconds(&task), Some(26 * 3600));
+        task.estimate = None;
+        assert_eq!(estimate_seconds(&task), None);
     }
 }

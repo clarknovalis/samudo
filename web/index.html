@@ -131,10 +131,13 @@
           <div id="view-switch" class="view-switch" role="group" aria-label="Darstellung (ADR 0061)">
             <button type="button" data-view="list">Liste</button>
             <button type="button" data-view="board">Board</button>
+            <button type="button" data-view="table">Tabelle</button>
           </div>
           <button type="button" id="board-columns" aria-expanded="false" aria-controls="board-menu" hidden>Spalten</button>
           <button type="button" id="board-full" aria-pressed="false" aria-label="Vollbild" title="Board im Vollbild (z)" hidden><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+          <button type="button" id="table-columns" aria-expanded="false" aria-controls="table-menu" hidden>Spalten</button>
           <div id="board-menu" class="board-menu" hidden></div>
+          <div id="table-menu" class="board-menu table-menu" role="dialog" aria-label="Spalten der Tabelle" hidden></div>
           <div id="order-menu" class="board-menu order-menu" role="dialog" aria-label="Anordnen" hidden></div>
         </div>
         <div id="filter" role="group" aria-label="Filter">

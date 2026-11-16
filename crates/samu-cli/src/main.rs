@@ -29,6 +29,7 @@ mod remind;
 mod report;
 mod ring;
 mod scopes;
+mod table;
 mod tags;
 mod templates;
 
@@ -39,10 +40,10 @@ use anyhow::{Context, Result, bail};
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::engine::ArgValueCompleter;
 use samu_api::{
-    AnyObject, BareStatus, CaptureRequest, CaptureResponse, CaptureWarning, Change, ChangeOutcome,
-    ChangesPage, DeleteRequest, DeleteResponse, Hlc, HookChange, HookChangeResponse, HookDelivery,
-    HookFormat, HookView, Id, LogEntry, Login, ObjectKind, PairCode, PairCodeRequest, PairRequest,
-    ProjectAvailability, RenderResponse, SessionInfo, TaskFate, TaskStatus,
+    AnyObject, BareStatus, BlockSection, CaptureRequest, CaptureResponse, CaptureWarning, Change,
+    ChangeOutcome, ChangesPage, DeleteRequest, DeleteResponse, Hlc, HookChange, HookChangeResponse,
+    HookDelivery, HookFormat, HookView, Id, LogEntry, Login, ObjectKind, PairCode, PairCodeRequest,
+    PairRequest, ProjectAvailability, RenderResponse, SessionInfo, TaskFate, TaskStatus,
 };
 use serde_json::{Value, json};
 
@@ -450,8 +451,14 @@ enum Command {
         perspective: Option<String>,
         /// Only the id and what the server computed, not the task itself
         /// (GET /available?bare=true, ADR 0065).
-        #[arg(long, conflicts_with_all = ["tag", "flagged", "search"])]
+        #[arg(long, conflicts_with_all = ["tag", "flagged", "search", "columns"])]
         bare: bool,
+        /// As a table (ADR 0115 §8): the columns after the title, by the
+        /// names of the web, like `state,due,estimate,worked,prop:jira`.
+        /// Without a value the default ones; a table perspective brings
+        /// its own.
+        #[arg(long, num_args = 0..=1, default_missing_value = "")]
+        columns: Option<String>,
     },
     /// Projects with their availability (GET /available/projects).
     Projects {
@@ -660,6 +667,7 @@ const COVERAGE: &[(&str, &str, &str)] = &[
     ("GET", "/objects/{id}/logbook", "log"),
     ("POST", "/objects/{id}/delete", "delete"),
     ("GET", "/available", "list"),
+    ("GET", "/blocks", "list"),
     ("GET", "/available/projects", "projects"),
     ("GET", "/available/folders", "folder list"),
     ("GET", "/scopes/scheduled", "scope now"),
@@ -842,6 +850,17 @@ fn resolve(client: &Client, reference: &str) -> Result<Id> {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
+    }
+}
+
+/// An object as [`resolve`] finds it, else an open project by title, as
+/// `samu review` takes it: `samu set Keller review_interval P2W`.
+fn resolve_or_project(client: &Client, reference: &str) -> Result<Id> {
+    match resolve(client, reference) {
+        Err(error) if matches!(error.downcast_ref::<Failure>(), Some(Failure::NotFound(_))) => {
+            resolve_project(client, reference)
+        }
+        found => found,
     }
 }
 
@@ -1034,7 +1053,7 @@ impl Names {
 }
 
 /// `2026-11-13` or `2026-11-13 09:00`.
-fn when_text(when: &samu_api::When) -> String {
+pub(crate) fn when_text(when: &samu_api::When) -> String {
     let value = serde_json::to_value(when).unwrap_or(Value::Null);
     if let Some(date) = value["date"].as_str() {
         return date.to_string();
@@ -1046,6 +1065,117 @@ fn when_text(when: &samu_api::When) -> String {
 }
 
 /// One line of `list`.
+/// What `samu list` narrows on this side: a tag and those below it,
+/// flagged, and words in title, note or id.
+fn narrow(
+    statuses: &mut Vec<TaskStatus>,
+    names: &Names,
+    tag: Option<&str>,
+    flagged: bool,
+    search: Option<&str>,
+) -> Result<()> {
+    if let Some(tag) = tag {
+        let wanted = tag.trim_start_matches('@').to_lowercase();
+        let hits: Vec<Id> = names
+            .tags
+            .values()
+            .filter(|t| {
+                t.title.to_lowercase() == wanted || names.tag_path(t.id).to_lowercase() == wanted
+            })
+            .map(|t| t.id)
+            .collect();
+        if hits.is_empty() {
+            return Err(Failure::NotFound(format!("no tag {tag:?}")).into());
+        }
+        let mut set = std::collections::HashSet::new();
+        for hit in hits {
+            set.extend(names.tag_and_below(hit));
+        }
+        statuses.retain(|s| s.task.tags.iter().any(|t| set.contains(&t.tag)));
+    }
+    if flagged {
+        statuses.retain(|s| s.task.flagged);
+    }
+    if let Some(search) = search {
+        let words: Vec<String> = search.split_whitespace().map(str::to_lowercase).collect();
+        statuses.retain(|s| {
+            // The id too, so its end finds the task (as the web).
+            let text = format!(
+                "{}\n{}\n{}",
+                s.task.title,
+                s.task.note.as_deref().unwrap_or_default(),
+                s.task.id
+            )
+            .to_lowercase();
+            words.iter().all(|w| text.contains(w))
+        });
+    }
+    Ok(())
+}
+
+/// The sections of a block perspective (ADR 0116 §7): in plain a heading
+/// before each block's rows, in tsv the heading as the first column, in
+/// json and jsonl the sections with their tasks.
+fn print_blocks(
+    client: &Client,
+    format: Format,
+    sections: Vec<BlockSection>,
+    tag: Option<&str>,
+    flagged: bool,
+    search: Option<&str>,
+) -> Result<()> {
+    let page: ChangesPage =
+        serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
+    let every: Vec<TaskStatus> = sections.iter().flat_map(|s| s.tasks.clone()).collect();
+    let names = Names::new(&page, &every);
+    const COLUMNS: [&str; 8] = [
+        "short", "st", "flag", "due_text", "project", "title", "tags", "why",
+    ];
+    let mut out = Vec::new();
+    for (n, mut section) in sections.into_iter().enumerate() {
+        narrow(&mut section.tasks, &names, tag, flagged, search)?;
+        let mut records: Vec<Value> = section
+            .tasks
+            .iter()
+            .map(|s| status_record(s, &names))
+            .collect();
+        match format {
+            Format::Plain => {
+                if n > 0 {
+                    println!();
+                }
+                let icon = section
+                    .icon
+                    .as_deref()
+                    .map(|i| format!("{i} "))
+                    .unwrap_or_default();
+                let missing = if section.missing { " — missing" } else { "" };
+                println!("▸ {icon}{} ({}){missing}", section.title, records.len());
+                emit(format, &records, &COLUMNS)?;
+            }
+            Format::Tsv => {
+                for record in &mut records {
+                    record["block"] = json!(section.title);
+                }
+                let mut columns = vec!["block"];
+                columns.extend(COLUMNS);
+                emit(format, &records, &columns)?;
+            }
+            Format::Json | Format::Jsonl => out.push(json!({
+                "title": section.title,
+                "icon": section.icon,
+                "block": section.block,
+                "missing": section.missing,
+                "tasks": records,
+            })),
+        }
+    }
+    if matches!(format, Format::Json | Format::Jsonl) {
+        emit(format, &out, &[])?;
+    }
+    Ok(())
+}
+
 fn status_record(status: &TaskStatus, names: &Names) -> Value {
     let task = &status.task;
     let reasons: Vec<String> = status
@@ -1709,7 +1839,7 @@ fn run(args: Args) -> Result<()> {
         }
         Command::Set { id, field, value } => {
             let client = signed_in(&config)?;
-            let id = resolve(&client, &id)?;
+            let id = resolve_or_project(&client, &id)?;
             let value = if field == "own_scope" {
                 // By title or the end of an id, like everywhere (ADR 0094 §8).
                 json!(scopes::scope_named(&client, &value)?)
@@ -1720,7 +1850,7 @@ fn run(args: Args) -> Result<()> {
         }
         Command::Unset { id, field } => {
             let client = signed_in(&config)?;
-            let id = resolve(&client, &id)?;
+            let id = resolve_or_project(&client, &id)?;
             set_field(&client, id, &field, Value::Null)?;
         }
         Command::Done { id, note } => {
@@ -1939,18 +2069,43 @@ fn run(args: Args) -> Result<()> {
             no_scope,
             perspective,
             bare,
+            columns,
         } => {
             let client = signed_in(&config)?;
             let mut query = vec![];
+            let mut columns = columns.as_deref().map(table::parse).transpose()?;
             let scoped = scopes::query_scope(&client, &config, scope.as_deref(), no_scope)?;
             if let Some(scope) = scoped {
                 query.push(format!("scope={scope}"));
             }
             if let Some(perspective) = perspective {
-                query.push(format!(
-                    "perspective={}",
-                    perspectives::resolve(&client, &perspective)?
-                ));
+                let found = perspectives::resolve(&client, &perspective)?;
+                if !found.blocks.is_empty() {
+                    if available || today || all || bare || project.is_some() || columns.is_some() {
+                        bail!(
+                            "a block perspective shows its blocks as they are: no --available, \
+                             --today, --all, --project, --bare or --columns"
+                        );
+                    }
+                    let mut path = format!("/blocks?perspective={}", found.id);
+                    if let Some(scope) = scoped {
+                        path.push_str(&format!("&scope={scope}"));
+                    }
+                    let sections: Vec<BlockSection> =
+                        serde_json::from_value(client.call("GET", &path, None)?.json()?)?;
+                    return print_blocks(
+                        &client,
+                        args.format,
+                        sections,
+                        tag.as_deref(),
+                        flagged,
+                        search.as_deref(),
+                    );
+                }
+                if columns.is_none() && found.view == samu_api::PerspectiveView::Table {
+                    columns = Some(found.table.map(|t| t.columns).unwrap_or_default());
+                }
+                query.push(format!("perspective={}", found.id));
             }
             if available {
                 query.push("available=true".to_string());
@@ -2000,44 +2155,33 @@ fn run(args: Args) -> Result<()> {
             let page: ChangesPage =
                 serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
             let names = Names::new(&page, &statuses);
-            if let Some(tag) = tag {
-                let wanted = tag.trim_start_matches('@').to_lowercase();
-                let hits: Vec<Id> = names
-                    .tags
-                    .values()
-                    .filter(|t| {
-                        t.title.to_lowercase() == wanted
-                            || names.tag_path(t.id).to_lowercase() == wanted
-                    })
-                    .map(|t| t.id)
-                    .collect();
-                if hits.is_empty() {
-                    return Err(Failure::NotFound(format!("no tag {tag:?}")).into());
+            narrow(
+                &mut statuses,
+                &names,
+                tag.as_deref(),
+                flagged,
+                search.as_deref(),
+            )?;
+            let mut records: Vec<Value> =
+                statuses.iter().map(|s| status_record(s, &names)).collect();
+            if let Some(columns) = columns {
+                let table =
+                    table::Table::new(table::or_default(columns), &page, jiff::Timestamp::now());
+                if matches!(args.format, Format::Json | Format::Jsonl) {
+                    for (record, status) in records.iter_mut().zip(&statuses) {
+                        record["columns"] = table.values(status);
+                    }
+                    emit(args.format, &records, &[])?;
+                } else {
+                    let mut lines: Vec<Value> = Vec::new();
+                    if args.format == Format::Plain && !statuses.is_empty() {
+                        lines.push(table.head());
+                    }
+                    lines.extend(statuses.iter().map(|s| table.line(&short(&s.task.id), s)));
+                    emit(args.format, &lines, &table.keys())?;
                 }
-                let mut set = std::collections::HashSet::new();
-                for hit in hits {
-                    set.extend(names.tag_and_below(hit));
-                }
-                statuses.retain(|s| s.task.tags.iter().any(|t| set.contains(&t.tag)));
+                return Ok(());
             }
-            if flagged {
-                statuses.retain(|s| s.task.flagged);
-            }
-            if let Some(search) = search {
-                let words: Vec<String> = search.split_whitespace().map(str::to_lowercase).collect();
-                statuses.retain(|s| {
-                    // The id too, so its end finds the task (as the web).
-                    let text = format!(
-                        "{}\n{}\n{}",
-                        s.task.title,
-                        s.task.note.as_deref().unwrap_or_default(),
-                        s.task.id
-                    )
-                    .to_lowercase();
-                    words.iter().all(|w| text.contains(w))
-                });
-            }
-            let records: Vec<Value> = statuses.iter().map(|s| status_record(s, &names)).collect();
             emit(
                 args.format,
                 &records,

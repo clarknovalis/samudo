@@ -60,10 +60,11 @@ pub use model::{
     AccountSettings, Attachment, Author, AuthorKind, Blob, BoardSource, Clock, Comment, Folder,
     FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer, InspectorLayout,
     InspectorPart, Link, LinkKind, NoteMode, Period, Perspective, PerspectiveArrange,
-    PerspectiveBoard, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, PerspectiveTable,
-    PerspectiveView, Priority, Project, ProjectKind, ProjectStatus, Reminder, ReminderAnchor,
-    Schedule, Scope, ScopeCapture, ScopeChip, ScopeChipKind, ScopeColor, ScopeLayout, ScopeMode,
-    ScopeWindow, Tag, TagStatus, Tagging, Task, Template, TemplateReminder, Weekday,
+    PerspectiveBlock, PerspectiveBoard, PerspectiveFilter, PerspectiveGroup, PerspectiveSort,
+    PerspectiveTable, PerspectiveView, Priority, Project, ProjectKind, ProjectStatus, Reminder,
+    ReminderAnchor, Schedule, Scope, ScopeCapture, ScopeChip, ScopeChipKind, ScopeColor,
+    ScopeLayout, ScopeMode, ScopeWindow, Tag, TagStatus, Tagging, Task, Template, TemplateReminder,
+    Weekday,
 };
 pub use page::{AnyObject, ChangesPage};
 pub use pair::{PairCode, PairCodeRequest, PairRequest};
@@ -79,9 +80,9 @@ pub use session::{
     SessionSummary,
 };
 pub use status::{
-    BareStatus, DueState, ForecastKind, ForecastRow, ForecastSection, ForecastWhy, GroupSummary,
-    HabitDay, HabitDayState, HabitPeriod, HabitRatio, HabitStatus, Inherited, NextRepeat,
-    ProjectAvailability, Reason, ScheduledScope, TaskStatus,
+    BareStatus, BlockSection, DueState, ForecastKind, ForecastRow, ForecastSection, ForecastWhy,
+    GroupSummary, HabitDay, HabitDayState, HabitPeriod, HabitRatio, HabitStatus, Inherited,
+    NextRepeat, ProjectAvailability, Reason, ScheduledScope, TaskStatus,
 };
 pub use time::{Repeat, RepeatMode, When};
 
