@@ -7,7 +7,9 @@ cascade:
 Die Dokumentation von samudo. Was samudo ist und wie es aussieht, steht
 auf [samudo.de](https://samudo.de/); ausprobieren lässt es sich in der
 [Demo](https://demo.samudo.de/). Der Quellcode, und diese Seiten als
-Markdown, liegen auf [GitHub](https://github.com/clarknovalis/samudo).
+Markdown, liegen auf [GitHub](https://github.com/clarknovalis/samudo);
+die Android-App lädt man aus den [Releases](https://github.com/clarknovalis/samudo/releases/latest), siehe
+[Installieren](clients/android/#installieren).
 
 ## Einstieg
 

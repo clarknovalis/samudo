@@ -5,6 +5,43 @@ der Server, sodass Verfügbarkeit, Schnellerfassung, Uhren und
 Gewohnheiten auf dem Handy genauso berechnet werden, auch offline. Die Oberfläche spricht Deutsch oder Englisch (siehe
 [Sprache](#sprache)). Wie man sie baut, steht in [`android/README.md`](../android/README.md).
 
+## Installieren
+
+Die App erscheint unter
+[GitHub Releases](https://github.com/clarknovalis/samudo/releases):
+`samudo-<version>.apk` aus dem neuesten Release herunterladen und auf dem
+Handy öffnen (Android 8 oder neuer, 64-Bit-ARM). Jedes Release ist mit
+demselben Schlüssel signiert; eine neuere Version installiert sich also
+über die alte und behält ihre Daten.
+
+**Updates mit [Obtainium](https://github.com/ImranR98/Obtainium):** „App
+hinzufügen“, die URL `https://github.com/clarknovalis/samudo`,
+„Hinzufügen“. Obtainium prüft dann die Releases und bietet jede neue
+Version an.
+
+**Die Signatur prüfen**, wer mag, vor der ersten Installation: SHA-256 des
+Zertifikats ist
+
+```
+04:72:BC:07:C9:29:ED:F6:2E:43:1E:23:77:2F:01:C4:63:41:20:2D:98:A0:D0:A0:74:37:FB:9B:AC:80:F3:AF
+```
+
+`apksigner verify --print-certs samudo-<version>.apk` gibt ihn aus (hex
+ohne Doppelpunkte), und [AppVerifier](https://github.com/soupslurpr/AppVerifier)
+vergleicht ihn auf dem Handy.
+
+**Von einer selbst gebauten App** vor Release 0.1.0, die den eigenen
+Debug-Schlüssel trug: Android installiert nicht über eine andere
+Signatur. Erst den Ausgang leeren (Sync; das Menü ⋮ zeigt, was wartet),
+die alte App deinstallieren, das Release installieren und neu anmelden;
+Widgets müssen neu angelegt werden.
+
+**Selbst bauen** ([`android/README.md`](../android/README.md)): ein
+Debug-Build heißt „samudo dev“ mit dem Paket `de.samudo.app.dev`. Er läuft
+neben der Release-App, mit eigenem Cache und eigener Anmeldung; die
+Broadcasts für [Tasker](#automatisieren-mit-tasker) gehen weiter an
+`de.samudo.app`.
+
 ## Anmelden
 
 Entweder mit Server, Konto, Passwort und einem Gerätenamen oder per

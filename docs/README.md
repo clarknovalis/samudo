@@ -17,7 +17,7 @@ it looks like is on <https://samudo.de>, and it can be tried in the
 ## Clients
 
 - [Web UI](web.md)
-- [Android app](android.md)
+- [Android app](android.md): install from GitHub Releases or Obtainium
 - [Command line](cli.md)
 - [Emacs](emacs.md)
 - [Desktop widget](desktop-widget.md) for DankMaterialShell

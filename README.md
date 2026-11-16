@@ -33,7 +33,10 @@ reads as a nod to getting things done. Inside, everything is still called
   outline, readable without samudo.
 
 **Status:** server, command line, web UI, Android app and Emacs package
-are in daily use; there is no release yet, `main` is what runs. What
+are in daily use. The Android app is released on
+[GitHub Releases](https://github.com/clarknovalis/samudo/releases)
+([installing](docs/android.md#installing)); everything else is built
+from `main`. What
 is being worked on and what may come next is on the
 [roadmap](docs/roadmap.md).
 

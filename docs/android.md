@@ -6,6 +6,42 @@ the same way on the phone, also offline. The interface speaks German or
 English (see [Language](#language)); this page uses the English labels.
 Building it is described in [`android/README.md`](../android/README.md).
 
+## Installing
+
+The app is published on
+[GitHub Releases](https://github.com/clarknovalis/samudo/releases):
+download `samudo-<version>.apk` from the latest release and open it on the
+phone (Android 8 or later, 64-bit ARM). Every release is signed with the
+same key, so a newer version installs over the old one and keeps its
+data.
+
+**Updates with [Obtainium](https://github.com/ImranR98/Obtainium):** "Add
+app", the URL `https://github.com/clarknovalis/samudo`, "Add". Obtainium
+then checks the releases and offers each new version.
+
+**Check the signature** before the first install if you like: the
+certificate's SHA-256 is
+
+```
+04:72:BC:07:C9:29:ED:F6:2E:43:1E:23:77:2F:01:C4:63:41:20:2D:98:A0:D0:A0:74:37:FB:9B:AC:80:F3:AF
+```
+
+`apksigner verify --print-certs samudo-<version>.apk` prints it (as hex
+without colons), and [AppVerifier](https://github.com/soupslurpr/AppVerifier)
+compares it on the phone.
+
+**Coming from an app you built yourself** before release 0.1.0, which
+carried your own debug key: Android does not install over a different
+signature. Let the outbox empty first (sync, the menu ⋮ shows what
+waits), uninstall the old app, install the release and sign in again;
+widgets have to be added again.
+
+**Building it yourself** ([`android/README.md`](../android/README.md)):
+a debug build is called "samudo dev" with the package `de.samudo.app.dev`.
+It installs beside the release app, with its own cache and its own
+sign-in; the broadcasts of [Tasker](#automation-with-tasker) still go to
+`de.samudo.app`.
+
 ## Signing in
 
 Either with server, account, password and a device name, or by **pairing**:
