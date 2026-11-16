@@ -34,4 +34,5 @@ Markdown, are on [GitHub](https://github.com/clarknovalis/samudo).
   {{< card link="features/ring/" title="Index ring" icon="microphone" subtitle="Capture by voice from the ring." >}}
   {{< card link="running/self-hosting/" title="Self-hosting" icon="server" subtitle="Docker Compose, accounts, backup, export and restore." >}}
   {{< card link="developing/architecture/" title="Architecture" icon="cube" subtitle="Crates, data flow, rules." >}}
+  {{< card link="project/roadmap/" title="Roadmap" icon="map" subtitle="What is being worked on and what may come next." >}}
 {{< /cards >}}

@@ -16,7 +16,7 @@ this directory turns them into a site.
 - `adapter/_content.gotmpl` – a content adapter, mounted into both
   languages: it makes one page per Markdown file, its first `# Heading` the
   title, in the groups of `docs/README.md` (Start here, Clients, Features,
-  Running, Developing). **A new page in `docs/` appears only once it is
+  Running, Developing, Project). **A new page in `docs/` appears only once it is
   added to a group here**; a missing file in either language is a build
   warning.
 - `layouts/_markup/render-link.html` – resolves the repository links

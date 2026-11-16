@@ -41,3 +41,8 @@ it looks like is on <https://samudo.de>, and it can be tried in the
 - [HTTP API](api.md): sign-in, reading, changes, live events.
 - Building the app: [`android/README.md`](../android/README.md); the web
   UI's internals: [`web/README.md`](../web/README.md) (both German).
+
+## Project
+
+- [Roadmap](roadmap.md): what is being worked on and what may come
+  next, without dates.

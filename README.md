@@ -33,7 +33,9 @@ reads as a nod to getting things done. Inside, everything is still called
   outline, readable without samudo.
 
 **Status:** server, command line, web UI, Android app and Emacs package
-are in daily use; there is no release yet, `main` is what runs.
+are in daily use; there is no release yet, `main` is what runs. What
+is being worked on and what may come next is on the
+[roadmap](docs/roadmap.md).
 
 **Platforms:** built and used on Linux and Android. The server runs
 anywhere through Docker. On macOS the command line should build, but is
