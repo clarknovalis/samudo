@@ -8,9 +8,10 @@
 > **Early stage.** Development started on 7 November 2026. Working, but
 > not feature-complete. No warranty.
 
-A self-hosted task manager for Linux, the web and Android. It takes the
-best of OmniFocus and Todoist, and from org-mode capture templates,
-refile, clocking and free properties.
+A self-hosted task manager for Linux, the web and Android. It takes from
+OmniFocus availability and reviews, from Todoist quick capture in one
+line, and from org-mode capture templates, refile, clocking and free
+properties. Workflows with states and time tracking are built in.
 
 The name is samu plus *dō*, the way (as in Aikidō); in English the "do"
 reads as a nod to getting things done. Inside, everything is still called
