@@ -1,0 +1,1 @@
+Sicherheitskorrektur: das mitgelieferte SQLite ist auf 3.54.1 aktualisiert (RUSTSEC-2026-0459). Die Sprache wird wieder je Handy gewählt, in den Einstellungen; Leistentitel, die Vorschau beim Erfassen und die übrigen Meldungen folgen ihr.
