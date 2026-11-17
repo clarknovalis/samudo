@@ -17,6 +17,11 @@ Jedes Wort, das kein Chip ist, muss im Titel, in der Notiz oder in der ID
 vorkommen. Die letzten acht Zeichen einer ID, wie die Kommandozeile sie
 ausgibt, finden ihre Aufgabe.
 
+Ein Wort mit `-` davor darf nicht vorkommen: `Milch -Hafer`. Wörter in
+doppelten Anführungszeichen sind eine Phrase und müssen zusammen und in
+dieser Reihenfolge vorkommen: `"bis Freitag"`; `-"nicht heute"` lässt
+weg, was sie enthält.
+
 ## Chips
 
 Ein Wort wird zum Chip, sobald man es aus der Liste unter dem Feld nimmt

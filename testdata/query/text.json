@@ -1,0 +1,29 @@
+{
+  "comment": "Free text of the search against one task, the same answers in samu-core (text_matches) and web/lib/query.js (matcher). A lone - is an ordinary word, and every id holds one.",
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-00000000abcd",
+    "title": "Milch kaufen bis Freitag",
+    "note": "Beim Bäcker nicht vergessen\nauch Brot"
+  },
+  "cases": [
+    { "text": "", "matches": true },
+    { "text": "   ", "matches": true },
+    { "text": "milch", "matches": true },
+    { "text": "MILCH brot", "matches": true },
+    { "text": "milch käse", "matches": false },
+    { "text": "0000abcd", "matches": true },
+    { "text": "-käse", "matches": true },
+    { "text": "-brot", "matches": false },
+    { "text": "milch -Freitag", "matches": false },
+    { "text": "\"bis freitag\"", "matches": true },
+    { "text": "\"freitag bis\"", "matches": false },
+    { "text": "\"kaufen freitag\"", "matches": false },
+    { "text": "-\"nicht vergessen\"", "matches": false },
+    { "text": "-\"nicht heute\" milch", "matches": true },
+    { "text": "\"bis freitag", "matches": true },
+    { "text": "\"\"", "matches": true },
+    { "text": "-", "matches": true },
+    { "text": "- milch", "matches": true },
+    { "text": "- käse", "matches": false }
+  ]
+}

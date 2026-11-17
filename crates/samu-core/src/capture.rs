@@ -156,6 +156,9 @@ pub struct Draft {
     pub warnings: Vec<Warning>,
     /// The words the title is made of, `#name` and `@name` among them.
     pieces: Vec<Piece>,
+    /// The free text of the template the line calls, put before the title
+    /// (ADR 0120).
+    prefix: String,
 }
 
 impl Draft {
@@ -224,6 +227,25 @@ impl Draft {
         if self.note.is_none() {
             self.note = other.note;
         }
+        // The template's free text goes before the line's title (ADR 0120).
+        self.prefix = other.title;
+        self.title = self.titled(title_of(&self.pieces));
+    }
+
+    /// Forget the template's free text: a line that edits a task leaves its
+    /// title alone (ADR 0120).
+    fn drop_prefix(&mut self) {
+        self.prefix.clear();
+        self.title = title_of(&self.pieces);
+    }
+
+    /// `title` with the template's free text before it.
+    fn titled(&self, title: String) -> String {
+        match (self.prefix.is_empty(), title.is_empty()) {
+            (true, _) => title,
+            (false, true) => self.prefix.clone(),
+            (false, false) => format!("{} {title}", self.prefix),
+        }
     }
 
     fn restore(&mut self, which: impl Fn(&PieceKind) -> bool, meaning: Meaning) {
@@ -236,7 +258,7 @@ impl Draft {
         }
         self.marks
             .retain(|mark| !(mark.meaning == meaning && starts.contains(&mark.start)));
-        self.title = title_of(&self.pieces);
+        self.title = self.titled(title_of(&self.pieces));
     }
 }
 
@@ -763,20 +785,14 @@ pub fn template_key(key: &str) -> bool {
 }
 
 /// Why a template's text cannot be stored (ADR 0073 §1): it says it in
-/// words, for the refusal.
+/// words, for the refusal. Free text is allowed: it goes before the title
+/// of what is captured (ADR 0120).
 ///
 /// # Errors
 ///
-/// Free text besides the note, a `/name` inside, or anything the parser
-/// warns about.
+/// A `/name` inside, or anything the parser warns about.
 pub fn check_template_text(text: &str) -> Result<(), String> {
     let draft = parse(text, Timestamp::UNIX_EPOCH, &TimeZone::UTC);
-    if !draft.title.is_empty() {
-        return Err(format!(
-            "a template holds only marks; {:?} would be a title",
-            draft.title
-        ));
-    }
     if draft.template.is_some() {
         return Err("a template does not call another".into());
     }
@@ -874,16 +890,19 @@ impl Applied {
 /// estimate, repetition or flag the line names overwrites the task's; a new
 /// project moves the task to its top level, last, with its descendants;
 /// `// text` is appended to the note. No scope or view fills anything in.
-/// Text left over is no title here: it is warned about as free text.
+/// Text left over is no title here: it is warned about as free text. A
+/// template's free text leaves the title alone (ADR 0120).
 pub fn apply_to(
     task: &Task,
-    draft: Draft,
+    mut draft: Draft,
     known: Known<'_>,
     now: Timestamp,
     new_id: &mut impl FnMut() -> Id,
 ) -> Applied {
     use serde_json::{Value, to_value};
     let wire = |value: Result<Value, serde_json::Error>| value.unwrap_or(Value::Null);
+
+    draft.drop_prefix();
 
     let named_project = draft.project.is_some();
     let resolved = resolve(draft, known, None, now, new_id);
@@ -2325,12 +2344,48 @@ mod tests {
         assert_eq!(r.task.project, Some(id(1)));
     }
 
+    /// ADR 0120: a template's free text goes before the title, stays there
+    /// when a name goes back into the title, and leaves an edited task's
+    /// title alone.
+    #[test]
+    fn a_template_text_prefixes_the_title() {
+        let epic = [template("epic", "[EPIC] @telefon")];
+        let mut d = draft("Projekt aufwerten /epic");
+        apply_template(&mut d, &epic, None, saturday(), &berlin());
+        assert_eq!(d.title, "[EPIC] Projekt aufwerten");
+        assert_eq!(d.tags, vec!["telefon".to_owned()]);
+
+        let mut alone = draft("/epic");
+        apply_template(&mut alone, &epic, None, saturday(), &berlin());
+        assert_eq!(alone.title, "[EPIC]");
+
+        let mut missed = draft("Projekt #gibtsnicht /epic");
+        apply_template(&mut missed, &epic, None, saturday(), &berlin());
+        missed.miss_project();
+        assert_eq!(missed.title, "[EPIC] Projekt #gibtsnicht");
+
+        let (projects, tags) = known_world();
+        let task = existing(0x40, "Fliesen", Some(2), None);
+        let mut line = draft("/epic");
+        apply_template(&mut line, &epic, None, saturday(), &berlin());
+        let mut new_id = || id(0xb0);
+        let known = Known {
+            projects: &projects,
+            tags: &tags,
+            tasks: std::slice::from_ref(&task),
+        };
+        let a = apply_to(&task, line, known, saturday(), &mut new_id);
+        assert_eq!(a.task.title, "Fliesen");
+        assert!(a.draft.warnings.is_empty(), "{:?}", a.draft.warnings);
+    }
+
     /// ADR 0073 §1: a template's text holds marks only.
     #[test]
     fn a_template_text_holds_only_marks() {
         assert!(check_template_text("#Haus @habit p:heute 21:00 every+:1d // eine Notiz").is_ok());
         assert!(check_template_text("").is_ok());
-        assert!(check_template_text("Rauchfrei #Haus").is_err());
+        // ADR 0120: free text is the title's prefix.
+        assert!(check_template_text("[EPIC] @epic").is_ok());
         assert!(check_template_text("#Haus /andere").is_err());
         assert!(check_template_text("p:irgendwann").is_err());
         assert!(template_name("habit-1_a"));

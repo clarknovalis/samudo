@@ -23,6 +23,13 @@ ignore = [
     # its config), and parses nothing from outside. Goes away with a uniffi
     # whose askama has dropped it.
     { id = "RUSTSEC-2026-0374", reason = "build-time only, via uniffi -> askama_derive; unmaintained, not vulnerable" },
+    # chrono and chrono-tz are soft-deprecated in favour of jiff
+    # (unmaintained, no vulnerability). They reach us only through rrule
+    # and icalendar in samu-core, which exchange dates with it as text;
+    # no released version of either has dropped chrono. Goes away when
+    # both have moved to jiff, or when they are replaced.
+    { id = "RUSTSEC-2026-0543", reason = "chrono: via rrule and icalendar only; unmaintained, not vulnerable, no chrono-free release yet" },
+    { id = "RUSTSEC-2026-0555", reason = "chrono-tz: via rrule only; unmaintained, not vulnerable, no chrono-free release yet" },
 ]
 
 [licenses]

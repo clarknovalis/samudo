@@ -283,7 +283,8 @@ fn a_priority_is_set_cleared_and_checked() {
 }
 
 /// ADR 0073 §1: a template's name is callable and unique ignoring case,
-/// its text holds only marks, its reminders sit on a date of the task.
+/// its text calls no other template and may hold free text (ADR 0120),
+/// its reminders sit on a date of the task.
 #[test]
 fn a_template_is_checked_on_create_and_set() {
     let mut store = AccountStore::open_in_memory().unwrap();
@@ -317,7 +318,6 @@ fn a_template_is_checked_on_create_and_set() {
     for bad in [
         template("Habit", "", json!([])),
         template("zwei worte", "", json!([])),
-        template("x", "Rauchfrei #Haus", json!([])),
         template("y", "#Haus /habit", json!([])),
         template(
             "z",
@@ -342,7 +342,14 @@ fn a_template_is_checked_on_create_and_set() {
         &mut store,
         id,
         "text",
-        json!("Text #x"),
+        json!("#x /habit"),
+        next()
+    )));
+    assert!(is_applied(&set(
+        &mut store,
+        id,
+        "text",
+        json!("[EPIC] #x"),
         next()
     )));
     assert!(is_applied(&set(

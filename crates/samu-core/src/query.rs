@@ -413,7 +413,7 @@ pub fn split_search(text: &str, snapshot: &Snapshot<'_>) -> (Vec<ScopeChip>, Str
             _ => free.push(word),
         }
     }
-    (chips, free.join(" "))
+    (chips, join_free(&free))
 }
 
 fn parse_word(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, ParseError> {
@@ -858,13 +858,16 @@ impl<'a> Filter<'a> {
     }
 }
 
-/// Whether every free word of `text` stands in the task's title, note or
-/// id, ignoring case, as the search does (ADR 0042 §2, ADR 0090 §2): the
-/// end of an id finds its task. No word meets every task.
+/// Whether the free text of a search meets a task (ADR 0042 §2, ADR 0090
+/// §2): every word stands in the title, note or id, ignoring case, so the
+/// end of an id finds its task; a word with a leading `-` must not stand
+/// there; words in double quotes are one phrase (`"bis Freitag"`,
+/// `-"nicht heute"`). No word meets every task. `web/lib/query.js` reads
+/// it the same way (`testdata/query/text.json`).
 #[must_use]
 pub fn text_matches(text: &str, task: &Task) -> bool {
-    let words: Vec<String> = text.split_whitespace().map(str::to_lowercase).collect();
-    if words.is_empty() {
+    let terms = free_terms(text);
+    if terms.is_empty() {
         return true;
     }
     let hay = format!(
@@ -874,7 +877,41 @@ pub fn text_matches(text: &str, task: &Task) -> bool {
         task.id
     )
     .to_lowercase();
-    words.iter().all(|w| hay.contains(w.as_str()))
+    terms
+        .iter()
+        .all(|(not, term)| hay.contains(term.as_str()) != *not)
+}
+
+/// The terms of free text, lower case: whether each is excluded, and the
+/// word or phrase. A lone `-` is a word like any other.
+fn free_terms(text: &str) -> Vec<(bool, String)> {
+    split_words(text)
+        .into_iter()
+        .map(|word| match word.strip_prefix('-') {
+            Some(rest) if !rest.is_empty() => (true, rest.to_lowercase()),
+            _ => (false, word.to_lowercase()),
+        })
+        .filter(|(_, term)| !term.trim().is_empty())
+        .collect()
+}
+
+/// Free words joined into free text again: a phrase [`split_words`] took
+/// out of its quotes gets them back, so it stays one.
+#[must_use]
+pub fn join_free(words: &[String]) -> String {
+    words
+        .iter()
+        .map(|word| {
+            if !word.contains(char::is_whitespace) {
+                return word.clone();
+            }
+            match word.strip_prefix('-') {
+                Some(rest) => format!("-\"{rest}\""),
+                None => format!("\"{word}\""),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// A chip that asks for what is closed (`ist:erledigt`, `ist:verworfen`,
@@ -1068,6 +1105,41 @@ mod tests {
             ]
         );
         assert_eq!(words(&parsed, &snapshot), "prop:jira=HAUS-12 -prop:ticket");
+    }
+
+    /// The cases the web's free text must give as well.
+    #[test]
+    fn the_shared_free_text_cases_hold() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../testdata/query/text.json"
+        );
+        let doc: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut t = task(1);
+        t.id = doc["task"]["id"].as_str().unwrap().parse().unwrap();
+        t.title = doc["task"]["title"].as_str().unwrap().into();
+        t.note = Some(doc["task"]["note"].as_str().unwrap().into());
+        let cases = doc["cases"].as_array().unwrap();
+        assert!(cases.len() > 10);
+        for case in cases {
+            let text = case["text"].as_str().unwrap();
+            let want = case["matches"].as_bool().unwrap();
+            assert_eq!(text_matches(text, &t), want, "{text:?}");
+        }
+    }
+
+    #[test]
+    fn a_phrase_stays_one_when_the_search_is_split() {
+        let tags = [tag(1, None)];
+        let snapshot = Snapshot {
+            tags: &tags,
+            ..Snapshot::default()
+        };
+        let (chips, text) = split_search("\"bis Freitag\" @tag1 -\"nicht heute\" -käse", &snapshot);
+        assert_eq!(chips, [chip(Kind::Tag, &id(1).to_string(), false)]);
+        assert_eq!(text, "\"bis Freitag\" -\"nicht heute\" -käse");
+        assert_eq!(split_search(&text, &snapshot).1, text);
     }
 
     #[test]

@@ -443,6 +443,28 @@ function perspectiveMenu(p) {
             setIcon(p, null).catch(fail);
           },
         }),
+        // Any emoji besides the choices, as for folders and projects.
+        el("input", {
+          class: "emoji-field",
+          autocomplete: "off",
+          placeholder: tr("Anderes Emoji"),
+          "aria-label": tr("Anderes Emoji"),
+          value: PERSPECTIVE_EMOJIS.includes(p.icon) ? "" : (p.icon ?? ""),
+          onclick: (event) => event.stopPropagation(),
+          onkeydown: (event) => {
+            if (event.key === "Enter") event.target.blur();
+          },
+          onchange: (event) => {
+            const value = event.target.value.trim() || null;
+            if (value && new TextEncoder().encode(value).length > 32) {
+              update({ message: tr("Ein Icon ist ein Emoji, höchstens 32 Bytes.") });
+              return;
+            }
+            menu = null;
+            if (value !== (p.icon ?? null)) setIcon(p, value).catch(fail);
+            else update({});
+          },
+        }),
       ],
     ),
     menuItem(tr("Duplizieren"), () => {

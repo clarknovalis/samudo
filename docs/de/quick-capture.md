@@ -95,6 +95,11 @@ samu template key abend e          # Taste e nach der Erfassen-Taste: C e im Web
 samu add "Blumen gießen /abend"
 ```
 
+Freier Text in einer Vorlage steht vor dem Titel des Erfassten: Mit
+`samu template add epic '[EPIC] @epic'` wird aus der Zeile `Doku
+veröffentlichen /epic` die Aufgabe `[EPIC] Doku veröffentlichen`. Auf eine
+bestehende Aufgabe angewendet, lässt eine Vorlage deren Titel in Ruhe.
+
 Relative Daten in einer Vorlage zählen ab dem Moment des Erfassens. Die
 Zeile gewinnt Feld für Feld: Was sie nennt, überschreibt die Vorlage, Tags
 werden nicht gemischt. Die Erfassen-Einstellungen eines Scopes füllen nur,

@@ -63,9 +63,10 @@ uuid = { version = "1", features = ["v7", "serde"] }
 # uses it for the same reason.
 jiff = { version = "0.2", features = ["serde"] }
 # Repetition (ADR 0033): RFC 5545 RRULE with BYDAY ordinals, BYSETPOS, UNTIL,
-# COUNT and zones, so samu invents none of it (ADR 0007 §3). MIT/Apache-2.0,
-# maintained. It computes in chrono and chrono-tz (a second zone database
-# beside jiff's); samu-core hands it dates as text and reads them back into
+# COUNT and zones, so samu invents none of it (ADR 0007 §3). MIT/Apache-2.0.
+# No release since 0.14.0 (April 2025). It computes in chrono and chrono-tz
+# (a second zone database beside jiff's, both soft-deprecated, see
+# deny.toml); samu-core hands it dates as text and reads them back into
 # jiff, and nothing else uses chrono.
 rrule = "0.14"
 # Reading calendars (ADR 0047): only its parser, which unfolds lines, reads

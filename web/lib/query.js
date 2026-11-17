@@ -424,25 +424,45 @@ function isTest(word) {
   }
 }
 
+// The terms of free text as samu-core reads them (text_matches): split
+// at white space outside double quotes, a phrase in quotes is one term,
+// a leading `-` excludes it; a lone `-` is a word like any other.
+export function freeTerms(text) {
+  const words = [];
+  let word = "";
+  let quoted = false;
+  for (const c of text ?? "") {
+    if (c === '"') quoted = !quoted;
+    else if (/\s/.test(c) && !quoted) {
+      if (word) words.push(word);
+      word = "";
+    } else word += c;
+  }
+  if (word) words.push(word);
+  return words
+    .map((w) => (w.startsWith("-") && w.length > 1 ? { not: true, term: lower(w.slice(1)) } : { not: false, term: lower(w) }))
+    .filter((t) => t.term.trim());
+}
+
 // One test for the whole search: chips of one kind OR, kinds AND, a
 // negated chip must not hold; every free word in title, note or id, so
-// the end of an id finds its task (01a1c271).
+// the end of an id finds its task (01a1c271), none of the excluded ones.
 export function matcher(chips, text) {
   const kinds = new Map();
   for (const chip of chips) {
     if (!kinds.has(chip.kind)) kinds.set(chip.kind, { any: [], none: [] });
     kinds.get(chip.kind)[chip.not ? "none" : "any"].push(test(chip));
   }
-  const words = lower(text).split(/\s+/).filter(Boolean);
+  const terms = freeTerms(text);
   return (status) => {
     for (const { any, none } of kinds.values()) {
       if (any.length && !any.some((t) => t(status))) return false;
       if (none.some((t) => t(status))) return false;
     }
-    if (!words.length) return true;
+    if (!terms.length) return true;
     const task = status.task;
     const hay = lower(`${task.title}\n${task.note ?? ""}\n${task.id}`);
-    return words.every((w) => hay.includes(w));
+    return terms.every((t) => hay.includes(t.term) !== t.not);
   };
 }
 

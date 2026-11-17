@@ -150,7 +150,9 @@ header { display: flex; gap: 12px; align-items: center; padding: 10px 16px; bord
 /* Saving the search as a perspective, or the edits of one (ADR 0090 §5, §6). */
 .search-save { display: flex; gap: 4px; flex: none; }
 .search-save button { padding: 4px 10px; white-space: nowrap; }
-.kbd-hint { margin-left: -44px; width: 32px; text-align: center; color: var(--faint); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; pointer-events: none; }
+/* The key of the search, inside its right end; the field keeps room for it. */
+#search:has(> .kbd-hint:not([hidden])) { padding-right: 44px; }
+.kbd-hint { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 32px; text-align: center; color: var(--faint); border: 1px solid var(--line); border-radius: 4px; font-size: 12px; pointer-events: none; }
 #voice { margin-left: auto; white-space: nowrap; }
 #voice.recording { color: var(--overdue); border-color: var(--overdue); font-variant-numeric: tabular-nums; }
 #capture-open { white-space: nowrap; }
@@ -711,6 +713,7 @@ span.prop-value { cursor: text; }
   .outside { order: 7; }
   .scopes, .members { grid-template-columns: 1fr; }
   .kbd-hint { display: none; }
+  #search:has(> .kbd-hint) { padding-right: 6px; }
   #sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
   #sidebar .side-scroll { max-height: 30vh; }
   #middle { padding: 16px; }
@@ -997,6 +1000,7 @@ input.invalid { border-color: var(--overdue); }
 #sidebar .place-menu .emoji-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; padding: 4px 6px; border-block: 1px solid var(--line); margin: 2px 0; }
 #sidebar .place-menu .emoji-row button { padding: 3px 0; border: 0; border-radius: 6px; background: none; font-size: 15px; justify-content: center; }
 #sidebar .place-menu .emoji-row button:hover, #sidebar .place-menu .emoji-row button.on { background: var(--select); }
+#sidebar .place-menu .emoji-row .emoji-field { grid-column: 1 / -1; margin-top: 2px; padding: 3px 6px; font-size: 14px; min-width: 0; }
 #sidebar-show { display: none; }
 body[data-sidebar="hidden"] #sidebar-show { display: inline-flex; }
 body[data-sidebar="hidden"] #sidebar { display: none; }

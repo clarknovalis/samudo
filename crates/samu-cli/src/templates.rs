@@ -24,8 +24,9 @@ use samu_client::Client;
 pub(crate) enum TemplateCommand {
     /// Every template with its text and reminders.
     List,
-    /// Make a template: a name to call it by and a line of quick capture
-    /// with only marks, like `#Gewohnheiten @habit p:heute 21:00 every+:1d`.
+    /// Make a template: a name to call it by and a line of quick capture,
+    /// like `#Gewohnheiten @habit p:heute 21:00 every+:1d`. Free text in it
+    /// goes before the title of what is captured, like `[EPIC] @epic`.
     Add {
         name: String,
         /// The marks; several words are joined.

@@ -17,6 +17,10 @@ Every word that is not a chip must appear in the title, the note or the
 id. The last eight characters of an id, as the command line prints it,
 find their task.
 
+A word with a leading `-` must not appear: `milk -oat`. Words in double
+quotes are one phrase and must appear together, in that order:
+`"by Friday"`, and `-"not today"` leaves out what has it.
+
 ## Chips
 
 A word becomes a chip once you take it from the list under the field (in

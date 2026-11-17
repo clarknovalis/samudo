@@ -218,7 +218,7 @@ fn split_search(snapshot: &Snapshot, words: &[String]) -> Result<(Vec<ScopeChip>
             Ok(_) => {}
         }
     }
-    Ok((chips, text.join(" ")))
+    Ok((chips, query::join_free(&text)))
 }
 
 /// A block in the words of `samu perspective blocks`.

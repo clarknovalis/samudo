@@ -933,6 +933,17 @@ fn list_shows_more_and_filters() {
         ["Fliesen aussuchen"],
         "the end of the id counts"
     );
+    let without = titles(&["list", "--search", "-muster"]);
+    assert!(
+        !without.is_empty() && !without.iter().any(|t| t == "Fliesen aussuchen"),
+        "-word leaves out what has it: {without:?}"
+    );
+    assert_eq!(
+        titles(&["list", "--search", "\"fliesen aussuchen\""]),
+        ["Fliesen aussuchen"],
+        "a phrase in quotes"
+    );
+    assert!(titles(&["list", "--search", "\"aussuchen fliesen\""]).is_empty());
     // ADR 0056: the priority is a field, set and cleared like any.
     assert_eq!(
         code(&server.samu(&["set", first_id, "priority", "A"], None)),
@@ -3176,9 +3187,9 @@ fn a_template_fills_in_a_capture_and_gives_its_reminders() {
     ));
     assert_eq!(list[0]["call"], "/habit");
     assert_eq!(list[0]["reminders"], "planned");
-    // Free text in a template is refused by the server.
+    // A template calling another is refused by the server.
     assert_ne!(
-        code(&server.samu(&["template", "text", "habit", "Rauchfrei", "#x"], None)),
+        code(&server.samu(&["template", "text", "habit", "#x", "/habit"], None)),
         0
     );
 
@@ -3224,6 +3235,14 @@ fn a_template_fills_in_a_capture_and_gives_its_reminders() {
     let out = ok(server.samu(&["add", "Pfad /gibtsnicht", "--format", "json"], None));
     assert_eq!(json_out(&out)[0]["task"]["title"], "Pfad /gibtsnicht");
     assert!(String::from_utf8_lossy(&out.stderr).contains("/gibtsnicht: no template"));
+
+    // ADR 0120: a template's free text goes before the title.
+    ok(server.samu(&["template", "add", "epic", "[EPIC]", "@epic"], None));
+    let epic = json_out(&ok(
+        server.samu(&["add", "Doku /epic", "--format", "json"], None)
+    ));
+    assert_eq!(epic[0]["task"]["title"], "[EPIC] Doku");
+    ok(server.samu(&["template", "delete", "epic"], None));
 
     ok(server.samu(&["template", "rename", "habit", "gewohnheit"], None));
     ok(server.samu(&["template", "remind", "gewohnheit", "--clear"], None));

@@ -432,6 +432,7 @@ export const EN = {
   "In den Einstellungen": "In settings",
   "Abbrechen": "Cancel",
   "Kein Icon": "No icon",
+  "Anderes Emoji": "Other emoji",
   "Duplizieren": "Duplicate",
   "Perspektiven": "Perspectives",
   "Perspektive anlegen": "Add perspective",

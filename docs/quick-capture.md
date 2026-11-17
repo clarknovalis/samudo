@@ -92,6 +92,11 @@ samu template key evening e          # key e after the capture key: C e in the w
 samu add "Water the plants /evening"
 ```
 
+Free text in a template goes before the title of what is captured:
+with `samu template add epic '[EPIC] @epic'`, the line `Publish the docs
+/epic` makes `[EPIC] Publish the docs`. A template applied to an existing
+task leaves its title alone.
+
 Relative dates in a template count from the moment of capture. The line
 wins field by field: what it names overrides the template, tags are not
 mixed. A scope's capture settings fill in only what both leave open.

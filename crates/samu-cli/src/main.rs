@@ -440,8 +440,9 @@ enum Command {
         /// Only flagged tasks.
         #[arg(long)]
         flagged: bool,
-        /// Only tasks with every word in title, note or id.
-        #[arg(long)]
+        /// Only tasks with every word in title, note or id; `-word` leaves
+        /// out what has it, "a phrase" in quotes is one word.
+        #[arg(long, allow_hyphen_values = true)]
         search: Option<String>,
         /// Through this scope instead of the one chosen here (ADR 0035).
         #[arg(long, conflicts_with = "no_scope")]
@@ -1101,18 +1102,8 @@ fn narrow(
         statuses.retain(|s| s.task.flagged);
     }
     if let Some(search) = search {
-        let words: Vec<String> = search.split_whitespace().map(str::to_lowercase).collect();
-        statuses.retain(|s| {
-            // The id too, so its end finds the task (as the web).
-            let text = format!(
-                "{}\n{}\n{}",
-                s.task.title,
-                s.task.note.as_deref().unwrap_or_default(),
-                s.task.id
-            )
-            .to_lowercase();
-            words.iter().all(|w| text.contains(w))
-        });
+        // As the web and the app read it: the id too, `-word`, "a phrase".
+        statuses.retain(|s| samu_core::query::text_matches(search, &s.task));
     }
     Ok(())
 }
