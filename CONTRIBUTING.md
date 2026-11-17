@@ -8,7 +8,8 @@ want to do saves us both a pull request that goes in another direction.
 
 You need a stable Rust toolchain (`rust-toolchain.toml` picks it), a C
 compiler for the bundled SQLite, the system's time zone database (tzdata;
-the tests use named zones) and Node.js for the web UI's tests.
+the tests use named zones), Node.js for the web UI's tests, `reuse` and
+`cargo-deny` (`cargo install --locked cargo-deny`).
 Emacs is optional; without it the Emacs package's checks are skipped.
 
 ```sh
@@ -17,7 +18,9 @@ make check-public
 
 runs everything a change has to pass: `cargo fmt --check`, `cargo clippy`
 with warnings as errors, `cargo test`, packaging `samu-api` on its own,
-the web UI's tests and the Emacs package's tests. CI runs the same target,
+a check of the dependencies against known vulnerabilities and the allowed
+licenses (`make deny`, configured in `deny.toml`), the web UI's tests and
+the Emacs package's tests. CI runs the same target,
 plus a secret scan (`make secret-scan`, needs gitleaks). The maintainer's
 `make check` adds checks of parts that are not public. The Android app
 (`android/`) is built with Gradle and is outside these targets; see

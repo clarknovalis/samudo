@@ -18,8 +18,6 @@ use crate::{MobileError, Samu, input};
 const RECENT: usize = 5;
 /// The cache's key for them.
 const RECENT_KEY: &str = "recent_searches";
-/// The cache's key for the language chosen on this phone (ADR 0105 §2).
-const LANG_KEY: &str = "ui_lang";
 
 /// One chip of the search field.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
@@ -80,30 +78,10 @@ impl Samu {
 
 #[uniffi::export]
 impl Samu {
-    /// The language chosen on this phone: `system`, `de` or `en`
-    /// (ADR 0105 §2); `system` when none is.
-    pub fn lang_choice(&self) -> Result<String, MobileError> {
-        Ok(self
-            .cache()?
-            .meta(LANG_KEY)?
-            .unwrap_or_else(|| "system".to_owned()))
-    }
-
-    /// Keeps the language chosen on this phone; another word than
-    /// `system`, `de` or `en` is an input error.
-    pub fn set_lang_choice(&self, choice: String) -> Result<(), MobileError> {
-        let value = match choice.as_str() {
-            "system" => None,
-            "de" | "en" => Some(choice.as_str()),
-            _ => return Err(input(format!("no language {choice}"))),
-        };
-        self.cache()?.set_meta(LANG_KEY, value)?;
-        Ok(())
-    }
-
-    /// The language the app shows, resolved from the choice and the
-    /// phone's locale: `de…` is German, everything else English. The
-    /// words of the search field follow it; the chips stay German.
+    /// The language the app shows, as the app resolved it from the
+    /// choice in its preferences (the choice is per phone, not per
+    /// account, ADR 0105 §2): `de…` is German, everything else English.
+    /// The words of the search field follow it; the chips stay German.
     pub fn set_lang(&self, code: String) {
         if let Ok(mut lang) = self.lang.lock() {
             *lang = Lang::from_code(&code);

@@ -252,8 +252,10 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
     var place by remember { mutableStateOf(Place(AVAILABLE_VIEW)) }
-    // The bar's entries, without the hidden ones (ADR 0102 §1, §3).
-    val (bar, _) = loaded(tick, "bar") { it.bar() }
+    // The bar's entries, without the hidden ones (ADR 0102 §1, §3); their
+    // titles come from samu-mobile in the app's language, so a change of
+    // it loads them again.
+    val (bar, _) = loaded(tick, "bar" to I18n.lang) { it.bar() }
     val shown = bar?.filter { !it.hidden }
     // A fixed view's key, `perspective`, `project` or `tag`.
     val view = if (place.entry.kind == "view") place.entry.key else place.entry.kind

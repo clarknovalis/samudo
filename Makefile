@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # The definition of done (AGENTS.md).
-.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check reuse-lint web-check emacs-check install install-replica install-front android
+.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check deny reuse-lint web-check emacs-check install install-replica install-front android
 
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
@@ -14,7 +14,7 @@ check: check-public
 # What the public CI runs (.github/workflows/ci.yml), and what a
 # contribution needs. A local.mk beside this file, if there is one, can add
 # checks of its own to `check`.
-check-public: fmt clippy test api-standalone license-check reuse-lint web-check emacs-check
+check-public: fmt clippy test api-standalone license-check deny reuse-lint web-check emacs-check
 
 fmt:
 	cargo fmt --all --check
@@ -36,6 +36,14 @@ api-standalone:
 # is only AGPL (ADR 0117).
 license-check:
 	scripts/license-check.sh
+
+# Known vulnerabilities (RustSec), the licenses of all dependencies and
+# where crates come from, as deny.toml says. Fetches the advisory database
+# on each run, so a new advisory fails a tree that passed yesterday. Needs
+# cargo-deny (cargo install --locked cargo-deny).
+deny:
+	@command -v cargo-deny >/dev/null 2>&1 || { echo "deny: cargo-deny is missing (cargo install --locked cargo-deny)" >&2; exit 1; }
+	cargo deny check
 
 # Every file carries its copyright and license: an SPDX header in source
 # files, an entry in REUSE.toml for data, images and third-party code

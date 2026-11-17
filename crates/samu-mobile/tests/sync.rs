@@ -918,21 +918,12 @@ fn the_search_field_offers_makes_chips_and_remembers() {
 }
 
 #[test]
-fn the_phone_keeps_its_language_and_shows_the_search_in_it() {
+fn the_app_sets_the_language_and_the_search_follows_it() {
     let server = Server::start();
     let other = server.other_client();
     make_task(&other, "Milch kaufen", json!({"flagged": true}));
     let samu = phone(&server);
     samu.sync().unwrap();
-
-    // The choice: system until chosen, kept across opening, checked.
-    assert_eq!(samu.lang_choice().unwrap(), "system");
-    samu.set_lang_choice("en".into()).unwrap();
-    assert!(samu.set_lang_choice("fr".into()).is_err());
-    let again = Samu::open(server.dir.join("phone").display().to_string()).unwrap();
-    assert_eq!(again.lang_choice().unwrap(), "en");
-    again.set_lang_choice("system".into()).unwrap();
-    assert_eq!(samu.lang_choice().unwrap(), "system");
 
     // German until the app says otherwise.
     let title = |key: &str| {

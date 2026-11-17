@@ -54,6 +54,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo package -p samu-api     # builds without the rest of the workspace
 scripts/license-check.sh      # MIT crates depend on no AGPL-only crate
+cargo deny check              # no known vulnerability, allowed licenses
 reuse lint                    # every file names its copyright and license
 ```
 

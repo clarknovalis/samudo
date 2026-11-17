@@ -162,6 +162,8 @@ export const EN = {
   "Dazu": "Add",
   "Ziel": "Target",
   "Projekt:": "Project:",
+  "Tag:": "Tag:",
+  "Vorlage:": "Template:",
   "Priorität": "Priority",
   "Start:": "Defer:",
   "Fällig:": "Due:",

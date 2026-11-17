@@ -376,7 +376,7 @@ fun DeleteButton(id: String, changed: () -> Unit, back: () -> Unit) {
                 } catch (e: MobileException.Offline) {
                     problem = tr("Löschen geht nur mit Verbindung zum Server.")
                 } catch (e: Exception) {
-                    problem = e.message
+                    problem = said(e)
                 }
             }
         }) { Text(tr("Löschen …")) }
@@ -390,7 +390,7 @@ fun DeleteButton(id: String, changed: () -> Unit, back: () -> Unit) {
                         changed()
                         back()
                     } catch (e: Exception) {
-                        problem = e.message
+                        problem = said(e)
                     }
                 }
             }) { Text(tr("Löschen"), color = t.overdue) }

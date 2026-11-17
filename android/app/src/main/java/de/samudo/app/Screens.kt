@@ -98,9 +98,9 @@ internal fun said(e: Throwable): String = when (e) {
     is MobileException.SignedOut -> e.reason
     is MobileException.Offline -> tr("Server nicht erreichbar: {reason}", "reason" to e.reason)
     is MobileException.Refused -> e.reason
-    is MobileException.Input -> e.reason
+    is MobileException.Input -> I18n.message(e.reason)
     is MobileException.Store -> e.reason
-    else -> e.toString()
+    else -> e.message ?: e.toString()
 }
 
 /** Signing in with server, account, password and device (ADR 0028 §8). */
@@ -960,7 +960,7 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
                 val where = if (parent != null && !named) tr("unter „{title}“", "title" to parent.title) else tr("in {project}", "project" to (p?.project ?: "Inbox"))
                 Text(
                     when {
-                        p != null && p.title.isNotBlank() -> "„${p.title}“ $where"
+                        p != null && p.title.isNotBlank() -> tr("„{title}“ {where}", "title" to p.title, "where" to where)
                         parent != null -> tr("Unteraufgabe {where}", "where" to where)
                         else -> tr("Neue Aufgabe")
                     },
@@ -969,7 +969,7 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
             }
             OutlinedTextField(
                 field, { field = it },
-                placeholder = { Text(if (draft != null) tr("#projekt @tag d:fr – ergänzt den Titel") else "#projekt @tag ! !A d:fr ~15m // Notiz") },
+                placeholder = { Text(if (draft != null) tr("#projekt @tag d:fr – ergänzt den Titel") else tr("#projekt @tag ! !A d:fr ~15m // Notiz")) },
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { create() }),

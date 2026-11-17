@@ -368,7 +368,7 @@ private fun DeletePanel(d: PlaceDetail, changed: () -> Unit, cancel: () -> Unit,
             try {
                 preview = Store.get(context).deletePlace(d.id, if (isProject) fate else null, target?.id, true)
             } catch (e: Exception) {
-                error = e.message ?: e.toString()
+                error = said(e)
             }
         }
     }

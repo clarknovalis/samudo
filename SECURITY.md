@@ -4,15 +4,28 @@
 
 Please do not open a public issue for a security problem. Report it
 privately through GitHub's "Report a vulnerability" button on the
-repository's Security tab. You will get an answer within a week; a fix
-and its disclosure are coordinated with you.
+repository's Security tab.
 
 Helpful in a report: the version or commit, how the server is run, the
 steps to reproduce, and what an attacker gains.
 
+## What happens to a report
+
+1. You get an answer within a week, saying whether the problem is
+   confirmed.
+2. The fix is made in the maintainer's own repository, like every other
+   change (see [`CONTRIBUTING.md`](CONTRIBUTING.md)), not in a temporary
+   private fork on GitHub. If you want to check it first, you get it as
+   a patch in the advisory's comments.
+3. A release carries the fix, and this repository's next snapshot
+   publishes it.
+4. The advisory is published right after the snapshot, with a CVE if
+   you like, and with your name if you want to be credited.
+
 ## Supported versions
 
-There is no release yet. Fixes go into `main`.
+Only the newest release gets security fixes; at present that is the
+newest `0.1.x`. Fixes also go into `main`.
 
 ## Scope
 

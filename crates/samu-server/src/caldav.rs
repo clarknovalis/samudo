@@ -14,8 +14,9 @@
 //! CalDAV and CalendarServer namespaces under whatever prefixes they like.
 
 use jiff::civil::Date;
-use quick_xml::Reader;
-use quick_xml::events::Event;
+use quick_xml::escape::resolve_predefined_entity;
+use quick_xml::events::{BytesRef, Event};
+use quick_xml::{Reader, XmlVersion};
 
 /// Asks for what changes whenever the collection does, and what the user
 /// may do there (ADR 0068 §1).
@@ -152,7 +153,7 @@ pub(crate) fn responses(xml: &str) -> Result<Vec<Found>, String> {
                         for attribute in e.attributes().flatten() {
                             if attribute.key.local_name().as_ref() == b"name" {
                                 let value = attribute
-                                    .unescape_value()
+                                    .normalized_value(XmlVersion::Implicit1_0)
                                     .map_err(|e| format!("not a CalDAV answer: {e}"))?;
                                 found.components.push(value.into_owned());
                             }
@@ -161,11 +162,12 @@ pub(crate) fn responses(xml: &str) -> Result<Vec<Found>, String> {
                 }
             }
             Event::Text(t) => {
-                let unescaped = t
-                    .unescape()
+                let decoded = t
+                    .decode()
                     .map_err(|e| format!("not a CalDAV answer: {e}"))?;
-                text.push_str(&unescaped);
+                text.push_str(&decoded);
             }
+            Event::GeneralRef(r) => text.push_str(&reference(&r)?),
             Event::CData(c) => text.push_str(&String::from_utf8_lossy(&c.into_inner())),
             Event::End(_) => {
                 let Some(name) = path.pop() else { continue };
@@ -231,10 +233,15 @@ pub(crate) fn texts_of(xml: &str, local: &str) -> Result<Vec<String>, String> {
             }
             Ok(Event::Text(t)) => {
                 if let Some(text) = inside.as_mut() {
-                    let unescaped = t
-                        .unescape()
+                    let decoded = t
+                        .decode()
                         .map_err(|e| format!("not a CalDAV answer: {e}"))?;
-                    text.push_str(&unescaped);
+                    text.push_str(&decoded);
+                }
+            }
+            Ok(Event::GeneralRef(r)) => {
+                if let Some(text) = inside.as_mut() {
+                    text.push_str(&reference(&r)?);
                 }
             }
             Ok(Event::CData(c)) => {
@@ -258,6 +265,25 @@ pub(crate) fn version_of(xml: &str) -> Option<String> {
             .map(|t| t.trim().to_string())
             .find(|t| !t.is_empty())
     })
+}
+
+/// The text of a reference between two pieces of text: since quick-xml
+/// 0.38 the reader hands `&amp;` and `&#13;` over as events of their own.
+/// A multistatus answer has no DTD, so only the five predefined entities
+/// and character references can occur.
+fn reference(r: &BytesRef<'_>) -> Result<String, String> {
+    if let Some(c) = r
+        .resolve_char_ref()
+        .map_err(|e| format!("not a CalDAV answer: {e}"))?
+    {
+        return Ok(c.to_string());
+    }
+    let name = r
+        .decode()
+        .map_err(|e| format!("not a CalDAV answer: {e}"))?;
+    resolve_predefined_entity(&name)
+        .map(str::to_string)
+        .ok_or_else(|| format!("not a CalDAV answer: unknown entity &{name};"))
 }
 
 #[cfg(test)]
@@ -289,6 +315,24 @@ END:VCALENDAR]]></cal:calendar-data>
             texts[0]
         );
         assert!(texts[1].starts_with("BEGIN:VCALENDAR\nEND:VCALENDAR"));
+    }
+
+    #[test]
+    fn references_in_names_and_attributes_come_out_as_their_characters() {
+        let answer = r#"<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+<d:response><d:href>/cal/a%26b/</d:href><d:propstat><d:prop>
+<d:displayname>Tom &amp; Jerry &#x2013; &lt;home&gt;</d:displayname>
+<c:supported-calendar-component-set><c:comp name="V&#69;VENT"/></c:supported-calendar-component-set>
+<d:resourcetype><d:collection/><c:calendar/></d:resourcetype>
+</d:prop></d:propstat></d:response></d:multistatus>"#;
+        let found = responses(answer).unwrap();
+        assert_eq!(
+            found[0].name.as_deref(),
+            Some("Tom & Jerry \u{2013} <home>")
+        );
+        assert_eq!(found[0].components, vec!["VEVENT".to_string()]);
+        assert!(found[0].holds_events());
+        assert!(responses("<d:multistatus xmlns:d=\"DAV:\"><d:response><d:displayname>&nbsp;</d:displayname></d:response></d:multistatus>").is_err());
     }
 
     #[test]

@@ -177,7 +177,7 @@ private fun AttachmentView(a: AttachmentRow, act: (Samu.() -> Unit) -> Unit) {
             withContext(Dispatchers.IO) {
                 runCatching { path ?: Store.get(context).fetchBlob(a.hash) }
                     .onSuccess { p -> path = p; if (image) picture = preview(p) }
-                    .onFailure { failed = it.message }
+                    .onFailure { failed = said(it) }
             }
         }
     }
@@ -185,7 +185,7 @@ private fun AttachmentView(a: AttachmentRow, act: (Samu.() -> Unit) -> Unit) {
         path?.then() ?: Thread {
             runCatching { Store.get(context).fetchBlob(a.hash) }
                 .onSuccess { p -> path = p; p.then() }
-                .onFailure { failed = it.message }
+                .onFailure { failed = said(it) }
         }.start()
     }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -262,7 +262,7 @@ private fun Composer(owner: String, act: (Samu.() -> Unit) -> Unit) {
         photo = null
     }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) runCatching { waiting += copied(context, uri) }.onFailure { problem = it.message }
+        if (uri != null) runCatching { waiting += copied(context, uri) }.onFailure { problem = said(it) }
     }
     val start: () -> Unit = {
         val file = drafts(context).resolve("aufnahme-${stamp()}.m4a")

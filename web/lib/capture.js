@@ -91,23 +91,23 @@ function chips(answer) {
   const out = [];
   if (task.project) out.push(["project", `${tr("Projekt:")} ${byId(state.projects, task.project)?.title ?? "?"}`]);
   for (const tagging of task.tags ?? []) {
-    if (byId(state.tags, tagging.tag)) out.push(["tag", `Tag: ${tagTitle(tagging.tag)}`]);
+    if (byId(state.tags, tagging.tag)) out.push(["tag", `${tr("Tag:")} ${tagTitle(tagging.tag)}`]);
   }
   for (const name of answer.new_tags ?? []) out.push(["tag new", `${tr("Tag neu:")} ${name}`]);
-  if (task.flagged) out.push(["flag", "markiert"]);
+  if (task.flagged) out.push(["flag", tr("markiert")]);
   if (task.priority) out.push(["plain", `${tr("Priorität")} ${task.priority}`]);
-  if (task.defer) out.push(["date", `Start: ${shortDay(task.defer)}`]);
+  if (task.defer) out.push(["date", `${tr("Start:")} ${shortDay(task.defer)}`]);
   if (task.due) out.push(["due", `${tr("Fällig:")} ${shortDay(task.due)}`]);
-  if (task.planned) out.push(["date", `Geplant: ${shortDay(task.planned)}`]);
+  if (task.planned) out.push(["date", `${tr("Geplant:")} ${shortDay(task.planned)}`]);
   if (task.estimate) out.push(["plain", `${tr("Schätzung:")} ${estimateText(task.estimate)}`]);
-  if (task.repeat) out.push(["plain", `Wiederholung: ${task.repeat.rule}${task.repeat.catch_up ? " (aufholen)" : ""}`]);
-  if (task.habit) out.push(["plain", `Habit: ${goalText(task.habit)}`]);
+  if (task.repeat) out.push(["plain", `${tr("Wiederholung:")} ${task.repeat.rule}${task.repeat.catch_up ? ` (${tr("aufholen")})` : ""}`]);
+  if (task.habit) out.push(["plain", `${tr("Habit:")} ${goalText(task.habit)}`]);
   if (task.note) out.push(["plain", tr("Notiz")]);
   // ADR 0073: the template called, and what reminds.
   const called = (answer.marks ?? []).find((m) => m.meaning === "template");
   if (called) {
     const bytes = new TextEncoder().encode($("capture-input").value);
-    out.unshift(["template", `Vorlage: ${new TextDecoder().decode(bytes.slice(called.start, called.end))}`]);
+    out.unshift(["template", `${tr("Vorlage:")} ${new TextDecoder().decode(bytes.slice(called.start, called.end))}`]);
   }
   for (const r of answer.reminders ?? []) out.push(["plain", `${tr("Erinnerung")} ${reminderText(r)}`]);
   // ADR 0081 §3: the clocks `z:` books, and `x:`.

@@ -14,10 +14,11 @@ import java.util.Locale
 /**
  * The language of the app (ADR 0105): German is the key. [tr] looks the
  * German text up in [EN] when the app is English and falls back to German;
- * `{name}` is filled after the lookup. The choice is per phone, in its
- * cache: `system` follows the context's locale, which Android's own app
- * language (Android 13+, `locales_config.xml`) sets too; `de` and `en`
- * hold. [lang] is Compose state, so a change redraws at once.
+ * `{name}` is filled after the lookup. The choice is per phone, in the
+ * app's preferences, not in an account's database (ADR 0105 §2, 0107 §1):
+ * `system` follows the context's locale, which Android's own app language
+ * (Android 13+, `locales_config.xml`) sets too; `de` and `en` hold. [lang]
+ * is Compose state, so a change redraws at once.
  */
 object I18n {
     val CHOICES = listOf("system" to "System", "de" to "Deutsch", "en" to "English")
@@ -30,22 +31,25 @@ object I18n {
     var choice by mutableStateOf("system")
         private set
 
+    private const val PREFS = "samu"
+    private const val KEY = "lang"
+
     private var system = "de"
 
-    /** Once the database is open: reads the choice, tells samu-mobile. */
+    /** Whenever an account's database opens: reads the choice, tells samu-mobile. */
     fun init(context: Context, samu: Samu) {
         system = context.resources.configuration.locales[0]?.language ?: "de"
-        choice = runCatching { samu.langChoice() }.getOrDefault("system")
+        choice = prefs(context).getString(KEY, null)?.takeIf { it == "de" || it == "en" } ?: "system"
         apply(samu)
     }
 
     fun choose(context: Context, value: String) {
-        val samu = Store.get(context)
-        runCatching { samu.setLangChoice(value) }.onSuccess {
-            choice = value
-            apply(samu)
-        }
+        prefs(context).edit().apply { if (value == "system") remove(KEY) else putString(KEY, value) }.apply()
+        choice = value
+        apply(Store.get(context))
     }
+
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     private fun apply(samu: Samu) {
         lang = when (choice) {
@@ -53,6 +57,22 @@ object I18n {
             else -> if (system.startsWith("de")) "de" else "en"
         }
         samu.setLang(lang)
+    }
+
+    /**
+     * A message of samu-mobile in the app's language. samu-mobile speaks
+     * English, as the server does (ADR 0105); the ones met while typing
+     * are in [MESSAGES], the others stay English.
+     */
+    fun message(reason: String): String {
+        if (lang != "de") return reason
+        for ((pattern, german) in MESSAGES) {
+            val found = pattern.regex.matchEntire(reason) ?: continue
+            var text = german
+            pattern.names.forEachIndexed { i, name -> text = text.replace("{$name}", found.groupValues[i + 1]) }
+            return text
+        }
+        return reason
     }
 
     /** German as Germany writes it, else the phone's English, else British. */
@@ -74,3 +94,42 @@ fun tr(key: String, vararg vars: Pair<String, Any?>): String {
     for ((name, value) in vars) text = text.replace("{$name}", value.toString())
     return text
 }
+
+/** An English message with `{name}` for a value, quoted or not, and those names. */
+private class Said(english: String) {
+    val names = Regex("\\{(\\w+)\\}").findAll(english).map { it.groupValues[1] }.toList()
+    val regex = Regex(
+        english.split(Regex("\\{\\w+\\}")).joinToString("\"?(.+?)\"?") { Regex.escape(it) },
+    )
+}
+
+/**
+ * The messages of samu-mobile one meets while typing (3bc7fb69), by their
+ * English text, and their German. `web/tests/i18n.mjs` checks that
+ * samu-mobile still says each English one, so a reworded message fails
+ * `make check` instead of falling back to English unseen.
+ */
+private val MESSAGES: List<Pair<Said, String>> = listOf(
+    "a perspective needs a name" to "Eine Perspektive braucht einen Namen.",
+    "a perspective needs a chip or a word" to "Eine Perspektive braucht einen Chip oder ein Wort.",
+    "there is a perspective {title} already" to "Eine Perspektive „{title}“ gibt es schon.",
+    "an icon is one emoji, at most 32 bytes" to "Ein Symbol ist ein Emoji, höchstens 32 Bytes.",
+    "a task needs a title" to "Eine Aufgabe braucht einen Titel.",
+    "a shared task needs a title" to "Eine geteilte Aufgabe braucht einen Titel.",
+    "a title, please" to "Bitte einen Titel.",
+    "nothing to capture" to "Nichts zu erfassen.",
+    "a comment needs a text" to "Ein Kommentar braucht einen Text.",
+    "{name} is empty" to "{name} ist leer.",
+    "{name} has {size} bytes; the server keeps at most {max}" to "{name} hat {size} Bytes; der Server nimmt höchstens {max}.",
+    "a reminder comes before, not after" to "Eine Erinnerung kommt vorher, nicht danach.",
+    "a time of day is between 00:00 and 23:59" to "Eine Uhrzeit liegt zwischen 00:00 und 23:59.",
+    "an amount is at least 1" to "Eine Menge ist mindestens 1.",
+    "{day} is after today; an entry is for today or a day before" to "{day} liegt nach heute; ein Eintrag gilt für heute oder einen Tag davor.",
+    "the settings come with the next sync" to "Die Einstellungen kommen mit dem nächsten Sync.",
+    "days: a number from 1 to 366" to "Tage: eine Zahl von 1 bis 366.",
+    "{text} is no date" to "„{text}“ ist kein Datum.",
+    "{value} is no priority: A, B or C" to "„{value}“ ist keine Priorität: A, B oder C.",
+    "{days} days is no warning" to "{days} Tage sind keine Vorwarnung.",
+    "{key} is no property key: lower-case letters, digits, _ and -, a letter first" to
+        "„{key}“ ist kein Schlüssel: Kleinbuchstaben, Ziffern, _ und -, vorn ein Buchstabe.",
+).map { (english, german) -> Said(english) to german }

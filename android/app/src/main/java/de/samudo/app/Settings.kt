@@ -80,7 +80,7 @@ internal fun rememberAct(changed: () -> Unit, onError: (String) -> Unit = {}): (
             try {
                 withContext(Dispatchers.IO) { Store.get(context).action() }
             } catch (e: Exception) {
-                onError(e.message ?: e.toString())
+                onError(said(e))
             }
             changed()
         }
@@ -424,7 +424,7 @@ private fun CalendarsSection(tick: Int, changed: () -> Unit, back: () -> Unit) {
                             val failed = withContext(Dispatchers.IO) { Store.get(context).refreshCalendar(c.id) }
                             error = failed?.let { "${c.title}: $it" }
                         } catch (e: Exception) {
-                            error = e.message ?: e.toString()
+                            error = said(e)
                         }
                         busy = null
                         changed()

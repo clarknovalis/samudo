@@ -4,8 +4,9 @@
 
 # The checks every change on main and every pull request has to pass:
 # `make check-public` (formatting, clippy, tests, samu-api packaged on its
-# own, the license checks, the web UI's and the Emacs package's tests) and a secret scan of the
-# committed tree. Nothing here needs anything but this repository.
+# own, the license checks, cargo-deny, the web UI's and the Emacs
+# package's tests) and a secret scan of the committed tree. Nothing here
+# needs anything but this repository.
 name: CI
 
 on:
@@ -26,6 +27,10 @@ env:
   # release's checksums file.
   GITLEAKS_VERSION: "8.21.2"
   GITLEAKS_SHA256: "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba"
+  # The release of cargo-deny for `make deny`, and the SHA-256 of its
+  # x86_64-unknown-linux-musl archive from the release.
+  CARGO_DENY_VERSION: "0.20.2"
+  CARGO_DENY_SHA256: "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f"
   # The release of reuse (https://reuse.software) for `make reuse-lint`.
   REUSE_VERSION: "5.0.2"
 
@@ -52,6 +57,15 @@ jobs:
 
       - name: reuse
         run: pipx install "reuse==${REUSE_VERSION}"
+
+      - name: cargo-deny
+        run: |
+          name="cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl"
+          curl -sSfL -o cargo-deny.tar.gz \
+            "https://github.com/EmbarkStudios/cargo-deny/releases/download/${CARGO_DENY_VERSION}/${name}.tar.gz"
+          echo "${CARGO_DENY_SHA256}  cargo-deny.tar.gz" | sha256sum -c -
+          tar -xzf cargo-deny.tar.gz -C "$HOME/.cargo/bin" --strip-components=1 "${name}/cargo-deny"
+          rm cargo-deny.tar.gz
 
       - name: make check-public
         run: make check-public

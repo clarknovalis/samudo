@@ -1,0 +1,109 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# CodeQL code scanning, as an advanced setup instead of GitHub's default
+# one, for two reasons: the tests are left out (their passwords, hashes
+# and fixed nonces are deliberate and only made noise), and the Android
+# app's Kotlin is scanned too, built with the same NDK steps as
+# release.yml, which the default setup cannot do. Rust, JavaScript and the
+# workflows themselves need no build.
+#
+# Tests inside a source file (`#[cfg(test)] mod tests`) cannot be left
+# out by path; their findings are dismissed by hand.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so new queries also look at code that has not changed.
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # As in release.yml.
+  CARGO_NDK_VERSION: "4.1.2"
+  NDK_VERSION: "29.0.14206865"
+  SDK_PLATFORM: "platforms;android-37.0"
+
+jobs:
+  analyze:
+    name: ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: rust
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config: |
+            paths-ignore:
+              - testdata
+              - crates/*/tests
+              - web/tests
+              - emacs/test-samu.el
+              - android/app/src/test
+              - android/app/src/androidTest
+
+      # The Kotlin build: the app's Gradle build runs rust.sh, which needs
+      # the phone's Rust target, cargo-ndk and the NDK.
+      - name: Rust
+        if: matrix.build-mode == 'manual'
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        if: matrix.build-mode == 'manual'
+
+      - name: cargo-ndk
+        if: matrix.build-mode == 'manual'
+        run: cargo install cargo-ndk --version "$CARGO_NDK_VERSION" --locked
+
+      - uses: actions/setup-java@v5
+        if: matrix.build-mode == 'manual'
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Android SDK and NDK
+        if: matrix.build-mode == 'manual'
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "$SDK_PLATFORM" "ndk;$NDK_VERSION"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+      - name: assembleDebug
+        if: matrix.build-mode == 'manual'
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

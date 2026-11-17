@@ -95,5 +95,29 @@ if (existsSync(enKt)) {
   for (const key of table.keys()) if (!used.has(key)) complain(`i18n: English for ${JSON.stringify(key)} in En.kt, which nothing uses`);
 }
 
-console.log(`i18n: web ${web.size} keys, app ${existsSync(enKt) ? `${app} keys` : "no En.kt yet"}, ${failed} problems`);
+// The German of samu-mobile's messages in the app (I18n.kt, MESSAGES): each
+// English text, its `{name}`s aside, must still be one samu-mobile says,
+// and the German must fill the same names.
+const i18nKt = join(root, "android/app/src/main/java/de/samudo/app/I18n.kt");
+let messages = 0;
+if (existsSync(i18nKt)) {
+  const kt = readFileSync(i18nKt, "utf8");
+  const start = kt.indexOf("private val MESSAGES");
+  const block = kt.slice(start, kt.indexOf(").map", start));
+  const rust = files(join(root, "crates/samu-mobile/src"), ".rs")
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n");
+  const names = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");
+  for (const m of block.matchAll(/^\s*"((?:[^"\\]|\\.)*)"\s+to\s*\n?\s*"((?:[^"\\]|\\.)*)",?\s*$/gm)) {
+    const [english, german] = [unescape(m[1]), unescape(m[2])];
+    messages += 1;
+    for (const piece of english.split(/\{\w+\}/)) {
+      if (piece && !rust.includes(piece)) complain(`i18n: samu-mobile no longer says ${JSON.stringify(piece)} (I18n.kt, MESSAGES)`);
+    }
+    if (names(english) !== names(german)) complain(`i18n: ${JSON.stringify(german)} fills other names than ${JSON.stringify(english)}`);
+  }
+  if (messages === 0) complain("i18n: no message in I18n.kt MESSAGES: the pattern is broken");
+}
+
+console.log(`i18n: web ${web.size} keys, app ${existsSync(enKt) ? `${app} keys` : "no En.kt yet"}, ${messages} messages, ${failed} problems`);
 process.exit(failed ? 1 : 0);
