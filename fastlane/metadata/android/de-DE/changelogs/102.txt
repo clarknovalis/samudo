@@ -1,0 +1,1 @@
+Suche mit „oder“: `ist:markiert oder fällig:heute` findet, was eine der Gruppen erfüllt; `oder` steht als eigener Chip im Feld, ein Tippen darauf setzt die Einfügestelle davor. Freitext kennt `-wort` zum Ausschließen und "Phrasen" in Anführungszeichen. Freier Text in einer Erfassungsvorlage wird dem Titel vorangestellt.

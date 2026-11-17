@@ -88,7 +88,13 @@ group: `is:flagged or due:today invoice` finds the flagged and the due
 tasks that mention an invoice. The same chip may stand in two groups.
 
 `or` becomes a chip of its own in the field and is offered in the list
-under it once a chip stands there; a new chip goes into the last group.
+under it once a chip stands there. A new chip goes where the insertion
+point is, at the end unless you move it: in the web ← at the start of
+the field moves it back across the chips and → forward again, Backspace
+there removes the chip before it; a click (in the app a tap) on an `or`
+puts it in front of that `or`, so the next chip joins the group before
+it, and a second click moves it back to the end. Typing `or` in the
+middle of a group splits it.
 Removing `or` joins its two groups. An `or` at the start or twice in a
 row means nothing and is dropped; one at the end waits for the next chip. Groups cannot be nested,
 and there is no "and" within one kind: `@a @b` stays either tag.

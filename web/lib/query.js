@@ -303,19 +303,33 @@ export function withOrs(chips) {
 // or twice. One at the end stays, as the field's next group.
 export const tidy = (list) => list.filter((c, i) => !isOr(c) || (i > 0 && !isOr(list[i - 1])));
 
-// Whether a field's list may take `oder` next: it ends in a chip.
-export const mayOr = (list) => list.length > 0 && !isOr(list[list.length - 1]);
-
-// A chip added to a field's list: into the last group, where it takes the
-// place of the same one (`-@Büro` for `@Büro`). A separator only after a
-// chip, never twice.
-export function addTo(list, chip, same = (a, b) => a.kind === b.kind && a.value === b.value) {
-  if (isOr(chip)) return !list.length || isOr(list[list.length - 1]) ? list : [...list, OR];
-  let start = list.length;
-  while (start > 0 && !isOr(list[start - 1])) start -= 1;
-  const at = list.findIndex((c, i) => i >= start && same(c, chip));
-  return at < 0 ? [...list, chip] : list.map((c, i) => (i === at ? chip : c));
+// Whether a field's list may take `oder` at `at` (ADR 0122 §6): a chip
+// before it, no `oder` after it. `at` null is the end.
+export function mayOr(list, at = null) {
+  const i = at ?? list.length;
+  return i > 0 && !isOr(list[i - 1]) && !(i < list.length && isOr(list[i]));
 }
+
+// A chip added to a field's list at `at` (ADR 0122 §1; null is the end,
+// ADR 0121 §4): into the group there, where it takes the place of the
+// same one (`-@Büro` for `@Büro`). `oder` only where mayOr allows; in the
+// middle of a group it splits it. Gives the list and where the insertion
+// point stands after it, null for the end.
+export function addAt(list, chip, at = null, same = (a, b) => a.kind === b.kind && a.value === b.value) {
+  const i = Math.min(at ?? list.length, list.length);
+  const after = (next, j) => ({ list: next, at: at === null || j >= next.length ? null : j });
+  if (isOr(chip)) return mayOr(list, i) ? after([...list.slice(0, i), OR, ...list.slice(i)], i + 1) : { list, at };
+  let start = i;
+  while (start > 0 && !isOr(list[start - 1])) start -= 1;
+  let end = i;
+  while (end < list.length && !isOr(list[end])) end += 1;
+  const found = list.findIndex((c, j) => j >= start && j < end && same(c, chip));
+  if (found >= 0) return { list: list.map((c, j) => (j === found ? chip : c)), at };
+  return after([...list.slice(0, i), chip, ...list.slice(i)], i + 1);
+}
+
+// A chip added at the end of a field's list (ADR 0121 §4).
+export const addTo = (list, chip, same) => addAt(list, chip, null, same).list;
 
 // A word as a chip { kind, value, not }, the separator for `oder`, or null
 // when it is free text.

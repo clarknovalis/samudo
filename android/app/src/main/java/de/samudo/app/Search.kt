@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -103,6 +104,17 @@ fun SearchScreen(
         if (query.isBlank()) null else runCatching { samu.searchSplit("$query ") }.getOrNull()
     }
     var chips by remember { mutableStateOf(restored?.chips ?: emptyList()) }
+    // The insertion point between the chips (ADR 0122): an index, null is
+    // the end, where ADR 0121 §4 puts a new chip.
+    var at by remember { mutableStateOf<Int?>(null) }
+    // Chips put in at the insertion point, which then stands behind them.
+    val insert: (List<SearchChip>) -> Unit = { more ->
+        val i = (at ?: chips.size).coerceAtMost(chips.size)
+        val next = tidy(chips.take(i) + more + chips.drop(i))
+        val behind = i + more.size - (chips.size + more.size - next.size)
+        at = if (at == null || behind >= next.size) null else behind
+        chips = next
+    }
     var field by remember {
         val rest = restored?.rest ?: query
         mutableStateOf(TextFieldValue(rest, TextRange(rest.length)))
@@ -118,7 +130,7 @@ fun SearchScreen(
     val type: (TextFieldValue) -> Unit = { next ->
         val split = if (next.text.any { it.isWhitespace() }) runCatching { samu.searchSplit(next.text) }.getOrNull() else null
         if (split != null && split.chips.isNotEmpty()) {
-            chips = tidy(chips + split.chips)
+            insert(split.chips)
             field = TextFieldValue(split.rest, TextRange(split.rest.length))
         } else {
             field = next
@@ -127,6 +139,7 @@ fun SearchScreen(
     val restore: (String) -> Unit = { line ->
         runCatching { samu.searchSplit("$line ") }.getOrNull()?.let { split ->
             chips = tidy(split.chips)
+            at = null
             field = TextFieldValue(split.rest, TextRange(split.rest.length))
         }
     }
@@ -139,7 +152,7 @@ fun SearchScreen(
         val end = field.selection.start.coerceIn(start, field.text.length)
         val chip = offer.chip
         val put = if (chip != null) "" else offer.insert.orEmpty()
-        if (chip != null) chips = chips + chip
+        if (chip != null) insert(listOf(chip))
         val next = field.text.substring(0, start) + put + field.text.substring(end)
         // `oder ` ends with a space: a finished word, so it becomes its chip.
         if (put.endsWith(" ")) type(TextFieldValue(next, TextRange(start + put.length)))
@@ -157,8 +170,10 @@ fun SearchScreen(
         onQuery(text)
     }
     val word = wordAt(field).second
-    // `oder` is offered once the field ends in a chip (ADR 0121 §4).
-    val mayOr = chips.isNotEmpty() && chips.last().kind != "or"
+    // `oder` is offered when a chip stands before the insertion point and
+    // no `oder` after it (ADR 0122 §6).
+    val point = (at ?: chips.size).coerceAtMost(chips.size)
+    val mayOr = point > 0 && chips[point - 1].kind != "or" && !(point < chips.size && chips[point].kind == "or")
     LaunchedEffect(word, mayOr) {
         offers = if (word.isEmpty()) emptyList() else withContext(Dispatchers.IO) {
             runCatching { samu.searchOffers(word, mayOr) }.getOrDefault(emptyList())
@@ -175,16 +190,26 @@ fun SearchScreen(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             chips.forEachIndexed { i, chip ->
+                if (i == at) {
+                    Box(Modifier.width(2.dp).height(20.dp).align(Alignment.CenterVertically).background(t.accent))
+                }
                 FieldChip(
                     chip,
                     negate = {
-                        if (chip.kind != "or") {
+                        // A tap on `oder` puts the insertion point before
+                        // it, a second one back to the end (ADR 0122 §4).
+                        if (chip.kind == "or") {
+                            at = if (at == i) null else i
+                        } else {
                             runCatching { samu.searchChip(chip.kind, chip.value, !chip.not) }.getOrNull()?.let { flipped ->
                                 chips = chips.toMutableList().also { it[i] = flipped }
                             }
                         }
                     },
-                    remove = { chips = tidy(chips.filterIndexed { j, _ -> j != i }) },
+                    remove = {
+                        chips = tidy(chips.filterIndexed { j, _ -> j != i })
+                        at = null
+                    },
                 )
             }
             Box(Modifier.widthIn(min = 80.dp).weight(1f).align(Alignment.CenterVertically)) {
@@ -214,7 +239,7 @@ fun SearchScreen(
         // The tags of the list stand under the field (ADR 0103 §3).
         TagChips(tick, tag, onTag)
         if (blank) {
-            EmptySearch(recent, perspectives.orEmpty(), add = { chip -> chips = chips + chip }, restore = restore, open = openPerspective)
+            EmptySearch(recent, perspectives.orEmpty(), add = { chip -> insert(listOf(chip)) }, restore = restore, open = openPerspective)
         } else {
             Row(Modifier.fillMaxWidth().padding(16.dp, 0.dp, 16.dp, 8.dp)) {
                 Spacer(Modifier.weight(1f))

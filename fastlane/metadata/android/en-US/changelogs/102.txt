@@ -1,0 +1,1 @@
+Search with "or": `is:flagged or due:today` finds what meets either group; `or` is a chip of its own in the field, and a tap on it puts the insertion point before it. Free text takes `-word` to leave out and "phrases" in quotes. Free text in a capture template now prefixes the title.

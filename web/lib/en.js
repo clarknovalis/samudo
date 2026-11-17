@@ -520,6 +520,7 @@ export const EN = {
   "alles außer dem, was die Häkchen erfassen": "everything but what the ticks cover",
   "Ein Ordner gilt mit allem darin, ein Tag mit allen Tags darunter und für jede Aufgabe eines Projekts, das ihn trägt. Die Inbox zählt nur über ihr eigenes Häkchen, nicht über die Tags ihrer Aufgaben. Ohne jedes Häkchen schränken die Mitglieder nicht ein; dann zählt nur der Filter.": "A folder counts with everything in it, a tag with all tags below it and for every task of a project that carries it. The inbox counts only through its own tick, not through its tasks' tags. Without any tick the members do not narrow; then only the filter counts.",
   "Filter: dazu muss eine Aufgabe auch das erfüllen": "Filter: a task must meet this as well",
+  "Hier einfügen": "Insert here",
   "Wie in der Suche: Chips einer Art gelten mit oder, verschiedene Arten zusammen, ein Klick auf einen Chip schließt aus, das Wort „oder“ beginnt eine weitere Gruppe. Der Filter wirkt auf Aufgaben, nicht auf Projekte und Ordner.": "As in the search: chips of one kind count with or, different kinds together, a click on a chip excludes, the word “or” starts another group. The filter works on tasks, not on projects and folders.",
   "Ordner und Projekte": "Folders and projects",
   "Ohne Häkchen zeigt der Scope die Termine aller Kalender.": "Without a tick the scope shows the appointments of all calendars.",

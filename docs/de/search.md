@@ -91,7 +91,13 @@ und die fälligen Aufgaben, in denen „Rechnung“ steht. Derselbe Chip darf
 in zwei Gruppen stehen.
 
 `oder` wird im Feld ein eigener Chip und steht in der Liste darunter zur
-Wahl, sobald ein Chip da ist; ein neuer Chip kommt in die letzte Gruppe.
+Wahl, sobald ein Chip da ist. Ein neuer Chip kommt an die Einfügestelle,
+am Ende, solange man sie nicht verschiebt: im Web rückt ← am Anfang des
+Felds sie über die Chips zurück und → wieder vor, Backspace dort
+entfernt den Chip davor; ein Klick (in der App Tippen) auf ein `oder`
+setzt sie davor, der nächste Chip kommt also in die Gruppe davor, ein
+zweiter Klick zurück ans Ende. Ein `oder` mitten in einer Gruppe teilt
+sie.
 Wer `oder` entfernt, verbindet seine beiden Gruppen. Ein `oder` am
 Anfang oder doppelt bedeutet nichts und fällt weg; eines am Ende wartet
 auf den nächsten Chip. Gruppen

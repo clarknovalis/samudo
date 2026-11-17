@@ -507,7 +507,9 @@ button.danger { background: var(--overdue-bg); border-color: var(--overdue); col
 .chip button { border: 0; background: none; padding: 0 6px; }
 /* `oder` between two groups of chips (ADR 0121 §4): plain, nothing to negate. */
 .chip.or { background: none; border: 1px dashed var(--border); color: var(--muted); }
-.chip.or .word { padding: 0 2px 0 0; font-size: 12px; }
+.chip.or .word { color: inherit; padding: 0 2px 0 0; font-size: 12px; }
+/* The insertion point between chips (ADR 0122). */
+.chip-caret { display: inline-block; width: 2px; height: 1.2em; margin: 0 1px; background: var(--accent); align-self: center; }
 .chips select { padding: 1px 6px; font-size: 12px; border-radius: 999px; }
 /* Comments and attachments (ADR 0039 §6) */
 .comments, .attachments { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 10px; }

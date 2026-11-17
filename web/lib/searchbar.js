@@ -10,7 +10,7 @@
 import { $, el, replace } from "./dom.js";
 import { chosenOrder } from "./list.js";
 import { captureFrom, discardSearch, edited, saveSearch } from "./perspectives.js";
-import { addTo, chipClass, chipText, isOr, mayOr, offers, parseWord, tidy, WORD } from "./query.js";
+import { addAt, chipClass, chipText, isOr, mayOr, offers, parseWord, tidy, WORD } from "./query.js";
 import { startPerspectiveDraft } from "./sidebar.js";
 import { shown, state, update } from "./state.js";
 import { tr } from "./i18n.js";
@@ -18,8 +18,22 @@ import { tr } from "./i18n.js";
 // The list under the field: { items, index, start, end } while it shows.
 let offer = null;
 
-// A chip goes into the last group (ADR 0121 §4), `oder` starts a new one.
-const addChip = (chip) => addTo(state.searchChips, chip);
+// The insertion point between the chips (ADR 0122): an index into the
+// list it was set on. null, or chips changed from outside (a perspective,
+// a view, clearing), is the end, where ADR 0121 §4 puts a new chip.
+let cursor = { at: null, list: null };
+const atOf = (list) => (cursor.list === list ? cursor.at : null);
+const insertAt = () => atOf(state.searchChips);
+const place = (list, at) => {
+  cursor = { at: at !== null && at < list.length ? at : null, list };
+};
+
+// A chip at the insertion point, `oder` there starts or splits a group.
+function addChip(chip) {
+  const added = addAt(state.searchChips, chip, insertAt());
+  place(added.list, added.at);
+  return added.list;
+}
 
 // The word the cursor stands in, with where it starts and ends.
 function wordAtCursor(input) {
@@ -51,7 +65,9 @@ function takeFinished(input) {
     if (chip) found.push({ start: m.index, end: end + 1, chip });
   }
   if (!found.length) return chips;
-  for (const f of found) chips = addTo(chips, f.chip);
+  let at = insertAt();
+  for (const f of found) ({ list: chips, at } = addAt(chips, f.chip, at));
+  place(chips, at);
   // Cut back to front, so the earlier places stay where they are.
   let caret = input.selectionStart ?? value.length;
   for (const f of found.reverse()) {
@@ -69,7 +85,7 @@ function computeOffer(input, chips = state.searchChips) {
   if (document.activeElement !== input) return null;
   const word = wordAtCursor(input);
   if (!word.text && input.value.trim()) return null;
-  const items = offers(word.text, { or: mayOr(chips) });
+  const items = offers(word.text, { or: mayOr(chips, atOf(chips)) });
   if (!items.length) return null;
   // Exactly what is typed already: nothing to offer.
   if (items.length === 1 && items[0].label === word.text && items[0].chip) return null;
@@ -108,6 +124,7 @@ function accept(input, item) {
 }
 
 function clearAll(input) {
+  cursor = { at: null, list: null };
   input.value = "";
   offer = null;
   input.blur();
@@ -120,10 +137,23 @@ function chipNode(chip, i) {
     update({ searchChips: tidy(state.searchChips.filter((_, j) => j !== i)), selected: null });
     $("search-input").focus();
   };
-  // `oder` between two groups: nothing to negate; × joins them.
+  // `oder` between two groups: nothing to negate; a click puts the
+  // insertion point before it, at the end of the group before (ADR 0122
+  // §3), a second one back to the end; × joins the groups.
   if (isOr(chip)) {
     return el("span", { class: "chip or" }, [
-      el("span", { class: "word", text }),
+      el("button", {
+        type: "button",
+        class: "word",
+        text,
+        title: tr("Hier einfügen"),
+        onclick: () => {
+          place(state.searchChips, insertAt() === i ? null : i);
+          offer = null;
+          renderSearch();
+          $("search-input").focus();
+        },
+      }),
       el("button", { type: "button", class: "remove", text: "×", "aria-label": tr("{name} entfernen", { name: text }), onclick: remove }),
     ]);
   }
@@ -135,6 +165,7 @@ function chipNode(chip, i) {
       title: chip.not ? tr("wieder einschließen") : tr("ausschließen"),
       onclick: () => {
         const searchChips = state.searchChips.map((c, j) => (j === i ? { ...c, not: !c.not } : c));
+        place(searchChips, insertAt());
         update({ searchChips, selected: null });
       },
     }),
@@ -170,7 +201,13 @@ function renderSave() {
 
 export function renderSearch() {
   renderSave();
-  replace($("search-chips"), state.searchChips.map(chipNode));
+  // The insertion point as a mark between the chips; at the end the
+  // field's own caret shows it.
+  const at = insertAt();
+  replace(
+    $("search-chips"),
+    state.searchChips.flatMap((chip, i) => (i === at ? [el("span", { class: "chip-caret", "aria-hidden": "true" }), chipNode(chip, i)] : [chipNode(chip, i)])),
+  );
   $("search-input").placeholder = state.searchChips.length ? "" : tr("Suchen: Text, #Projekt, @Tag, fällig:woche, ist:markiert …");
   const list = $("search-suggest");
   if (document.activeElement !== $("search-input")) offer = null;
@@ -207,9 +244,30 @@ export function wireSearch() {
   });
   input.addEventListener("keydown", (event) => {
     const key = event.ctrlKey ? `C-${event.key}` : event.key;
-    if (key === "Backspace" && input.selectionStart === 0 && input.selectionEnd === 0 && state.searchChips.length) {
+    const start = input.selectionStart === 0 && input.selectionEnd === 0;
+    const list = state.searchChips;
+    const at = insertAt() ?? list.length;
+    // Backspace at the start takes the chip before the insertion point;
+    // ← and → there move the point across the chips (ADR 0122 §3).
+    if (key === "Backspace" && start && at > 0) {
       event.preventDefault();
-      update({ searchChips: state.searchChips.slice(0, -1), selected: null });
+      const searchChips = tidy(list.filter((_, j) => j !== at - 1));
+      place(searchChips, insertAt() === null ? null : at - 1);
+      update({ searchChips, selected: null });
+      return;
+    }
+    if (key === "ArrowLeft" && start && at > 0) {
+      event.preventDefault();
+      place(list, at - 1);
+      offer = null;
+      renderSearch();
+      return;
+    }
+    if (key === "ArrowRight" && insertAt() !== null && input.selectionStart === input.value.length) {
+      event.preventDefault();
+      place(list, at + 1);
+      offer = null;
+      renderSearch();
       return;
     }
     if (offer) {

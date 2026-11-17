@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 
 const root = new URL("../../", import.meta.url);
-const { addTo, freeTerms, matcher, parseWord, withGroups, withOrs } = await import(new URL("web/lib/query.js", root));
+const { addAt, addTo, freeTerms, matcher, mayOr, OR, parseWord, withGroups, withOrs } = await import(new URL("web/lib/query.js", root));
 const doc = JSON.parse(readFileSync(new URL("testdata/query/groups.json", root), "utf8"));
 
 let failed = 0;
@@ -47,7 +47,32 @@ for (const c of doc.words) {
   if (freeTerms(c.free).length !== freeTerms(free.join(" ")).length) fail(`${c.text}: free terms`);
 }
 
-if (doc.cases.length < 5 || doc.words.length < 5) {
+// The insertion point between the chips (ADR 0122): a chip goes into
+// the group it stands in, `oder` there splits a group.
+const A = { kind: "is", value: "markiert", not: false };
+const B = { kind: "priority", value: "a", not: false };
+const C = { kind: "due", value: "heute", not: false };
+const name = (l) => l.map((c) => (c.kind === "or" ? "|" : c.value)).join(" ");
+const insertions = [
+  [[A, OR, B], 1, C, "markiert heute | a", 2],
+  [[A, OR, B], 1, A, "markiert | a", 1],
+  [[A, OR, B], 1, B, "markiert a | a", 2],
+  [[A, OR, B], 1, OR, "markiert | a", 1],
+  [[A, OR, B], 0, OR, "markiert | a", 0],
+  [[A, B], 1, OR, "markiert | a", 2],
+  [[A, B], null, C, "markiert a heute", null],
+  [[A, OR, B], 2, C, "markiert | heute a", 3],
+];
+let inserted = 0;
+for (const [list, at, chip, want, wantAt] of insertions) {
+  const got = addAt(list, chip, at);
+  if (name(got.list) !== want || got.at !== wantAt) fail(`addAt(${name(list)}, ${at}, ${name([chip])}): ${name(got.list)} at ${got.at}`);
+  inserted += 1;
+}
+if (!mayOr([A, B], 1) || mayOr([A, OR, B], 1) || mayOr([A, OR, B], 0) || !mayOr([A, OR, B], null)) fail("mayOr");
+if (name(addTo([A, OR], C)) !== "markiert | heute") fail("addTo at the end");
+
+if (inserted < 8 || doc.cases.length < 5 || doc.words.length < 5) {
   console.error("groups: too few cases, the file was not read right");
   process.exit(1);
 }
