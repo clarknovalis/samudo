@@ -58,6 +58,36 @@ fn kind_name(kind: ScopeChipKind) -> String {
     }
 }
 
+/// The `oder` between two groups of chips (ADR 0121 §4): kind `or`, no
+/// value, nothing to negate.
+pub(crate) fn or_row(lang: Lang) -> SearchChip {
+    let word = match lang {
+        Lang::De => "oder",
+        Lang::En => "or",
+    };
+    SearchChip {
+        kind: "or".to_owned(),
+        value: String::new(),
+        not: false,
+        word: word.to_owned(),
+        label: word.to_owned(),
+    }
+}
+
+/// Chips as the field shows them: by group, `oder` between two.
+pub(crate) fn rows(chips: &[ScopeChip], snapshot: &Snapshot<'_>, lang: Lang) -> Vec<SearchChip> {
+    let mut sorted: Vec<&ScopeChip> = chips.iter().collect();
+    sorted.sort_by_key(|c| c.group);
+    let mut out = Vec::new();
+    for (i, chip) in sorted.iter().enumerate() {
+        if i > 0 && sorted[i - 1].group != chip.group {
+            out.push(or_row(lang));
+        }
+        out.push(row(chip, snapshot, lang));
+    }
+    out
+}
+
 pub(crate) fn row(chip: &ScopeChip, snapshot: &Snapshot<'_>, lang: Lang) -> SearchChip {
     let word = query::words_in(std::slice::from_ref(chip), snapshot, lang);
     SearchChip {
@@ -91,12 +121,19 @@ impl Samu {
     /// What the list under the search field offers for `word`, the word at
     /// the cursor, from the phone's mirror, offline too (ADR 0103 §3). The
     /// phone does not search appointments, so `ist:termin` is not offered.
-    pub fn search_offers(&self, word: String) -> Result<Vec<SearchOffer>, MobileError> {
+    /// `may_or`: the field ends in a chip, so `oder` is offered to start a
+    /// new group (ADR 0121 §4).
+    pub fn search_offers(
+        &self,
+        word: String,
+        may_or: bool,
+    ) -> Result<Vec<SearchOffer>, MobileError> {
         let cache = self.cache()?;
         let (objects, _) = Self::view(&cache)?;
         let snapshot = objects.snapshot();
         let options = OfferOptions {
             lang: self.ui_lang(),
+            or: may_or,
             ..OfferOptions::default()
         };
         let lang = options.lang;
@@ -118,7 +155,8 @@ impl Samu {
     }
 
     /// Takes the finished words of `text` apart: those that are chips
-    /// become chips, the others stay in `rest`, and so does the last word
+    /// become chips, `oder` the chip of kind `or` between two groups
+    /// (ADR 0121 §4), the others stay in `rest`, and so does the last word
     /// unless a space ends the text, so a chip is made only when its word
     /// is done.
     pub fn search_split(&self, text: String) -> Result<SearchSplit, MobileError> {
@@ -131,7 +169,7 @@ impl Samu {
             .find(|(_, c)| c.is_whitespace())
             .map_or(0, |(i, c)| i + c.len_utf8());
         let (done, typing) = text.split_at(cut);
-        let (chips, free) = query::split_search(done, &snapshot);
+        let (items, free) = query::split_items(done, &snapshot);
         let rest = [free.trim(), typing]
             .iter()
             .filter(|s| !s.is_empty())
@@ -145,9 +183,12 @@ impl Samu {
             rest
         };
         Ok(SearchSplit {
-            chips: chips
+            chips: items
                 .iter()
-                .map(|c| row(c, &snapshot, self.ui_lang()))
+                .map(|item| match item {
+                    query::Item::Chip(c) => row(c, &snapshot, self.ui_lang()),
+                    query::Item::Or => or_row(self.ui_lang()),
+                })
                 .collect(),
             rest,
         })
@@ -166,7 +207,12 @@ impl Samu {
             .ok()
             .filter(|k| *k != ScopeChipKind::Unknown)
             .ok_or_else(|| input(format!("no chip kind {kind}")))?;
-        let chip = ScopeChip { kind, value, not };
+        let chip = ScopeChip {
+            kind,
+            value,
+            not,
+            group: 0,
+        };
         query::check(&chip).map_err(|e| input(e.to_string()))?;
         let cache = self.cache()?;
         let (objects, _) = Self::view(&cache)?;

@@ -109,6 +109,9 @@ pub struct OfferOptions {
     pub appointments: bool,
     /// The language of labels and inserted words; the chips stay German.
     pub lang: Lang,
+    /// A chip stands in the field, so `oder` may start a new group
+    /// (ADR 0121 §4).
+    pub or: bool,
 }
 
 /// A name and the chip it makes.
@@ -146,7 +149,12 @@ pub fn offers(word: &str, snapshot: &Snapshot<'_>, options: OfferOptions) -> Vec
         Lang::En => KINDS_EN,
     };
     let key_of = |de: &str| format!("{}:", lang::key_in(de, options.lang));
-    let chip = |kind: Kind, value: String| ScopeChip { kind, value, not };
+    let chip = |kind: Kind, value: String| ScopeChip {
+        kind,
+        value,
+        not,
+        group: 0,
+    };
     let insert = |(what, hint): &(&str, &str)| Offer {
         label: (*hint).to_owned(),
         action: OfferAction::Insert(format!("{sign}{what}")),
@@ -207,9 +215,24 @@ pub fn offers(word: &str, snapshot: &Snapshot<'_>, options: OfferOptions) -> Vec
             .collect()
     };
 
+    // `oder` is no chip: inserted with a space, the field takes it as the
+    // word that starts a group.
+    let or_word = match options.lang {
+        Lang::De => "oder",
+        Lang::En => "or",
+    };
+    let or = Offer {
+        label: or_word.to_owned(),
+        action: OfferAction::Insert(format!("{or_word} ")),
+    };
+
     let mut out: Vec<Offer> = Vec::new();
     if text.is_empty() {
-        return kinds.iter().map(insert).collect();
+        let mut all: Vec<Offer> = kinds.iter().map(insert).collect();
+        if options.or && !not {
+            all.push(or);
+        }
+        return all;
     }
     if let Some(name) = text.strip_prefix('#') {
         out.extend(labelled("#", ranked(projects(), unquote(name))));
@@ -254,6 +277,9 @@ pub fn offers(word: &str, snapshot: &Snapshot<'_>, options: OfferOptions) -> Vec
                 .filter(|(what, _)| what.chars().count() > 1 && what.starts_with(&lower))
                 .map(insert),
         );
+        if options.or && !not && or_word.starts_with(&lower) {
+            out.push(or);
+        }
         if text.chars().count() >= 2 {
             out.extend(labelled(
                 "#",
@@ -291,6 +317,7 @@ fn states(snapshot: &Snapshot<'_>, not: bool) -> Vec<Named> {
                 kind: Kind::State,
                 value: t.id.to_string(),
                 not,
+                group: 0,
             },
         })
         .collect()
@@ -305,6 +332,7 @@ fn properties(snapshot: &Snapshot<'_>, value: &str, not: bool) -> Vec<Named> {
             kind: Kind::Property,
             value: name.clone(),
             not,
+            group: 0,
         },
         name,
     };
@@ -372,6 +400,7 @@ mod tests {
                     Some("en") => Lang::En,
                     _ => Lang::De,
                 },
+                or: case["or"].as_bool().unwrap_or(false),
             };
             let got: Vec<serde_json::Value> = offers(word, &snapshot, options)
                 .into_iter()

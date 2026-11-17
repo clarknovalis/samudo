@@ -382,16 +382,18 @@ pub(crate) fn refused(word: &str, error: ParseError) -> anyhow::Error {
     }
 }
 
-/// Words as chips, each argument split as the search splits it.
+/// Words as chips, each argument split as the search splits it; `oder`
+/// starts a new group (ADR 0121 §3).
 pub(crate) fn parse_chips(snapshot: &Snapshot, words: &[String]) -> Result<Vec<ScopeChip>> {
-    let mut chips: Vec<ScopeChip> = Vec::new();
-    for word in words.iter().flat_map(|w| query::split_words(w)) {
-        let chip = parse_chip(snapshot, &word)?;
-        if !chips.contains(&chip) {
-            chips.push(chip);
+    let mut groups = query::Groups::default();
+    for word in words.iter().flat_map(|w| query::split_marked(w)) {
+        if !word.quoted && query::is_or(&word.text) {
+            groups.or();
+        } else {
+            groups.push(parse_chip(snapshot, &word.text)?);
         }
     }
-    Ok(chips)
+    Ok(groups.into_chips())
 }
 
 /// The days of the week in order, German first, English accepted.
@@ -485,11 +487,6 @@ pub(crate) fn effective_scope(client: &Client, config: &Config) -> Result<Option
         return Ok(now.scope);
     }
     config.chosen_scope()
-}
-
-/// A chip as the word that makes it; `?` for a name that is gone.
-pub(crate) fn chip_word(snapshot: &Snapshot, chip: &ScopeChip) -> String {
-    query::words(std::slice::from_ref(chip), &snapshot.core())
 }
 
 fn mode_name(scope: &Scope) -> String {
@@ -829,14 +826,10 @@ pub(crate) fn run(config: &Config, format: Format, command: ScopeCommand) -> Res
             let snapshot = snapshot(&client)?;
             let found = find_scope(&snapshot.scopes, &scope)?;
             if !clear && words.is_empty() {
-                let text: Vec<String> = found
-                    .filter
-                    .iter()
-                    .map(|c| chip_word(&snapshot, c))
-                    .collect();
+                let text = query::words(&found.filter, &snapshot.core());
                 emit(
                     format,
-                    &[json!({"id": found.id, "filter": text.join(" "), "chips": found.filter})],
+                    &[json!({"id": found.id, "filter": text, "chips": found.filter})],
                     &["filter"],
                 )?;
                 return Ok(());

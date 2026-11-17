@@ -8,7 +8,7 @@
 // chip means is decided in samu-core, not here.
 
 import { el, replace } from "./dom.js";
-import { chipClass, chipText, offers, parseWord, WORD } from "./query.js";
+import { addTo, chipClass, chipText, isOr, mayOr, offers, parseWord, tidy, withGroups, withOrs, WORD } from "./query.js";
 import { tr } from "./i18n.js";
 
 const sameChip = (a, b) => a.kind === b.kind && a.value === b.value;
@@ -29,10 +29,11 @@ let field = null;
 // `save(chips)` writes the filter; `chips` are the scope's as the server has them.
 // `more` lets a field know words of its own (the report's `autor:`, ADR 0080
 // §2): `parse(word)` → chip or null, `offers(word)` → items, `text(chip)`
-// and `click(chip, i)` for its chips, `fixed(chip)` for one that cannot go.
+// and `click(chip, i)` for its chips, `fixed(chip)` for one that cannot go;
+// `or: true` takes `oder` between groups of chips (ADR 0121 §4).
 export function chipField(scopeId, chips, save, more = {}) {
   if (!field || field.scope !== scopeId) field = build(scopeId);
-  field.chips = chips ?? [];
+  field.chips = more.or ? withOrs(chips) : (chips ?? []);
   field.save = save;
   field.more = more;
   draw();
@@ -62,14 +63,21 @@ function build(scope) {
 }
 
 function write(chips) {
-  field.chips = chips;
-  field.save(chips.map(wire));
+  field.chips = field.more.or ? tidy(chips) : chips;
+  field.save(field.more.or ? withGroups(field.chips) : field.chips.map(wire));
   draw();
 }
 
 function add(chip) {
-  write([...field.chips.filter((c) => !sameChip(c, chip)), chip]);
+  write(field.more.or ? addTo(field.chips, chip) : [...field.chips.filter((c) => !sameChip(c, chip)), chip]);
 }
+
+// A word as a chip of this field: `oder` only where groups are taken.
+const chipOf = (word) => {
+  const chip = parseWord(word);
+  if (chip && isOr(chip)) return field.more.or ? chip : null;
+  return chip ?? field.more.parse?.(word);
+};
 
 // Words the language knows and ended with a space become chips; a finished
 // word it does not know is said below the field and stays.
@@ -80,7 +88,7 @@ function refresh(typed) {
     for (const m of value.matchAll(WORD)) {
       const end = m.index + m[0].length;
       if (end >= value.length || !/\s/.test(value[end])) continue;
-      const chip = parseWord(m[0]) ?? field.more.parse?.(m[0]);
+      const chip = chipOf(m[0]);
       if (!chip) continue;
       input.value = (value.slice(0, m.index) + value.slice(end + 1)).trimStart();
       add(chip);
@@ -90,7 +98,7 @@ function refresh(typed) {
   const word = wordAtCursor(input);
   const items =
     document.activeElement === input
-      ? [...(field.more.offers?.(word.text) ?? []), ...offers(word.text, { inScope: true })]
+      ? [...(field.more.offers?.(word.text) ?? []), ...offers(word.text, { inScope: true, or: Boolean(field.more.or) && mayOr(field.chips) })]
       : [];
   const exact = items.length === 1 && items[0].label === word.text && items[0].chip;
   field.offer = items.length && !exact ? { items, index: 0, start: word.start, end: word.end } : null;
@@ -140,7 +148,7 @@ function keydown(event) {
     event.preventDefault();
     const word = input.value.trim();
     if (!word) return;
-    const chip = parseWord(word) ?? field.more.parse?.(word);
+    const chip = chipOf(word);
     if (chip) {
       input.value = "";
       add(chip);
@@ -153,6 +161,13 @@ function keydown(event) {
 
 function chipNode(chip, i) {
   const more = field.more;
+  if (isOr(chip)) {
+    const text = chipText(chip);
+    return el("span", { class: "chip or" }, [
+      el("span", { class: "word", text }),
+      el("button", { type: "button", class: "remove", text: "×", "aria-label": tr("{name} entfernen", { name: text }), onclick: () => write(field.chips.filter((_, j) => j !== i)) }),
+    ]);
+  }
   const text = more.text?.(chip) ?? chipText(chip);
   const own = more.click && more.text?.(chip);
   return el("span", { class: `chip ${chipClass(chip)}${chip.not ? " not" : ""}` }, [

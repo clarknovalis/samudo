@@ -11,7 +11,7 @@
 
 import { api, change } from "./api.js";
 import { uuidv7 } from "./dom.js";
-import { asksForClosed, asksForWaiting, matcher } from "./query.js";
+import { asksForClosed, asksForWaiting, matcher, withGroups, withOrs } from "./query.js";
 import { byId, state, update } from "./state.js";
 
 export const byPosition = (a, b) => a.position - b.position || a.title.localeCompare(b.title);
@@ -130,8 +130,9 @@ export function chooseFilterOf(id, filter) {
 
 const text = (t) => (t ?? "").trim().replace(/\s+/g, " ");
 
-// Chips as the server keeps them: `not` only when set.
-const plain = (chips) => (chips ?? []).map(({ kind, value, not }) => (not ? { kind, value, not: true } : { kind, value }));
+// Chips as the server keeps them: `not` only when set, the field's `oder`
+// as `group` (ADR 0121 §2).
+const plain = (chips) => withGroups(chips);
 const sameChips = (a, b) => same(plain(a), plain(b));
 
 // Whether the field differs from what the perspective holds.
@@ -142,7 +143,7 @@ export function edited() {
 
 // The field as the open perspective holds it.
 export function searchOf(p) {
-  return { search: p.text ?? "", searchChips: (p.chips ?? []).map((c) => ({ ...c, not: Boolean(c.not) })) };
+  return { search: p.text ?? "", searchChips: withOrs(p.chips) };
 }
 
 export async function saveSearch() {

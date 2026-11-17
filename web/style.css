@@ -505,6 +505,9 @@ button.danger { background: var(--overdue-bg); border-color: var(--overdue); col
 .actions .flagbox { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .chip { display: inline-flex; align-items: center; background: var(--chip-bg); border-radius: 999px; padding: 1px 2px 1px 9px; font-size: 12px; }
 .chip button { border: 0; background: none; padding: 0 6px; }
+/* `oder` between two groups of chips (ADR 0121 §4): plain, nothing to negate. */
+.chip.or { background: none; border: 1px dashed var(--border); color: var(--muted); }
+.chip.or .word { padding: 0 2px 0 0; font-size: 12px; }
 .chips select { padding: 1px 6px; font-size: 12px; border-radius: 999px; }
 /* Comments and attachments (ADR 0039 §6) */
 .comments, .attachments { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 10px; }

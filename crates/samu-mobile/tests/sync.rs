@@ -832,28 +832,28 @@ fn the_search_field_offers_makes_chips_and_remembers() {
 
     // The offers of samu-core, chips with their word.
     let labels = |word: &str| -> Vec<String> {
-        samu.search_offers(word.into())
+        samu.search_offers(word.into(), false)
             .unwrap()
             .into_iter()
             .map(|o| o.label)
             .collect()
     };
     assert_eq!(labels("#"), ["#Garten", "#Inbox", "#Mein Umzug"]);
-    let due = samu.search_offers("fällig:h".into()).unwrap();
+    let due = samu.search_offers("fällig:h".into(), false).unwrap();
     assert_eq!(due.len(), 1);
     let chip = due[0].chip.clone().unwrap();
     assert_eq!(
         (chip.kind.as_str(), chip.value.as_str(), chip.word.as_str()),
         ("due", "heute", "fällig:heute")
     );
-    let tag = samu.search_offers("-@bü".into()).unwrap();
+    let tag = samu.search_offers("-@bü".into(), false).unwrap();
     let tag = tag[0].chip.clone().unwrap();
     assert!(tag.not);
     assert_eq!(
         (tag.word.as_str(), tag.label.as_str()),
         ("-@Ort/Büro", "-@Ort/Büro")
     );
-    let kinds = samu.search_offers("fä".into()).unwrap();
+    let kinds = samu.search_offers("fä".into(), false).unwrap();
     assert_eq!(kinds[0].insert.as_deref(), Some("fällig:"));
     assert!(kinds[0].chip.is_none());
     assert!(
@@ -901,6 +901,34 @@ fn the_search_field_offers_makes_chips_and_remembers() {
         .unwrap();
     assert_eq!(unflagged.word, "-ist:markiert");
     assert_eq!(hits(&format!("{} kaufen", unflagged.word)), ["Brot kaufen"]);
+
+    // `oder` between two groups (ADR 0121 §4): a chip of its own, offered
+    // once a chip stands, and the search finds what meets either group.
+    let or_offer = samu.search_offers("od".into(), true).unwrap();
+    assert_eq!(or_offer[0].insert.as_deref(), Some("oder "));
+    assert!(samu.search_offers("od".into(), false).unwrap().is_empty());
+    let split = samu
+        .search_split("ist:markiert oder -ist:markiert \"oder\" ".into())
+        .unwrap();
+    assert_eq!(
+        split
+            .chips
+            .iter()
+            .map(|c| (c.kind.as_str(), c.word.as_str()))
+            .collect::<Vec<_>>(),
+        [
+            ("is", "ist:markiert"),
+            ("or", "oder"),
+            ("is", "-ist:markiert")
+        ]
+    );
+    assert_eq!(split.rest, "\"oder\" ");
+    assert_eq!(hits("ist:markiert oder -ist:markiert kaufen").len(), 2);
+    assert_eq!(
+        hits("ist:markiert -ist:markiert kaufen").len(),
+        0,
+        "one group: both cannot hold"
+    );
     assert!(
         samu.search_chip("is".into(), "quatsch".into(), false)
             .is_err()
@@ -938,13 +966,13 @@ fn the_app_sets_the_language_and_the_search_follows_it() {
     assert_eq!(title("today"), "Today");
 
     // English offers and words; the chip stays German, and both search.
-    let due = samu.search_offers("due:to".into()).unwrap();
+    let due = samu.search_offers("due:to".into(), false).unwrap();
     let chip = due[0].chip.clone().unwrap();
     assert_eq!(
         (chip.value.as_str(), chip.word.as_str()),
         ("heute", "due:today")
     );
-    let kinds = samu.search_offers("du".into()).unwrap();
+    let kinds = samu.search_offers("du".into(), false).unwrap();
     assert_eq!(kinds[0].insert.as_deref(), Some("due:"));
     let flagged = samu
         .search_chip("is".into(), "markiert".into(), false)

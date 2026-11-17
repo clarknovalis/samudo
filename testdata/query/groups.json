@@ -1,0 +1,389 @@
+{
+ "about": "OR groups of the search (ADR 0121): samu-core (query::Filter, split_search) and web/lib/query.js (matcher, the field's words) must give these. Synthetic data. `ids` are the tasks that meet chips and text, by their last digits. `words` take a search text apart into chips with their group and free text; they use only chips without names.",
+ "tasks": [
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-000000000001",
+    "created": "2026-11-01T10:00:00Z",
+    "modified": "2026-11-01T10:00:00Z",
+    "title": "Steuer abgeben",
+    "flagged": true,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 1,
+    "priority": "A"
+   },
+   "available": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-000000000002",
+    "created": "2026-11-01T10:00:00Z",
+    "modified": "2026-11-01T10:00:00Z",
+    "title": "Brief schreiben",
+    "flagged": true,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 2
+   },
+   "available": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-000000000003",
+    "created": "2026-11-01T10:00:00Z",
+    "modified": "2026-11-01T10:00:00Z",
+    "title": "Milch kaufen",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 3,
+    "priority": "B",
+    "note": "beim Bäcker"
+   },
+   "available": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-000000000004",
+    "created": "2026-11-01T10:00:00Z",
+    "modified": "2026-11-01T10:00:00Z",
+    "title": "Dies oder das",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 4
+   },
+   "available": true
+  },
+  {
+   "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-000000000005",
+    "created": "2026-11-01T10:00:00Z",
+    "modified": "2026-11-01T10:00:00Z",
+    "title": "Auf Antwort warten",
+    "flagged": true,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 5,
+    "priority": "A"
+   },
+   "available": false
+  }
+ ],
+ "cases": [
+  {
+   "about": "no chips, no text: everything",
+   "chips": [],
+   "text": "",
+   "ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "about": "one group, as before: kinds AND",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "a"
+    }
+   ],
+   "text": "",
+   "ids": [
+    1,
+    5
+   ]
+  },
+  {
+   "about": "flagged OR priority b",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 1
+    }
+   ],
+   "text": "",
+   "ids": [
+    1,
+    2,
+    3,
+    5
+   ]
+  },
+  {
+   "about": "a negated chip holds in its own group only",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "is",
+     "value": "wartet",
+     "not": true
+    },
+    {
+     "kind": "priority",
+     "value": "a",
+     "group": 1
+    }
+   ],
+   "text": "",
+   "ids": [
+    1,
+    2,
+    5
+   ]
+  },
+  {
+   "about": "the free text holds for all groups",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 1
+    }
+   ],
+   "text": "-brief",
+   "ids": [
+    1,
+    3,
+    5
+   ]
+  },
+  {
+   "about": "free text and groups: text AND (group OR group)",
+   "chips": [
+    {
+     "kind": "priority",
+     "value": "a"
+    },
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 1
+    }
+   ],
+   "text": "milch",
+   "ids": [
+    3
+   ]
+  },
+  {
+   "about": "the numbers only order: gaps mean nothing",
+   "chips": [
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 7
+    },
+    {
+     "kind": "is",
+     "value": "wartet",
+     "group": 3
+    }
+   ],
+   "text": "",
+   "ids": [
+    3,
+    5
+   ]
+  },
+  {
+   "about": "the same chip in two groups",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "a"
+    },
+    {
+     "kind": "is",
+     "value": "markiert",
+     "group": 1
+    },
+    {
+     "kind": "priority",
+     "value": "ohne",
+     "group": 1
+    }
+   ],
+   "text": "",
+   "ids": [
+    1,
+    2,
+    5
+   ]
+  },
+  {
+   "about": "a group of a chip samu cannot read meets everything",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "due",
+     "value": "bald",
+     "group": 1
+    }
+   ],
+   "text": "",
+   "ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "about": "a group nothing meets leaves the other",
+   "chips": [
+    {
+     "kind": "priority",
+     "value": "c"
+    },
+    {
+     "kind": "is",
+     "value": "notiz",
+     "group": 1
+    }
+   ],
+   "text": "",
+   "ids": [
+    3
+   ]
+  },
+  {
+   "about": "\"oder\" in quotes is a word to search for",
+   "chips": [],
+   "text": "\"oder\"",
+   "ids": [
+    4
+   ]
+  }
+ ],
+ "words": [
+  {
+   "text": "ist:markiert oder prio:b",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 1
+    }
+   ],
+   "free": ""
+  },
+  {
+   "text": "ist:markiert ODER prio:b or prio:c",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 1
+    },
+    {
+     "kind": "priority",
+     "value": "c",
+     "group": 2
+    }
+   ],
+   "free": ""
+  },
+  {
+   "text": "oder ist:markiert oder oder prio:b oder",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "priority",
+     "value": "b",
+     "group": 1
+    }
+   ],
+   "free": ""
+  },
+  {
+   "text": "ist:markiert oder ist:markiert prio:a ist:markiert",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    },
+    {
+     "kind": "is",
+     "value": "markiert",
+     "group": 1
+    },
+    {
+     "kind": "priority",
+     "value": "a",
+     "group": 1
+    }
+   ],
+   "free": ""
+  },
+  {
+   "text": "brief oder ist:markiert milch",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    }
+   ],
+   "free": "brief milch"
+  },
+  {
+   "text": "\"oder\" ist:markiert",
+   "chips": [
+    {
+     "kind": "is",
+     "value": "markiert"
+    }
+   ],
+   "free": "\"oder\""
+  },
+  {
+   "text": "-oder prio:a",
+   "chips": [
+    {
+     "kind": "priority",
+     "value": "a"
+    }
+   ],
+   "free": "-oder"
+  }
+ ]
+}

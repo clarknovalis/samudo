@@ -558,6 +558,20 @@ pub struct ScopeChip {
     /// Negated: the task must not meet it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub not: bool,
+    /// The OR group it belongs to (ADR 0121 §2): a task meets a filter
+    /// when it meets every chip kind of one group. The numbers only order
+    /// the groups; a writer counts from 0. A reader that does not know the
+    /// field reads all chips as one group and finds less, never more.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub group: u32,
+}
+
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's skip_serializing_if"
+)]
+const fn is_zero(value: &u32) -> bool {
+    *value == 0
 }
 
 /// What a chip asks about (ADR 0042 §2).

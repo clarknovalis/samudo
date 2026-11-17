@@ -1745,6 +1745,27 @@ fn a_scope_is_made_chosen_and_narrows_list_and_projects() {
     assert_eq!(titles(&[]), vec!["Milch", "Rasen mähen"]);
     ok(server.samu(&["scope", "filter", "Nur IT", "-#Inbox"], None));
     assert_eq!(titles(&[]), vec!["Rasen mähen"]);
+    // ADR 0121: `oder` starts a group; a task meets one group.
+    ok(server.samu(
+        &["scope", "filter", "Nur IT", "#inbox prio:a oder -#Inbox"],
+        None,
+    ));
+    assert_eq!(titles(&[]), vec!["Rasen mähen"]);
+    ok(server.samu(&["scope", "filter", "Nur IT", "#inbox oder -#Inbox"], None));
+    assert_eq!(titles(&[]), vec!["Milch", "Rasen mähen"]);
+    ok(server.samu(
+        &[
+            "scope",
+            "filter",
+            "Nur IT",
+            "oder #inbox prio:a or -#Inbox oder",
+        ],
+        None,
+    ));
+    let filter = json_out(&server.samu(&["scope", "filter", "Nur IT", "--format", "json"], None));
+    assert_eq!(filter[0]["filter"], "#Inbox prio:a oder -#Inbox");
+    assert!(filter[0]["chips"][1].get("group").is_none());
+    assert_eq!(filter[0]["chips"][2]["group"], 1);
     assert_ne!(
         code(&server.samu(&["scope", "filter", "Nur IT", "fällig:bald"], None)),
         0
@@ -4021,6 +4042,76 @@ fn a_block_perspective_lists_block_by_block() {
     ok(server.samu(&["add", "Steuer @Büro"], None));
     ok(server.samu(&["add", "Milch"], None));
     ok(server.samu(&["perspective", "add", "Büro", "@Büro"], None));
+    // ADR 0121: groups in a perspective's search, the text for all of them.
+    ok(server.samu(
+        &[
+            "perspective",
+            "add",
+            "Gruppen",
+            "--",
+            "-@Büro",
+            "oder",
+            "@Büro",
+            "prio:a",
+        ],
+        None,
+    ));
+    let search = json_out(&ok(server.samu(
+        &["perspective", "search", "Gruppen", "--format", "json"],
+        None,
+    )));
+    assert_eq!(search[0]["search"], "-@Büro oder @Büro prio:a");
+    assert_eq!(search[0]["chips"][1]["group"], 1);
+    let titles = |name: &str| -> Vec<String> {
+        let shown = json_out(&ok(
+            server.samu(&["list", "--perspective", name, "--format", "json"], None)
+        ));
+        let mut titles: Vec<String> = shown
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["title"].as_str().unwrap().to_owned())
+            .collect();
+        titles.sort();
+        titles
+    };
+    assert_eq!(titles("Gruppen"), ["Milch"]);
+    ok(server.samu(
+        &[
+            "perspective",
+            "search",
+            "Gruppen",
+            "--",
+            "-@Büro",
+            "oder",
+            "@Büro",
+            "\"oder\"",
+        ],
+        None,
+    ));
+    let search = json_out(&ok(server.samu(
+        &["perspective", "search", "Gruppen", "--format", "json"],
+        None,
+    )));
+    assert_eq!(search[0]["text"], "\"oder\"");
+    assert!(
+        titles("Gruppen").is_empty(),
+        "\"oder\" is a word to search for"
+    );
+    ok(server.samu(
+        &[
+            "perspective",
+            "search",
+            "Gruppen",
+            "--",
+            "-@Büro",
+            "or",
+            "@Büro",
+        ],
+        None,
+    ));
+    assert_eq!(titles("Gruppen"), ["Angebot schreiben", "Milch", "Steuer"]);
+    ok(server.samu(&["perspective", "delete", "Gruppen"], None));
     ok(server.samu(
         &[
             "perspective",

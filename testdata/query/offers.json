@@ -1,5 +1,5 @@
 {
- "about": "Shared cases for the search offers (ADR 0103 §2): samu_core::query::offers and offers() in web/lib/query.js must give these. Synthetic data. `appointments` true is the web's search; false is a scope's filter and the phone (the web's inScope). `lang` \"en\" shows the words in English, the chips stay German (ADR 0105 §3).",
+ "about": "Shared cases for the search offers (ADR 0103 §2): samu_core::query::offers and offers() in web/lib/query.js must give these. Synthetic data. `appointments` true is the web's search; false is a scope's filter and the phone (the web's inScope). `lang` \"en\" shows the words in English, the chips stay German (ADR 0105 §3). `or` true says a chip stands in the field, so `oder` (English `or`) is offered to start a new group (ADR 0121 §4).",
  "folders": [
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e01",
@@ -913,6 +913,177 @@
       "kind": "folder",
       "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e02"
      }
+    }
+   ]
+  },
+  {
+   "word": "",
+   "or": true,
+   "offers": [
+    {
+     "label": "#Projekt",
+     "insert": "#"
+    },
+    {
+     "label": "@Tag",
+     "insert": "@"
+    },
+    {
+     "label": "ordner:Ordner",
+     "insert": "ordner:"
+    },
+    {
+     "label": "fällig:woche",
+     "insert": "fällig:"
+    },
+    {
+     "label": "geplant:heute",
+     "insert": "geplant:"
+    },
+    {
+     "label": "start:morgen",
+     "insert": "start:"
+    },
+    {
+     "label": "erledigt:-7t",
+     "insert": "erledigt:"
+    },
+    {
+     "label": "erstellt:-7t",
+     "insert": "erstellt:"
+    },
+    {
+     "label": "geändert:heute",
+     "insert": "geändert:"
+    },
+    {
+     "label": "ist:markiert",
+     "insert": "ist:"
+    },
+    {
+     "label": "zustand:Name",
+     "insert": "zustand:"
+    },
+    {
+     "label": "prop:schlüssel",
+     "insert": "prop:"
+    },
+    {
+     "label": "prio:a",
+     "insert": "prio:"
+    },
+    {
+     "label": "~<15m",
+     "insert": "~"
+    },
+    {
+     "label": "oder",
+     "insert": "oder "
+    }
+   ]
+  },
+  {
+   "word": "o",
+   "or": true,
+   "offers": [
+    {
+     "label": "ordner:Ordner",
+     "insert": "ordner:"
+    },
+    {
+     "label": "oder",
+     "insert": "oder "
+    }
+   ]
+  },
+  {
+   "word": "ODE",
+   "or": true,
+   "offers": [
+    {
+     "label": "oder",
+     "insert": "oder "
+    }
+   ]
+  },
+  {
+   "word": "-od",
+   "or": true,
+   "offers": []
+  },
+  {
+   "word": "o",
+   "offers": [
+    {
+     "label": "ordner:Ordner",
+     "insert": "ordner:"
+    }
+   ]
+  },
+  {
+   "word": "",
+   "lang": "en",
+   "or": true,
+   "offers": [
+    {
+     "label": "#Project",
+     "insert": "#"
+    },
+    {
+     "label": "@Tag",
+     "insert": "@"
+    },
+    {
+     "label": "folder:Folder",
+     "insert": "folder:"
+    },
+    {
+     "label": "due:week",
+     "insert": "due:"
+    },
+    {
+     "label": "planned:today",
+     "insert": "planned:"
+    },
+    {
+     "label": "defer:tomorrow",
+     "insert": "defer:"
+    },
+    {
+     "label": "done:-7d",
+     "insert": "done:"
+    },
+    {
+     "label": "created:-7d",
+     "insert": "created:"
+    },
+    {
+     "label": "modified:today",
+     "insert": "modified:"
+    },
+    {
+     "label": "is:flagged",
+     "insert": "is:"
+    },
+    {
+     "label": "state:Name",
+     "insert": "state:"
+    },
+    {
+     "label": "prop:key",
+     "insert": "prop:"
+    },
+    {
+     "label": "prio:a",
+     "insert": "prio:"
+    },
+    {
+     "label": "~<15m",
+     "insert": "~"
+    },
+    {
+     "label": "or",
+     "insert": "or "
     }
    ]
   }

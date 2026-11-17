@@ -10,7 +10,7 @@
 import { $, el, replace } from "./dom.js";
 import { chosenOrder } from "./list.js";
 import { captureFrom, discardSearch, edited, saveSearch } from "./perspectives.js";
-import { chipClass, chipText, offers, parseWord, WORD } from "./query.js";
+import { addTo, chipClass, chipText, isOr, mayOr, offers, parseWord, tidy, WORD } from "./query.js";
 import { startPerspectiveDraft } from "./sidebar.js";
 import { shown, state, update } from "./state.js";
 import { tr } from "./i18n.js";
@@ -18,12 +18,8 @@ import { tr } from "./i18n.js";
 // The list under the field: { items, index, start, end } while it shows.
 let offer = null;
 
-const sameChip = (a, b) => a.kind === b.kind && a.value === b.value;
-
-function addChip(chip) {
-  const chips = state.searchChips.filter((c) => !sameChip(c, chip));
-  return [...chips, chip];
-}
+// A chip goes into the last group (ADR 0121 §4), `oder` starts a new one.
+const addChip = (chip) => addTo(state.searchChips, chip);
 
 // The word the cursor stands in, with where it starts and ends.
 function wordAtCursor(input) {
@@ -55,7 +51,7 @@ function takeFinished(input) {
     if (chip) found.push({ start: m.index, end: end + 1, chip });
   }
   if (!found.length) return chips;
-  for (const f of found) chips = [...chips.filter((c) => !sameChip(c, f.chip)), f.chip];
+  for (const f of found) chips = addTo(chips, f.chip);
   // Cut back to front, so the earlier places stay where they are.
   let caret = input.selectionStart ?? value.length;
   for (const f of found.reverse()) {
@@ -68,11 +64,12 @@ function takeFinished(input) {
   return chips;
 }
 
-function computeOffer(input) {
+// `chips`: the field's, which a refresh may not have put into the state yet.
+function computeOffer(input, chips = state.searchChips) {
   if (document.activeElement !== input) return null;
   const word = wordAtCursor(input);
   if (!word.text && input.value.trim()) return null;
-  const items = offers(word.text);
+  const items = offers(word.text, { or: mayOr(chips) });
   if (!items.length) return null;
   // Exactly what is typed already: nothing to offer.
   if (items.length === 1 && items[0].label === word.text && items[0].chip) return null;
@@ -83,7 +80,7 @@ function computeOffer(input) {
 function refresh() {
   const input = $("search-input");
   const searchChips = takeFinished(input);
-  offer = computeOffer(input);
+  offer = computeOffer(input, searchChips);
   const search = freeText(input);
   // Focus or a step of the cursor: only the list changes.
   if (search === state.search && searchChips === state.searchChips) renderSearch();
@@ -99,7 +96,7 @@ function accept(input, item) {
     input.setSelectionRange(before.length, before.length);
     offer = null;
     const searchChips = addChip(item.chip);
-    offer = computeOffer(input);
+    offer = computeOffer(input, searchChips);
     update({ search: freeText(input), searchChips, selected: null });
     return;
   }
@@ -119,6 +116,17 @@ function clearAll(input) {
 
 function chipNode(chip, i) {
   const text = chipText(chip);
+  const remove = () => {
+    update({ searchChips: tidy(state.searchChips.filter((_, j) => j !== i)), selected: null });
+    $("search-input").focus();
+  };
+  // `oder` between two groups: nothing to negate; × joins them.
+  if (isOr(chip)) {
+    return el("span", { class: "chip or" }, [
+      el("span", { class: "word", text }),
+      el("button", { type: "button", class: "remove", text: "×", "aria-label": tr("{name} entfernen", { name: text }), onclick: remove }),
+    ]);
+  }
   return el("span", { class: `chip ${chipClass(chip)}${chip.not ? " not" : ""}` }, [
     el("button", {
       type: "button",
@@ -135,10 +143,7 @@ function chipNode(chip, i) {
       class: "remove",
       text: "×",
       "aria-label": tr("{name} entfernen", { name: text }),
-      onclick: () => {
-        update({ searchChips: state.searchChips.filter((_, j) => j !== i), selected: null });
-        $("search-input").focus();
-      },
+      onclick: remove,
     }),
   ]);
 }

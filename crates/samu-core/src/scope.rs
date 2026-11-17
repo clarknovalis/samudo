@@ -1026,6 +1026,7 @@ mod tests {
             kind: samu_api::ScopeChipKind::Is,
             value: "markiert".into(),
             not: false,
+            group: 0,
         }];
         let lens = Lens::new(Some(&flagged_only), &snapshot(&world), at(), &TimeZone::UTC);
         let open = |due| TaskState {
@@ -1182,6 +1183,7 @@ mod tests {
             kind: samu_api::ScopeChipKind::Is,
             value: "markiert".into(),
             not: false,
+            group: 0,
         }];
         let lens = Lens::new(Some(&flagged), &snapshot(&world), at(), &TimeZone::UTC);
         let open = TaskState {

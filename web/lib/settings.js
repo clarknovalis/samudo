@@ -476,10 +476,10 @@ function editor(scope) {
       text: tr("Ein Ordner gilt mit allem darin, ein Tag mit allen Tags darunter und für jede Aufgabe eines Projekts, das ihn trägt. Die Inbox zählt nur über ihr eigenes Häkchen, nicht über die Tags ihrer Aufgaben. Ohne jedes Häkchen schränken die Mitglieder nicht ein; dann zählt nur der Filter."),
     }),
     el("label", { class: "field", text: tr("Filter: dazu muss eine Aufgabe auch das erfüllen") }),
-    chipField(scope.id, scope.filter, (chips) => write([change.set(scope.id, "filter", chips)])),
+    chipField(scope.id, scope.filter, (chips) => write([change.set(scope.id, "filter", chips)]), { or: true }),
     el("p", {
       class: "quiet",
-      text: tr("Wie in der Suche: Chips einer Art gelten mit oder, verschiedene Arten zusammen, ein Klick auf einen Chip schließt aus. Der Filter wirkt auf Aufgaben, nicht auf Projekte und Ordner."),
+      text: tr("Wie in der Suche: Chips einer Art gelten mit oder, verschiedene Arten zusammen, ein Klick auf einen Chip schließt aus, das Wort „oder“ beginnt eine weitere Gruppe. Der Filter wirkt auf Aufgaben, nicht auf Projekte und Ordner."),
     }),
     captureDefaults(scope),
     layoutEditor(scope, write),

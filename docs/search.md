@@ -19,7 +19,8 @@ find their task.
 
 A word with a leading `-` must not appear: `milk -oat`. Words in double
 quotes are one phrase and must appear together, in that order:
-`"by Friday"`, and `-"not today"` leaves out what has it.
+`"by Friday"`, and `-"not today"` leaves out what has it. To search for
+the word `or` itself, put it in quotes: `"or"` (see [Or](#or)).
 
 ## Chips
 
@@ -70,7 +71,30 @@ Days are counted in the account's time zone.
 
 Asking for completed tasks (`is:done`, `done:…`) widens the view to
 "All"; asking for waiting tasks (`is:waiting`, `defer:…`) widens
-"Available" to "Remaining".
+"Available" to "Remaining". This holds when any chip asks for it, in
+whichever group.
+
+## Or
+
+The word `or` (German `oder`) between chips splits them into **groups**,
+and a task is found when it meets one group:
+
+- `is:flagged or due:today` – flagged, or due today.
+- `#Website or @phone -is:waiting` – in the project Website, or tagged
+  @phone and not waiting.
+
+Inside a group everything combines as above. Free text holds for every
+group: `is:flagged or due:today invoice` finds the flagged and the due
+tasks that mention an invoice. The same chip may stand in two groups.
+
+`or` becomes a chip of its own in the field and is offered in the list
+under it once a chip stands there; a new chip goes into the last group.
+Removing `or` joins its two groups. An `or` at the start or twice in a
+row means nothing and is dropped; one at the end waits for the next chip. Groups cannot be nested,
+and there is no "and" within one kind: `@a @b` stays either tag.
+
+Scopes and perspectives keep the groups, and the command line takes and
+prints them the same way: `samu scope filter Work "is:flagged or due:today"`.
 
 ## German and English
 

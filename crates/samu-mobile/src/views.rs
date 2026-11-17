@@ -350,11 +350,7 @@ impl Samu {
                     id: p.id.to_string(),
                     title: p.title.clone(),
                     icon: p.icon.clone(),
-                    chips: p
-                        .chips
-                        .iter()
-                        .map(|c| search::row(c, &snapshot, self.ui_lang()))
-                        .collect(),
+                    chips: search::rows(&p.chips, &snapshot, self.ui_lang()),
                     text: p.text.clone(),
                     filter: wire_name(serde_json::to_value(match p.filter {
                         PerspectiveFilter::Unknown => PerspectiveFilter::Available,

@@ -1,0 +1,25 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07",
+  "created": "2026-11-17T08:00:00Z",
+  "modified": "2026-11-17T10:00:00Z",
+  "title": "Markiert oder heute",
+  "mode": "only",
+  "position": 5,
+  "filter": [
+    {
+      "kind": "is",
+      "value": "markiert"
+    },
+    {
+      "kind": "due",
+      "value": "heute",
+      "group": 1
+    },
+    {
+      "kind": "is",
+      "value": "wartet",
+      "not": true,
+      "group": 1
+    }
+  ]
+}

@@ -20,7 +20,8 @@ ausgibt, finden ihre Aufgabe.
 Ein Wort mit `-` davor darf nicht vorkommen: `Milch -Hafer`. Wörter in
 doppelten Anführungszeichen sind eine Phrase und müssen zusammen und in
 dieser Reihenfolge vorkommen: `"bis Freitag"`; `-"nicht heute"` lässt
-weg, was sie enthält.
+weg, was sie enthält. Wer das Wort `oder` selbst sucht, setzt es in
+Anführungszeichen: `"oder"` (siehe [Oder](#oder)).
 
 ## Chips
 
@@ -72,7 +73,33 @@ Tage zählen in der Zeitzone des Kontos.
 
 Wer nach erledigten Aufgaben fragt (`ist:erledigt`, `erledigt:…`), weitet
 die Ansicht auf „Alle“; wer nach wartenden fragt (`ist:wartet`,
-`start:…`), weitet „Verfügbar“ auf „Verbleibend“.
+`start:…`), weitet „Verfügbar“ auf „Verbleibend“. Das gilt, sobald
+irgendein Chip danach fragt, in welcher Gruppe auch immer.
+
+## Oder
+
+Das Wort `oder` (englisch `or`) zwischen Chips teilt sie in **Gruppen**;
+gefunden wird eine Aufgabe, die eine Gruppe erfüllt:
+
+- `ist:markiert oder fällig:heute` – markiert oder heute fällig.
+- `#Website oder @telefon -ist:wartet` – im Projekt Website, oder mit
+  @telefon und nicht wartend.
+
+Innerhalb einer Gruppe gilt alles wie oben. Freier Text gilt für jede
+Gruppe: `ist:markiert oder fällig:heute Rechnung` findet die markierten
+und die fälligen Aufgaben, in denen „Rechnung“ steht. Derselbe Chip darf
+in zwei Gruppen stehen.
+
+`oder` wird im Feld ein eigener Chip und steht in der Liste darunter zur
+Wahl, sobald ein Chip da ist; ein neuer Chip kommt in die letzte Gruppe.
+Wer `oder` entfernt, verbindet seine beiden Gruppen. Ein `oder` am
+Anfang oder doppelt bedeutet nichts und fällt weg; eines am Ende wartet
+auf den nächsten Chip. Gruppen
+lassen sich nicht verschachteln, und innerhalb einer Art gibt es kein
+„und“: `@a @b` bleibt eines der beiden Tags.
+
+Scopes und Perspektiven behalten die Gruppen, und die Kommandozeile nimmt
+und zeigt sie genauso: `samu scope filter Arbeit "ist:markiert oder fällig:heute"`.
 
 ## Deutsch und Englisch
 

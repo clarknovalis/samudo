@@ -340,24 +340,93 @@ fn find(
 /// stays one word, its quotes dropped (`@"Ort mit Raum"`).
 #[must_use]
 pub fn split_words(text: &str) -> Vec<String> {
+    split_marked(text).into_iter().map(|w| w.text).collect()
+}
+
+/// A word of [`split_marked`]: its text without quotes, and whether it had
+/// any, so `"oder"` stays a word to search for.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Word {
+    pub text: String,
+    pub quoted: bool,
+}
+
+/// [`split_words`], each word saying whether it had quotes.
+#[must_use]
+pub fn split_marked(text: &str) -> Vec<Word> {
     let mut words = Vec::new();
     let mut word = String::new();
     let mut quoted = false;
+    let mut had_quotes = false;
     for c in text.chars() {
         match c {
-            '"' => quoted = !quoted,
+            '"' => {
+                quoted = !quoted;
+                had_quotes = true;
+            }
             c if c.is_whitespace() && !quoted => {
                 if !word.is_empty() {
-                    words.push(std::mem::take(&mut word));
+                    words.push(Word {
+                        text: std::mem::take(&mut word),
+                        quoted: had_quotes,
+                    });
                 }
+                had_quotes = false;
             }
             c => word.push(c),
         }
     }
     if !word.is_empty() {
-        words.push(word);
+        words.push(Word {
+            text: word,
+            quoted: had_quotes,
+        });
     }
     words
+}
+
+/// Whether a word, as typed and without quotes, starts a new OR group
+/// (ADR 0121 §3): `oder` or `or`, case aside. In quotes, `"oder"` is a
+/// word to search for.
+#[must_use]
+pub fn is_or(word: &str) -> bool {
+    word.eq_ignore_ascii_case("oder") || word.eq_ignore_ascii_case("or")
+}
+
+/// Chips gathered into OR groups in the order they come (ADR 0121 §2):
+/// [`Groups::or`] closes the group if it holds a chip, so an `oder` at the
+/// start, at the end or twice makes no empty group, and the numbers run
+/// from 0 without gaps.
+#[derive(Debug, Default)]
+pub struct Groups {
+    chips: Vec<ScopeChip>,
+    group: u32,
+    open: bool,
+}
+
+impl Groups {
+    /// An `oder`: what comes next goes into a new group.
+    pub fn or(&mut self) {
+        if self.open {
+            self.group += 1;
+            self.open = false;
+        }
+    }
+
+    /// The chip in the current group, unless that group holds it already;
+    /// the same chip may stand in two groups.
+    pub fn push(&mut self, mut chip: ScopeChip) {
+        chip.group = self.group;
+        if !self.chips.contains(&chip) {
+            self.chips.push(chip);
+        }
+        self.open = true;
+    }
+
+    #[must_use]
+    pub fn into_chips(self) -> Vec<ScopeChip> {
+        self.chips
+    }
 }
 
 /// A text in the search language as chips, names resolved to ids
@@ -367,17 +436,15 @@ pub fn split_words(text: &str) -> Vec<String> {
 ///
 /// [`ParseError`] for the first word that is no chip.
 pub fn parse(text: &str, snapshot: &Snapshot<'_>) -> Result<Vec<ScopeChip>, ParseError> {
-    let mut chips: Vec<ScopeChip> = Vec::new();
-    for word in split_words(text) {
-        let chip = parse_chip(&word, snapshot)?;
-        if !chips
-            .iter()
-            .any(|c| c.kind == chip.kind && c.value == chip.value)
-        {
-            chips.push(chip);
+    let mut groups = Groups::default();
+    for word in split_marked(text) {
+        if !word.quoted && is_or(&word.text) {
+            groups.or();
+        } else {
+            groups.push(parse_chip(&word.text, snapshot)?);
         }
     }
-    Ok(chips)
+    Ok(groups.into_chips())
 }
 
 /// One word of the search language as a chip, names resolved to ids and
@@ -395,25 +462,48 @@ pub fn parse_chip(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, Pars
 
 /// A search as the web's field reads it (ADR 0042 §2): each word that is a
 /// chip samu knows becomes one, every other word stays free text, in its
-/// order. The phone's search takes this (a1f43aed).
+/// order. A lone `oder` starts a new group of chips (ADR 0121 §3); the
+/// free text holds for all groups. The phone's search takes this
+/// (a1f43aed).
 #[must_use]
 pub fn split_search(text: &str, snapshot: &Snapshot<'_>) -> (Vec<ScopeChip>, String) {
-    let mut chips: Vec<ScopeChip> = Vec::new();
-    let mut free: Vec<String> = Vec::new();
-    for word in split_words(text) {
-        match parse_word(&word, snapshot) {
-            Ok(chip) if check(&chip).is_ok() => {
-                if !chips
-                    .iter()
-                    .any(|c| c.kind == chip.kind && c.value == chip.value && c.not == chip.not)
-                {
-                    chips.push(chip);
-                }
-            }
-            _ => free.push(word),
+    let (items, free) = split_items(text, snapshot);
+    let mut groups = Groups::default();
+    for item in items {
+        match item {
+            Item::Chip(chip) => groups.push(chip),
+            Item::Or => groups.or(),
         }
     }
-    (chips, join_free(&free))
+    (groups.into_chips(), free)
+}
+
+/// A finished word of a search field: a chip, or the `oder` between two
+/// groups (ADR 0121 §4).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Item {
+    Chip(ScopeChip),
+    Or,
+}
+
+/// A search as a field shows it: its chips and each `oder` in the order
+/// typed, nothing dropped, and the free text. [`split_search`] makes groups
+/// of it; the phone's field shows it as it is.
+#[must_use]
+pub fn split_items(text: &str, snapshot: &Snapshot<'_>) -> (Vec<Item>, String) {
+    let mut items = Vec::new();
+    let mut free: Vec<String> = Vec::new();
+    for word in split_marked(text) {
+        if !word.quoted && is_or(&word.text) {
+            items.push(Item::Or);
+            continue;
+        }
+        match parse_word(&word.text, snapshot) {
+            Ok(chip) if check(&chip).is_ok() => items.push(Item::Chip(chip)),
+            _ => free.push(word.text),
+        }
+    }
+    (items, join_free(&free))
 }
 
 fn parse_word(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, ParseError> {
@@ -421,7 +511,12 @@ fn parse_word(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, ParseErr
         Some(rest) if !rest.is_empty() => (true, rest),
         _ => (false, word),
     };
-    let chip = |kind, value: String| ScopeChip { kind, value, not };
+    let chip = |kind, value: String| ScopeChip {
+        kind,
+        value,
+        not,
+        group: 0,
+    };
     if let Some(name) = text.strip_prefix('#') {
         if name.eq_ignore_ascii_case("inbox") {
             return Ok(chip(Kind::Project, "inbox".into()));
@@ -502,7 +597,8 @@ fn parse_word(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, ParseErr
 }
 
 /// Chips as the words that make them, names from the snapshot; `?` for
-/// what is gone. In German, the form `samu` writes (ADR 0105 §3).
+/// what is gone; `oder` between groups (ADR 0121 §3). In German, the form
+/// `samu` writes (ADR 0105 §3).
 #[must_use]
 pub fn words(chips: &[ScopeChip], snapshot: &Snapshot<'_>) -> String {
     words_in(chips, snapshot, Lang::De)
@@ -511,6 +607,25 @@ pub fn words(chips: &[ScopeChip], snapshot: &Snapshot<'_>) -> String {
 /// [`words`] in the language of the interface.
 #[must_use]
 pub fn words_in(chips: &[ScopeChip], snapshot: &Snapshot<'_>, lang: Lang) -> String {
+    let mut sorted: Vec<&ScopeChip> = chips.iter().collect();
+    sorted.sort_by_key(|c| c.group);
+    let mut out: Vec<String> = Vec::new();
+    for (i, chip) in sorted.iter().enumerate() {
+        if i > 0 && sorted[i - 1].group != chip.group {
+            out.push(
+                match lang {
+                    Lang::De => "oder",
+                    Lang::En => "or",
+                }
+                .to_owned(),
+            );
+        }
+        out.push(chip_word(chip, snapshot, lang));
+    }
+    out.join(" ")
+}
+
+fn chip_word(chip: &ScopeChip, snapshot: &Snapshot<'_>, lang: Lang) -> String {
     let key = |word: &str| lang::key_in(word, lang).to_owned();
     let value = |word: &str| lang::value_in(word, lang);
     let quote = |name: String| {
@@ -520,67 +635,60 @@ pub fn words_in(chips: &[ScopeChip], snapshot: &Snapshot<'_>, lang: Lang) -> Str
             name
         }
     };
-    chips
-        .iter()
-        .map(|chip| {
-            let id = chip.value.parse::<Id>().ok();
-            let known =
-                |exists: bool, name: String| if exists { quote(name) } else { "?".to_owned() };
-            let body = match chip.kind {
-                Kind::Project if chip.value == "inbox" => "#Inbox".to_owned(),
-                Kind::Project => {
-                    let p = id.and_then(|i| snapshot.projects.iter().find(|p| p.id == i));
-                    format!(
-                        "#{}",
-                        known(p.is_some(), p.map(|p| p.title.clone()).unwrap_or_default())
-                    )
-                }
-                Kind::Tag => {
-                    let t = id.filter(|i| snapshot.tags.iter().any(|t| t.id == *i));
-                    format!(
-                        "@{}",
-                        known(
-                            t.is_some(),
-                            t.map(|i| tag_path(snapshot, i)).unwrap_or_default()
-                        )
-                    )
-                }
-                Kind::Folder => {
-                    let f = id.filter(|i| snapshot.folders.iter().any(|f| f.id == *i));
-                    format!(
-                        "{}:{}",
-                        key("ordner"),
-                        known(
-                            f.is_some(),
-                            f.map(|i| folder_path(snapshot, i)).unwrap_or_default()
-                        )
-                    )
-                }
-                Kind::State => {
-                    let t = id.and_then(|i| snapshot.tags.iter().find(|t| t.id == i));
-                    format!(
-                        "{}:{}",
-                        key("zustand"),
-                        known(t.is_some(), t.map(|t| t.title.clone()).unwrap_or_default())
-                    )
-                }
-                Kind::Is => format!("{}:{}", key("ist"), value(&chip.value)),
-                Kind::Property => format!("prop:{}", quote(chip.value.clone())),
-                Kind::Estimate => format!("~{}", value(&chip.value)),
-                Kind::Priority => format!("prio:{}", value(&chip.value)),
-                Kind::Unknown => format!("?:{}", chip.value),
-                kind => {
-                    let word = DATE_WORDS
-                        .iter()
-                        .find(|(_, k)| *k == kind)
-                        .map_or("?", |(w, _)| w);
-                    format!("{}:{}", key(word), value(&chip.value))
-                }
-            };
-            format!("{}{body}", if chip.not { "-" } else { "" })
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    let id = chip.value.parse::<Id>().ok();
+    let known = |exists: bool, name: String| if exists { quote(name) } else { "?".to_owned() };
+    let body = match chip.kind {
+        Kind::Project if chip.value == "inbox" => "#Inbox".to_owned(),
+        Kind::Project => {
+            let p = id.and_then(|i| snapshot.projects.iter().find(|p| p.id == i));
+            format!(
+                "#{}",
+                known(p.is_some(), p.map(|p| p.title.clone()).unwrap_or_default())
+            )
+        }
+        Kind::Tag => {
+            let t = id.filter(|i| snapshot.tags.iter().any(|t| t.id == *i));
+            format!(
+                "@{}",
+                known(
+                    t.is_some(),
+                    t.map(|i| tag_path(snapshot, i)).unwrap_or_default()
+                )
+            )
+        }
+        Kind::Folder => {
+            let f = id.filter(|i| snapshot.folders.iter().any(|f| f.id == *i));
+            format!(
+                "{}:{}",
+                key("ordner"),
+                known(
+                    f.is_some(),
+                    f.map(|i| folder_path(snapshot, i)).unwrap_or_default()
+                )
+            )
+        }
+        Kind::State => {
+            let t = id.and_then(|i| snapshot.tags.iter().find(|t| t.id == i));
+            format!(
+                "{}:{}",
+                key("zustand"),
+                known(t.is_some(), t.map(|t| t.title.clone()).unwrap_or_default())
+            )
+        }
+        Kind::Is => format!("{}:{}", key("ist"), value(&chip.value)),
+        Kind::Property => format!("prop:{}", quote(chip.value.clone())),
+        Kind::Estimate => format!("~{}", value(&chip.value)),
+        Kind::Priority => format!("prio:{}", value(&chip.value)),
+        Kind::Unknown => format!("?:{}", chip.value),
+        kind => {
+            let word = DATE_WORDS
+                .iter()
+                .find(|(_, k)| *k == kind)
+                .map_or("?", |(w, _)| w);
+            format!("{}:{}", key(word), value(&chip.value))
+        }
+    };
+    format!("{}{body}", if chip.not { "-" } else { "" })
 }
 
 /// What a test looks at besides the task.
@@ -594,11 +702,15 @@ struct Facts<'a> {
 
 type Test<'a> = Box<dyn Fn(&Task, &Facts<'_>) -> bool + 'a>;
 
+/// The tests of one OR group, per kind: the plain ones (one must hold) and
+/// the negated ones (none may hold).
+type Group<'a> = Vec<(Vec<Test<'a>>, Vec<Test<'a>>)>;
+
 /// A filter read against one snapshot and one day.
 pub struct Filter<'a> {
-    /// Per kind: the plain tests (one must hold) and the negated ones (none
-    /// may hold).
-    kinds: Vec<(Vec<Test<'a>>, Vec<Test<'a>>)>,
+    /// The OR groups (ADR 0121 §1): a task meets the filter when it meets
+    /// one. A group without a test meets every task.
+    groups: Vec<Group<'a>>,
     projects: HashMap<Id, &'a Project>,
     tags: &'a [Tag],
     parents: HashSet<Id>,
@@ -607,7 +719,7 @@ pub struct Filter<'a> {
 impl std::fmt::Debug for Filter<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Filter")
-            .field("kinds", &self.kinds.len())
+            .field("groups", &self.groups.len())
             .finish_non_exhaustive()
     }
 }
@@ -662,7 +774,8 @@ fn open(task: &Task) -> bool {
 impl<'a> Filter<'a> {
     /// The filter of `chips` on the day `now` is in `zone`. A chip that
     /// [`check`] refuses meets every task (ADR 0043 §2), so a value from a
-    /// newer samu hides nothing.
+    /// newer samu hides nothing; a group of only such chips meets every
+    /// task as well.
     #[must_use]
     pub fn new(
         chips: &[ScopeChip],
@@ -671,8 +784,11 @@ impl<'a> Filter<'a> {
         zone: &TimeZone,
     ) -> Self {
         let today = now.to_zoned(zone.clone()).date();
-        let mut kinds: Vec<(Kind, Vec<Test<'a>>, Vec<Test<'a>>)> = Vec::new();
+        type Kinds<'a> = Vec<(Kind, Vec<Test<'a>>, Vec<Test<'a>>)>;
+        let mut groups: std::collections::BTreeMap<u32, Kinds<'a>> =
+            std::collections::BTreeMap::new();
         for chip in chips {
+            let kinds = groups.entry(chip.group).or_default();
             let Some(test) = Self::test(chip, snapshot, today, zone) else {
                 continue;
             };
@@ -691,9 +807,14 @@ impl<'a> Filter<'a> {
             }
         }
         Self {
-            kinds: kinds
-                .into_iter()
-                .map(|(_, any, none)| (any, none))
+            groups: groups
+                .into_values()
+                .map(|kinds| {
+                    kinds
+                        .into_iter()
+                        .map(|(_, any, none)| (any, none))
+                        .collect()
+                })
                 .collect(),
             projects: snapshot.projects.iter().map(|p| (p.id, p)).collect(),
             tags: snapshot.tags,
@@ -701,10 +822,11 @@ impl<'a> Filter<'a> {
         }
     }
 
-    /// No chip that tests anything.
+    /// It meets every task: no chip, or a group with no chip that tests
+    /// anything.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.kinds.is_empty()
+        self.groups.is_empty() || self.groups.iter().any(Vec::is_empty)
     }
 
     fn test(
@@ -838,10 +960,11 @@ impl<'a> Filter<'a> {
         })
     }
 
-    /// Whether the task meets the filter. An empty filter meets every task.
+    /// Whether the task meets the filter: one group whose kinds all hold.
+    /// An empty filter meets every task.
     #[must_use]
     pub fn matches(&self, task: &Task, state: &TaskState) -> bool {
-        if self.kinds.is_empty() {
+        if self.is_empty() {
             return true;
         }
         let project = crate::availability::home(task, &self.projects)
@@ -851,9 +974,11 @@ impl<'a> Filter<'a> {
             workflow_state: crate::workflow::placement(&task.tags, project, self.tags).state,
             group: self.parents.contains(&task.id),
         };
-        self.kinds.iter().all(|(any, none)| {
-            (any.is_empty() || any.iter().any(|t| t(task, &facts)))
-                && !none.iter().any(|t| t(task, &facts))
+        self.groups.iter().any(|kinds| {
+            kinds.iter().all(|(any, none)| {
+                (any.is_empty() || any.iter().any(|t| t(task, &facts)))
+                    && !none.iter().any(|t| t(task, &facts))
+            })
         })
     }
 }
@@ -896,13 +1021,14 @@ fn free_terms(text: &str) -> Vec<(bool, String)> {
 }
 
 /// Free words joined into free text again: a phrase [`split_words`] took
-/// out of its quotes gets them back, so it stays one.
+/// out of its quotes gets them back, so it stays one, and so does a
+/// searched `oder`, so it does not start a group when read again.
 #[must_use]
 pub fn join_free(words: &[String]) -> String {
     words
         .iter()
         .map(|word| {
-            if !word.contains(char::is_whitespace) {
+            if !word.contains(char::is_whitespace) && !is_or(word) {
                 return word.clone();
             }
             match word.strip_prefix('-') {
@@ -998,6 +1124,7 @@ mod tests {
             kind,
             value: value.into(),
             not,
+            group: 0,
         }
     }
 
@@ -1105,6 +1232,82 @@ mod tests {
             ]
         );
         assert_eq!(words(&parsed, &snapshot), "prop:jira=HAUS-12 -prop:ticket");
+    }
+
+    /// The OR groups the web must give as well (ADR 0121).
+    #[test]
+    fn the_shared_group_cases_hold() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../testdata/query/groups.json"
+        );
+        let doc: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let rows = doc["tasks"].as_array().unwrap();
+        let tasks: Vec<Task> = rows
+            .iter()
+            .map(|r| serde_json::from_value(r["task"].clone()).unwrap())
+            .collect();
+        let snapshot = Snapshot {
+            tasks: &tasks,
+            ..Snapshot::default()
+        };
+        let cases = doc["cases"].as_array().unwrap();
+        assert!(cases.len() > 5, "the cases are there");
+        for case in cases {
+            let chips: Vec<ScopeChip> = serde_json::from_value(case["chips"].clone()).unwrap();
+            let text = case["text"].as_str().unwrap();
+            let f = filter(&chips, &snapshot);
+            let got: Vec<u64> = tasks
+                .iter()
+                .zip(rows)
+                .filter(|(t, r)| {
+                    let s = state(r["available"].as_bool().unwrap(), DueState::None);
+                    f.matches(t, &s) && text_matches(text, t)
+                })
+                .map(|(t, _)| u64::from_str_radix(&t.id.to_string()[34..], 16).unwrap())
+                .collect();
+            let want: Vec<u64> = serde_json::from_value(case["ids"].clone()).unwrap();
+            assert_eq!(got, want, "{}", case["about"]);
+        }
+        let words = doc["words"].as_array().unwrap();
+        assert!(words.len() > 5, "the words are there");
+        for case in words {
+            let text = case["text"].as_str().unwrap();
+            let (chips, free) = split_search(text, &snapshot);
+            let want: Vec<ScopeChip> = serde_json::from_value(case["chips"].clone()).unwrap();
+            assert_eq!(chips, want, "{text:?}");
+            assert_eq!(free, case["free"].as_str().unwrap(), "{text:?}");
+            if free.is_empty() {
+                assert_eq!(parse(text, &snapshot).unwrap(), want, "parse {text:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn groups_are_written_with_oder_and_read_back() {
+        let snapshot = Snapshot::default();
+        let mut later = chip(Kind::Priority, "b", false);
+        later.group = 4;
+        let chips = [
+            later,
+            chip(Kind::Is, "markiert", false),
+            chip(Kind::Is, "wartet", true),
+        ];
+        assert_eq!(
+            words(&chips, &snapshot),
+            "ist:markiert -ist:wartet oder prio:b"
+        );
+        assert_eq!(
+            words_in(&chips, &snapshot, Lang::En),
+            "is:flagged -is:waiting or prio:b"
+        );
+        let back = parse(&words(&chips, &snapshot), &snapshot).unwrap();
+        assert_eq!(back.iter().map(|c| c.group).collect::<Vec<_>>(), [0, 0, 1]);
+        assert_eq!(
+            join_free(&["oder".into(), "Or".into(), "milch".into()]),
+            "\"oder\" \"Or\" milch"
+        );
     }
 
     /// The cases the web's free text must give as well.

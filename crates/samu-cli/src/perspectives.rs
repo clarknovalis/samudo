@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 
 use crate::config::Config;
 use crate::output::{Format, emit};
-use crate::scopes::{Snapshot, chip_word, parse_chips, refused, snapshot};
+use crate::scopes::{Snapshot, parse_chips, refused, snapshot};
 use crate::{placeholder, short, signed_in, write};
 use samu_client::{Client, Error as Failure};
 use samu_core::query::{self, ParseError};
@@ -208,17 +208,20 @@ fn sort_of(text: &str) -> Result<PerspectiveSort> {
 /// takes for no chip at all stays text, a chip that does not hold (an
 /// unknown tag, a wrong value) is refused.
 fn split_search(snapshot: &Snapshot, words: &[String]) -> Result<(Vec<ScopeChip>, String)> {
-    let mut chips: Vec<ScopeChip> = Vec::new();
+    let mut groups = query::Groups::default();
     let mut text = Vec::new();
-    for word in words.iter().flat_map(|w| query::split_words(w)) {
-        match query::parse_chip(&word, &snapshot.core()) {
-            Err(ParseError::Free(_)) => text.push(word),
-            Err(e) => return Err(refused(&word, e)),
-            Ok(chip) if !chips.contains(&chip) => chips.push(chip),
-            Ok(_) => {}
+    for word in words.iter().flat_map(|w| query::split_marked(w)) {
+        if !word.quoted && query::is_or(&word.text) {
+            groups.or();
+            continue;
+        }
+        match query::parse_chip(&word.text, &snapshot.core()) {
+            Err(ParseError::Free(_)) => text.push(word.text),
+            Err(e) => return Err(refused(&word.text, e)),
+            Ok(chip) => groups.push(chip),
         }
     }
-    Ok((chips, query::join_free(&text)))
+    Ok((groups.into_chips(), query::join_free(&text)))
 }
 
 /// A block in the words of `samu perspective blocks`.
@@ -307,12 +310,14 @@ fn plain<'a>(perspectives: &'a [Perspective], name: &str) -> Result<&'a Perspect
     Ok(found)
 }
 
-/// A perspective's search as the words that make it.
+/// A perspective's search as the words that make it, `oder` between
+/// groups (ADR 0121 §3).
 fn search_words(snapshot: &Snapshot, p: &Perspective) -> String {
-    let mut words: Vec<String> = p.chips.iter().map(|c| chip_word(snapshot, c)).collect();
+    let mut words = vec![query::words(&p.chips, &snapshot.core())];
     if !p.text.is_empty() {
         words.push(p.text.clone());
     }
+    words.retain(|w| !w.is_empty());
     words.join(" ")
 }
 

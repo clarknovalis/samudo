@@ -38,7 +38,7 @@ const shown = (o) =>
 
 let failed = 0;
 for (const c of doc.cases) {
-  const got = JSON.stringify(offers(c.word, { inScope: !c.appointments, lang: c.lang ?? "de" }).map(shown));
+  const got = JSON.stringify(offers(c.word, { inScope: !c.appointments, lang: c.lang ?? "de", or: Boolean(c.or) }).map(shown));
   const want = JSON.stringify(c.offers);
   if (got !== want) {
     failed += 1;

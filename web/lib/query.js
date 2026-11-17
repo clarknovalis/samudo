@@ -248,8 +248,79 @@ function findBy(list, name, path) {
   return titled.length === 1 ? titled[0] : null;
 }
 
-// A word as a chip { kind, value, not }, or null when it is free text.
+// --- OR groups (ADR 0121) ----------------------------------------------
+//
+// A filter is groups of chips; a task meets it when it meets one group.
+// The server keeps a chip's group in `group` (0 when left out). A field
+// holds a flat list in which `{ kind: "or" }` stands between groups, as
+// the word `oder` (English `or`) does in the search text.
+
+export const OR = Object.freeze({ kind: "or" });
+export const isOr = (chip) => chip.kind === "or";
+// `oder` or `or` as typed, case aside; in quotes it is a word to search for.
+export const isOrWord = (word) => ["oder", "or"].includes(lower(word));
+
+// The chips of a list as groups: a separator or a change of `group` starts
+// a new one, groups in the order of their number; no group is empty.
+export function groupsOf(list) {
+  const groups = [];
+  let open = null;
+  let last;
+  const sorted = [...(list ?? [])].sort((a, b) => (a.group ?? 0) - (b.group ?? 0));
+  for (const chip of sorted) {
+    if (isOr(chip)) {
+      open = null;
+      continue;
+    }
+    const group = chip.group ?? 0;
+    if (!open || (last !== undefined && group !== last)) {
+      open = [];
+      groups.push(open);
+    }
+    last = group;
+    open.push(chip);
+  }
+  return groups;
+}
+
+// A list as the server keeps it: no separators, `group` counted from 0 and
+// left out when 0, `not` only when set.
+export const withGroups = (list) =>
+  groupsOf(list).flatMap((chips, group) =>
+    chips.map(({ kind, value, not }) => ({ kind, value, ...(not ? { not: true } : {}), ...(group ? { group } : {}) })),
+  );
+
+// Chips as the server keeps them as a field's list: by group, a separator
+// between two, `not` always there.
+export function withOrs(chips) {
+  return groupsOf(chips).flatMap((group, i) => [
+    ...(i ? [OR] : []),
+    ...group.map(({ kind, value, not }) => ({ kind, value, not: Boolean(not) })),
+  ]);
+}
+
+// A field's list without a separator that separates nothing: at the start
+// or twice. One at the end stays, as the field's next group.
+export const tidy = (list) => list.filter((c, i) => !isOr(c) || (i > 0 && !isOr(list[i - 1])));
+
+// Whether a field's list may take `oder` next: it ends in a chip.
+export const mayOr = (list) => list.length > 0 && !isOr(list[list.length - 1]);
+
+// A chip added to a field's list: into the last group, where it takes the
+// place of the same one (`-@Büro` for `@Büro`). A separator only after a
+// chip, never twice.
+export function addTo(list, chip, same = (a, b) => a.kind === b.kind && a.value === b.value) {
+  if (isOr(chip)) return !list.length || isOr(list[list.length - 1]) ? list : [...list, OR];
+  let start = list.length;
+  while (start > 0 && !isOr(list[start - 1])) start -= 1;
+  const at = list.findIndex((c, i) => i >= start && same(c, chip));
+  return at < 0 ? [...list, chip] : list.map((c, i) => (i === at ? chip : c));
+}
+
+// A word as a chip { kind, value, not }, the separator for `oder`, or null
+// when it is free text.
 export function parseWord(word) {
+  if (isOrWord(word)) return OR;
   let text = word;
   const not = text.startsWith("-") && text.length > 1;
   if (not) text = text.slice(1);
@@ -309,6 +380,7 @@ const propertyOf = (s, key) => s.task.properties?.[key] ?? s.inherited?.[key]?.v
 
 // A chip as the word that makes it, in the language of the page.
 export function chipText(chip, l = lang()) {
+  if (isOr(chip)) return l === "en" ? "or" : "oder";
   const sign = chip.not ? "-" : "";
   const key = (de) => keyIn(de, l);
   const value = (de) => valueIn(de, l);
@@ -340,7 +412,7 @@ export function chipText(chip, l = lang()) {
 
 // The colour a chip takes, as in the capture window.
 export const chipClass = (chip) =>
-  ({ project: "project", folder: "project", tag: "tag", state: "tag", due: "due" })[chip.kind] ?? "plain";
+  ({ project: "project", folder: "project", tag: "tag", state: "tag", due: "due", or: "or" })[chip.kind] ?? "plain";
 
 // --- Matching ---------------------------------------------------------
 
@@ -444,21 +516,45 @@ export function freeTerms(text) {
     .filter((t) => t.term.trim());
 }
 
-// One test for the whole search: chips of one kind OR, kinds AND, a
-// negated chip must not hold; every free word in title, note or id, so
-// the end of an id finds its task (01a1c271), none of the excluded ones.
-export function matcher(chips, text) {
-  const kinds = new Map();
-  for (const chip of chips) {
-    if (!kinds.has(chip.kind)) kinds.set(chip.kind, { any: [], none: [] });
-    kinds.get(chip.kind)[chip.not ? "none" : "any"].push(test(chip));
+// Whether samu-core reads a chip (query::check); one it cannot meets every
+// task, so a value from a newer samu hides nothing.
+function readable(chip) {
+  switch (chip.kind) {
+    case "project":
+    case "folder":
+    case "tag":
+    case "state":
+    case "property":
+      return Boolean(chip.value);
+    case "estimate":
+      return Boolean(estimateTest(chip.value));
+    case "is":
+      return IS.includes(chip.value) || chip.value === "termin";
+    case "priority":
+      return PRIORITIES.includes(chip.value);
+    default:
+      return Boolean(DATE_NAME[chip.kind]) && Boolean(rangeOf(chip.value));
   }
+}
+
+// One test for the whole search: a task meets one group of chips (ADR
+// 0121), and in a group chips of one kind OR, kinds AND, a negated chip
+// must not hold; every free word in title, note or id, so the end of an
+// id finds its task (01a1c271), none of the excluded ones.
+export function matcher(chips, text) {
+  const groups = groupsOf(chips).map((group) => {
+    const kinds = new Map();
+    for (const chip of group.filter(readable)) {
+      if (!kinds.has(chip.kind)) kinds.set(chip.kind, { any: [], none: [] });
+      kinds.get(chip.kind)[chip.not ? "none" : "any"].push(test(chip));
+    }
+    return [...kinds.values()];
+  });
+  const meets = (kinds, status) =>
+    kinds.every(({ any, none }) => (!any.length || any.some((t) => t(status))) && !none.some((t) => t(status)));
   const terms = freeTerms(text);
   return (status) => {
-    for (const { any, none } of kinds.values()) {
-      if (any.length && !any.some((t) => t(status))) return false;
-      if (none.some((t) => t(status))) return false;
-    }
+    if (groups.length && !groups.some((kinds) => meets(kinds, status))) return false;
     if (!terms.length) return true;
     const task = status.task;
     const hay = lower(`${task.title}\n${task.note ?? ""}\n${task.id}`);
@@ -523,8 +619,9 @@ function propertyOffers(value, not) {
 }
 
 // What the list under the field offers for the word at the cursor:
-// { label, chip } makes a chip, { label, insert } replaces the word.
-export function offers(word, { inScope = false, lang: l = lang() } = {}) {
+// { label, chip } makes a chip, { label, insert } replaces the word. `or`:
+// a chip stands in the field, so `oder` may start a group (ADR 0121 §4).
+export function offers(word, { inScope = false, lang: l = lang(), or = false } = {}) {
   const not = word.startsWith("-") && word.length > 1;
   const text = not ? word.slice(1) : word;
   const sign = not ? "-" : "";
@@ -548,7 +645,12 @@ export function offers(word, { inScope = false, lang: l = lang() } = {}) {
     state.folders.filter((f) => f.status !== "dropped").map((f) => ({ name: folderPath(f), chip: asChip("folder", f.id, not) }));
   const label = (prefix) => (o) => ({ label: `${sign}${prefix}${o.name}`, chip: o.chip });
 
-  if (!text) return kinds.map(([insert, hint]) => ({ label: hint, insert: `${sign}${insert}`, kind: true }));
+  const orWord = l === "en" ? "or" : "oder";
+  const orOffer = { label: orWord, insert: `${orWord} ` };
+  if (!text) {
+    const all = kinds.map(([insert, hint]) => ({ label: hint, insert: `${sign}${insert}`, kind: true }));
+    return or && !not ? [...all, orOffer] : all;
+  }
   if (text.startsWith("#")) add(ranked(projects(), unquote(text.slice(1))).map(label("#")));
   else if (text.startsWith("@")) add(ranked(tags(), unquote(text.slice(1))).map(label("@")));
   else if (text.startsWith("~")) {
@@ -572,6 +674,7 @@ export function offers(word, { inScope = false, lang: l = lang() } = {}) {
     } else {
       // A plain word: the kinds it begins, and the places and tags it names.
       add(kinds.filter(([insert]) => insert.length > 1 && insert.startsWith(lower(text))).map(([insert, hint]) => ({ label: hint, insert: `${sign}${insert}`, kind: true })));
+      if (or && !not && orWord.startsWith(lower(text))) add([orOffer]);
       if (text.length >= 2) {
         add(ranked(projects(), text).slice(0, 3).map(label("#")));
         add(ranked(tags(), text).slice(0, 3).map(label("@")));

@@ -118,7 +118,7 @@ fun SearchScreen(
     val type: (TextFieldValue) -> Unit = { next ->
         val split = if (next.text.any { it.isWhitespace() }) runCatching { samu.searchSplit(next.text) }.getOrNull() else null
         if (split != null && split.chips.isNotEmpty()) {
-            chips = chips + split.chips
+            chips = tidy(chips + split.chips)
             field = TextFieldValue(split.rest, TextRange(split.rest.length))
         } else {
             field = next
@@ -126,7 +126,7 @@ fun SearchScreen(
     }
     val restore: (String) -> Unit = { line ->
         runCatching { samu.searchSplit("$line ") }.getOrNull()?.let { split ->
-            chips = split.chips
+            chips = tidy(split.chips)
             field = TextFieldValue(split.rest, TextRange(split.rest.length))
         }
     }
@@ -141,7 +141,9 @@ fun SearchScreen(
         val put = if (chip != null) "" else offer.insert.orEmpty()
         if (chip != null) chips = chips + chip
         val next = field.text.substring(0, start) + put + field.text.substring(end)
-        field = TextFieldValue(next, TextRange(start + put.length))
+        // `oder ` ends with a space: a finished word, so it becomes its chip.
+        if (put.endsWith(" ")) type(TextFieldValue(next, TextRange(start + put.length)))
+        else field = TextFieldValue(next, TextRange(start + put.length))
         focus.requestFocus()
     }
 
@@ -155,9 +157,11 @@ fun SearchScreen(
         onQuery(text)
     }
     val word = wordAt(field).second
-    LaunchedEffect(word) {
+    // `oder` is offered once the field ends in a chip (ADR 0121 §4).
+    val mayOr = chips.isNotEmpty() && chips.last().kind != "or"
+    LaunchedEffect(word, mayOr) {
         offers = if (word.isEmpty()) emptyList() else withContext(Dispatchers.IO) {
-            runCatching { samu.searchOffers(word) }.getOrDefault(emptyList())
+            runCatching { samu.searchOffers(word, mayOr) }.getOrDefault(emptyList())
         }
     }
 
@@ -174,11 +178,13 @@ fun SearchScreen(
                 FieldChip(
                     chip,
                     negate = {
-                        runCatching { samu.searchChip(chip.kind, chip.value, !chip.not) }.getOrNull()?.let { flipped ->
-                            chips = chips.toMutableList().also { it[i] = flipped }
+                        if (chip.kind != "or") {
+                            runCatching { samu.searchChip(chip.kind, chip.value, !chip.not) }.getOrNull()?.let { flipped ->
+                                chips = chips.toMutableList().also { it[i] = flipped }
+                            }
                         }
                     },
-                    remove = { chips = chips.filterIndexed { j, _ -> j != i } },
+                    remove = { chips = tidy(chips.filterIndexed { j, _ -> j != i }) },
                 )
             }
             Box(Modifier.widthIn(min = 80.dp).weight(1f).align(Alignment.CenterVertically)) {
@@ -282,11 +288,19 @@ private fun SavePerspectiveDialog(search: String, close: () -> Unit, made: (BarE
     )
 }
 
+/**
+ * The chips without an `oder` that separates nothing: at the start or
+ * twice (ADR 0121 §4). One at the end stays, for the next group.
+ */
+private fun tidy(list: List<SearchChip>): List<SearchChip> =
+    list.filterIndexed { i, c -> c.kind != "or" || (i > 0 && list[i - 1].kind != "or") }
+
 /** A chip's colours by its kind: background and text. */
 @Composable
 private fun chipColors(chip: SearchChip): Pair<Color, Color> {
     val t = LocalTokens.current
     return when (chip.kind) {
+        "or" -> Color.Transparent to t.muted
         "project" -> t.select to t.accent
         "tag" -> t.okBg to t.ok
         "due", "planned", "defer" -> t.soonBg to t.soon
