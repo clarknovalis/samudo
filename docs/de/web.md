@@ -132,6 +132,14 @@ Leertaste die aktuelle Zeile. Eine Leiste bietet dann erledigen, wieder
 und löschen. Die Auswahl lässt sich auf ein Projekt oder die Inbox in der
 Seitenleiste ziehen.
 
+Eine Aufgabe mit offenen Aufgaben darunter zu erledigen oder zu verwerfen
+fragt zuerst, auf welchem Weg auch immer (der Kreis, der Inspektor, das
+Menü, `x`, die Board-Spalte „Erledigt“, die Leiste): „Mit erledigen“
+(Enter), „Herausholen“ oder „Abbrechen“, siehe
+[Konzepte](concepts.md#erledigen-mit-offenen-aufgaben-darunter). Eine
+Auswahl bekommt eine Frage für alle („2 der 5 Aufgaben haben offene
+Unteraufgaben“); offene Aufgaben, die selbst gewählt sind, zählen nicht.
+
 „Bearbeiten …“ (oder `e`) öffnet einen Dialog für alle gewählten
 Aufgaben: ohne Titel, mit den Chips, die alle gemeinsam haben (✕ oder
 Rücktaste nimmt einen von jeder; beim Projekt heißt das: in die Inbox),

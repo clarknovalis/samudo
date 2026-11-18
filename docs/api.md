@@ -91,6 +91,7 @@ Writes with logic of their own have their own routes:
 |---|---|
 | `POST /capture` | a line of [quick capture](quick-capture.md): preview, create, or apply to a task |
 | `POST /objects/{id}/delete` | delete with what hangs on it |
+| `POST /objects/{id}/close` | complete or drop; with open tasks below `children` says `ask` (write nothing, answer how many are open), `close` or `lift`; `preview` never writes |
 | `PUT /blobs/{sha256}` | upload a file; then create an attachment that names it |
 | `POST /render` | a note or comment as a document tree |
 | `PUT /calendars/{id}/source`, `POST /calendars/{id}/refresh`, `POST /calendars/discover` | calendar sources; a source may take user and password from another calendar on the same host (`credentials_from`) |

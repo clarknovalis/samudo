@@ -270,6 +270,77 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
                      '(("bulk" "done" "a" "b" "--format" "json")
                        ("bulk" "reopen" "b" "--format" "json")))))))
 
+;; Exit code 7 of `samu bulk done' (ADR 0128): the waiting task, its
+;; open tasks below indented, then the error.
+(defconst samu-test--needs-choice
+  "0000000a Gruppe\n  0000000c Rest\n  0000000d Noch einer\nsamu: a task has open tasks below; nothing changed. Give --children close or --children lift")
+
+(defconst samu-test--needs-choice-one
+  "0000000a Gruppe\n  0000000c Rest\nsamu: a task has open tasks below; nothing changed. Give --children close or --children lift")
+
+(ert-deftest samu-test-done-with-open-children-asks-and-lifts ()
+  (samu-test--with-cli `((("bulk" "done" "a") 7 "" ,samu-test--needs-choice))
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--rows (list (samu-test--row "a" "Gruppe")))
+      (let (question)
+        (cl-letf (((symbol-function 'samu--refresh-all) #'ignore)
+                  ((symbol-function 'read-multiple-choice)
+                   (lambda (prompt choices &rest _)
+                     (setq question prompt)
+                     (assq ?h choices))))
+          (setq samu--marked '("a"))
+          (samu-toggle-done))
+        (should (equal question "2 offene Unteraufgaben. Was passiert mit ihnen? ")))
+      (should (equal (samu-test--called '("bulk"))
+                     '(("bulk" "done" "a" "--format" "json")
+                       ("bulk" "done" "--children" "lift" "a" "--format" "json")))))))
+
+(ert-deftest samu-test-done-with-open-children-can-be-cancelled ()
+  (samu-test--with-cli `((("bulk" "done") 7 "" ,samu-test--needs-choice))
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--rows (list (samu-test--row "a" "Gruppe") (samu-test--row "b" "Andere"))
+            samu--marked '("b" "a"))
+      (let (question)
+        (cl-letf (((symbol-function 'samu--refresh-all) #'ignore)
+                  ((symbol-function 'read-multiple-choice)
+                   (lambda (prompt choices &rest _)
+                     (setq question prompt)
+                     (assq ?a choices))))
+          (samu-toggle-done))
+        (should (equal question
+                       "1 der 2 Aufgaben haben offene Unteraufgaben. Was passiert mit ihnen? ")))
+      (should (equal (samu-test--called '("bulk"))
+                     '(("bulk" "done" "a" "b" "--format" "json"))))
+      (should (equal samu--marked '("b" "a"))))))
+
+(ert-deftest samu-test-drop-with-open-children-drops-them-along ()
+  (samu-test--with-cli `((("bulk" "drop" "a") 7 "" ,samu-test--needs-choice-one))
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--task-id "a" samu--task-row (samu-test--row "a" "Gruppe"))
+      (let (along question)
+        (cl-letf (((symbol-function 'samu--refresh-all) #'ignore)
+                  ((symbol-function 'yes-or-no-p) (lambda (_) t))
+                  ((symbol-function 'read-multiple-choice)
+                   (lambda (prompt choices &rest _)
+                     (setq along (cadr (assq ?m choices)) question prompt)
+                     (assq ?m choices))))
+          (samu-drop))
+        (should (equal along "mit verwerfen"))
+        (should (equal question "1 offene Unteraufgabe. Was passiert mit ihr? ")))
+      (should (equal (samu-test--called '("bulk"))
+                     '(("bulk" "drop" "a" "--format" "json")
+                       ("bulk" "drop" "--children" "close" "a" "--format" "json")))))))
+
+(ert-deftest samu-test-close-fails-on-other-errors ()
+  (samu-test--with-cli '((("bulk" "done") 4 "" "samu: no server"))
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--task-id "a" samu--task-row (samu-test--row "a" "Gruppe"))
+      (should-error (samu-toggle-done) :type 'samu-error))))
+
 (ert-deftest samu-test-pick-state-sends-the-key ()
   (samu-test--with-cli `((("tag" "list") 0 ,samu-test--tags ""))
     (with-temp-buffer

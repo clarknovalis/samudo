@@ -41,7 +41,7 @@ account, with the scope `samu --profile <profile> scope use` chose there.
 |---|---|
 | ↑ ↓, `j` `k` | select |
 | Enter, double click | open |
-| `x`, Space, the circle | complete |
+| `x`, Space, the circle | complete; a task with open tasks below opens instead |
 | `f` | flag on/off |
 | `c` | start the clock on the task, stop the running one |
 | `a`, Tab | capture; Enter creates, Escape clears or goes back |

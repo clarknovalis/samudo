@@ -111,6 +111,12 @@ it.
   the phone; undo takes it back out of the outbox, so the server never
   sees it (no logbook entry, no next task of a repetition). If a sync has
   already sent it, undo writes the opposite change instead.
+- **Open tasks below:** completing or dropping a task with open tasks
+  below, in any of these ways, asks first in a sheet: "Complete them too",
+  "Lift out" or "Cancel" (see
+  [Concepts](concepts.md#completing-a-task-with-open-tasks-below)), once
+  for a whole selection. It works offline; "Undo" takes back everything
+  the answer changed, lifted tasks included.
 - **Long press** opens the task's menu: "Edit", "Add subtask", "Flag",
   "Defer until …", "Move …" (into the inbox or a project, children go
   along) and "Select". A habit keeps its own menu.
@@ -151,13 +157,15 @@ it.
 
 - **"Today"**: overdue, today, then flagged available tasks. The
   check completes through the outbox, "+" opens capture, a row opens the
-  task. Redrawn after every sync and when you leave the app.
+  task. For a task with open tasks below the check opens it instead. Redrawn after every sync and when you leave the app.
 - **"Habits"**: every open habit; see [Habits](habits.md#widget-habits).
 
 ## Reminders and calendar
 
 Reminders of tasks are set as alarms on the phone and show as
-notifications, also without a network. Appointments show in the forecast
+notifications, also without a network. Their "Completed" action
+completes the task; for one with open tasks below it reads "Complete …"
+and opens the task. Appointments show in the forecast
 and in the calendar view (list, day, week); a tap opens the appointment's
 sheet, read only, with "Open in calendar app".
 

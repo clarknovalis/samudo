@@ -123,6 +123,13 @@ bar then offers complete, reopen, drop, flag, move, tag on/off, state, date
 (due/planned/defer: today, tomorrow, a day, clear), "Edit …" and delete.
 The selection can be dragged onto a project or the inbox in the sidebar.
 
+Completing or dropping a task with open tasks below asks first, whichever
+way it goes (the circle, the inspector, the menu, `x`, the board column
+"Completed", the bar): "Complete them too" (Enter), "Lift out" or
+"Cancel", see [Concepts](concepts.md#completing-a-task-with-open-tasks-below).
+A selection gets one question for all ("2 of the 5 tasks have open
+subtasks"); open tasks that are selected themselves do not count.
+
 "Edit …" (or `e`) opens one dialog for all selected tasks: no title, the
 chips they all share (✕ or Backspace takes one off each; a project
 means a move to the inbox) and a line in

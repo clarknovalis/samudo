@@ -63,7 +63,7 @@ die von Emacs. Mit `M` markierte Aufgaben nehmen
 |---|---|
 | `n` `p`, `j` `k` | nächste / vorige Aufgabe |
 | `RET` / `TAB` | Aufgabe zeigen / im anderen Fenster |
-| `x` | erledigen / wieder öffnen |
+| `x` | erledigen / wieder öffnen; mit offenen Aufgaben darunter fragt es: `m` mit erledigen, `h` herausholen, `a` abbrechen |
 | `s` / `t` | nächster Zustand / Zustand per Taste |
 | `f` | Markierung an/aus |
 | `c`, `I` / `O` | Uhr umschalten; ein / aus |
@@ -75,7 +75,7 @@ die von Emacs. Mit `M` markierte Aufgaben nehmen
 | `a` / `A` | erfassen / als Unteraufgabe |
 | `C` | mit Vorlage erfassen: danach die Taste der Vorlage, wie in org-capture |
 | `/` | suchen |
-| `X` / `DEL` | verwerfen / löschen, beide fragen vorher |
+| `X` / `DEL` | verwerfen / löschen, beide fragen vorher; verwerfen fragt nach offenen Aufgaben darunter wie `x` |
 | `w` | den `samu:`-Link kopieren |
 | `M` `u` `U` `B` | markieren, Markierung weg, alle weg, Aktion auf die markierten |
 | `S` | Scope |

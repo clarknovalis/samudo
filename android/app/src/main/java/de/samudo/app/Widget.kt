@@ -63,7 +63,13 @@ class TodayWidget : GlanceAppWidget() {
 
     private fun load(context: Context): Shown = try {
         val samu = Store.get(context)
-        if (!samu.status().signedIn) Shown.SignedOut else Shown.Rows(samu.today())
+        if (!samu.status().signedIn) {
+            Shown.SignedOut
+        } else {
+            val rows = samu.today()
+            // These open in the app: the widget cannot ask (ADR 0128 §5).
+            Shown.Rows(rows, rows.filter { it.group && samu.openBelow(it.id) > 0uL }.map { it.id }.toSet())
+        }
     } catch (e: Exception) {
         Log.w("samu", "widget: $e")
         Shown.Failed
@@ -73,7 +79,8 @@ class TodayWidget : GlanceAppWidget() {
 private sealed interface Shown {
     data object SignedOut : Shown
     data object Failed : Shown
-    data class Rows(val rows: List<TaskRow>) : Shown
+    /** [opening]: tasks with open tasks below, whose ring opens them. */
+    data class Rows(val rows: List<TaskRow>, val opening: Set<String>) : Shown
 }
 
 /** The tokens of [Light] and [Dark], day and night as the system has it. */
@@ -111,7 +118,7 @@ private fun Today(context: Context, shown: Shown) {
                 Note(context, tr("Nichts für heute"))
             } else {
                 LazyColumn {
-                    items(shown.rows, itemId = { it.id.hashCode().toLong() }) { row -> Line(context, row) }
+                    items(shown.rows, itemId = { it.id.hashCode().toLong() }) { row -> Line(context, row, row.id in shown.opening) }
                 }
             }
         }
@@ -128,7 +135,7 @@ private fun Note(context: Context, text: String) {
 }
 
 @Composable
-private fun Line(context: Context, row: TaskRow) {
+private fun Line(context: Context, row: TaskRow, opening: Boolean) {
     Row(GlanceModifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         // A habit here is ticked for today, never completed (ADR 0092 §2).
         val habit = row.habit
@@ -136,7 +143,11 @@ private fun Line(context: Context, row: TaskRow) {
             HabitButton(row.id, habit)
         } else Box(
             GlanceModifier.size(32.dp).clickable(
-                actionRunCallback<CompleteAction>(actionParametersOf(CompleteAction.ID to row.id)),
+                if (opening) {
+                    actionStartActivity(open(context, TASK, row.id))
+                } else {
+                    actionRunCallback<CompleteAction>(actionParametersOf(CompleteAction.ID to row.id))
+                },
             ),
             contentAlignment = Alignment.Center,
         ) {
@@ -186,7 +197,10 @@ class CompleteAction : ActionCallback {
         val id = parameters[ID] ?: return
         withContext(Dispatchers.IO) {
             try {
-                Store.get(context).complete(id)
+                // Open tasks below since it was drawn: nothing here, the
+                // ring opens the task once drawn again (ADR 0128 §5).
+                val samu = Store.get(context)
+                if (samu.openBelow(id) == 0uL) samu.closeTasks(listOf(id), "completed", "close")
             } catch (e: Exception) {
                 Log.w("samu", "widget complete: $e")
             }

@@ -502,6 +502,7 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
     appointment?.let { AppointmentSheet(it) { appointment = null } }
     Arranging.open?.let { key -> ArrangeSheet(key, changed) { Arranging.open = null } }
     val share = pendingShare.value
+    Closing.ask.value?.let { CloseSheet(it, changed) }
     TaskMenus.editing.value?.let { row ->
         EditSheet(row) { saved ->
             TaskMenus.editing.value = null

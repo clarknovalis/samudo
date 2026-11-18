@@ -32,7 +32,7 @@ findet. Die Gründe hinter dem Aufbau stehen unter
 | **Inbox** | Aufgaben ohne Projekt. Alles, was ohne `#projekt` erfasst wird, landet hier. |
 | **Ordner** | Ein Baum aus Ordnern hält die Projekte. Ein Ordner ist aktiv oder verworfen; verwerfen blendet alles darunter aus. |
 | **Projekt** | Ein Ziel mit Aufgaben. Seine *Art* ist **parallel** (jede offene Aufgabe ist verfügbar), **sequenziell** (nur die erste offene ist es) oder **Einzelaktionen** (eine Liste loser Aufgaben, die nie „stuck“ ist). Sein *Status* ist aktiv, ruht, erledigt oder verworfen. |
-| **Aktionsgruppe** | Eine Aufgabe mit Kindern. Sie ist selbst nicht verfügbar, solange sie offene Kinder hat; sie kann sequenziell sein und sich mit ihrem letzten Kind selbst erledigen. |
+| **Aktionsgruppe** | Eine Aufgabe mit Kindern. Sie ist selbst nicht verfügbar, solange sie offene Kinder hat; sie kann sequenziell sein. |
 
 Ordner, Projekte und Tags können ein Emoji als Symbol tragen. Ein Ordner,
 ein Projekt oder ein Tag kann einen **eigenen Scope** nennen („Nur im
@@ -96,6 +96,30 @@ Aktionsgruppe ist nicht verfügbar, blockiert durch eine andere Aufgabe.
 
 Die Ansichten bieten drei Filter: **Verfügbar**, **Verbleibend** (alles
 Offene, auch was wartet) und **Alle** (auch Erledigtes und Verworfenes).
+
+### Erledigen mit offenen Aufgaben darunter
+
+Unter einer erledigten oder verworfenen Aufgabe ist eine offene Aufgabe
+nicht mehr verfügbar und fehlt in jeder Ansicht außer „Alle“. Darum fragt
+jede Oberfläche, bevor sie eine Aufgabe mit offenen Aufgaben darunter
+erledigt oder verwirft:
+
+- **Mit erledigen** (**Mit verwerfen**): jede offene Aufgabe darunter
+  bekommt denselben Zeitpunkt wie die Aufgabe.
+- **Herausholen**: die offenen direkten Kinder rücken samt dem, was unter
+  ihnen liegt, eine Ebene höher, in ihrer Reihenfolge direkt hinter die
+  Aufgabe; dann wird die Aufgabe erledigt oder verworfen. Von der obersten
+  Ebene eines Projekts kommen sie auf die oberste Ebene des Projekts, aus
+  der Inbox in die Inbox. Erledigte und verworfene Kinder bleiben, wo sie
+  sind; sie gehören zur Geschichte der Aufgabe.
+- **Abbrechen**: nichts ändert sich.
+
+Mehrere Aufgaben auf einmal bekommen eine Frage für alle. Wieder öffnen
+öffnet nur die Aufgabe selbst. Widgets und Benachrichtigungen können
+nicht fragen und öffnen stattdessen die Aufgabe. Was von außen kommt (ein
+Import, ein Hook, ein älterer Client), kann eine Gruppe weiterhin allein
+schließen; `ist:versteckt` findet die offenen Aufgaben, die so versteckt
+liegen.
 
 ## Abläufe und Zustände
 

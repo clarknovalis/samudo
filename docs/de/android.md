@@ -119,6 +119,12 @@ und Name) und öffnet sie.
   sie wieder aus dem Ausgang, der Server sieht sie nie (kein Eintrag im
   Logbuch, keine nächste Aufgabe einer Wiederholung). Hat ein Sync sie
   schon gesendet, schreibt Rückgängig stattdessen die Gegenänderung.
+- **Offene Aufgaben darunter:** Eine Aufgabe mit offenen Aufgaben darunter
+  zu erledigen oder zu verwerfen, auf welchem Weg auch immer, fragt zuerst
+  in einem Sheet: „Mit erledigen“, „Herausholen“ oder „Abbrechen“ (siehe
+  [Konzepte](concepts.md#erledigen-mit-offenen-aufgaben-darunter)), für
+  eine ganze Auswahl einmal. Das geht auch offline; „Rückgängig“ nimmt
+  alles zurück, was die Antwort geändert hat, auch herausgeholte Aufgaben.
 - **Langes Drücken** öffnet das Menü der Aufgabe: „Bearbeiten“,
   „Unteraufgabe anlegen“, „Markieren“, „Zurückstellen bis …“,
   „Verschieben …“ (in die Inbox oder ein Projekt, Kinder gehen mit) und
@@ -164,7 +170,8 @@ und Name) und öffnet sie.
 
 - **„Heute“**: überfällig, heute, dann markierte verfügbare Aufgaben. Der
   Haken erledigt über den Ausgang, „+“ öffnet das Erfassen, eine Zeile
-  öffnet die Aufgabe. Neu gezeichnet nach jedem Sync und beim Verlassen der
+  öffnet die Aufgabe. Bei einer Aufgabe mit offenen Aufgaben darunter
+  öffnet der Haken sie stattdessen. Neu gezeichnet nach jedem Sync und beim Verlassen der
   App.
 - **„Habits“**: jede offene Gewohnheit; siehe
   [Gewohnheiten](habits.md#widget-habits).
@@ -172,7 +179,9 @@ und Name) und öffnet sie.
 ## Erinnerungen und Kalender
 
 Erinnerungen an Aufgaben werden als Wecker auf dem Handy gestellt und
-erscheinen als Benachrichtigungen, auch ohne Netz. Termine stehen im
+erscheinen als Benachrichtigungen, auch ohne Netz. Ihre Aktion
+„Erledigt“ erledigt die Aufgabe; bei einer mit offenen Aufgaben darunter
+heißt sie „Erledigen …“ und öffnet die Aufgabe. Termine stehen im
 Forecast und in der Kalenderansicht (Liste, Tag, Woche); Tippen öffnet
 das Blatt des Termins, nur lesbar, mit „In Kalender-App öffnen“.
 

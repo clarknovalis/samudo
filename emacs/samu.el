@@ -163,6 +163,9 @@ clock is in the mode line.  `samu-toggle-live' switches it."
 (defconst samu--exit-not-found 3
   "The exit code of the CLI when what was asked for does not exist.")
 
+(defconst samu--exit-needs-choice 7
+  "The exit code of the CLI when tasks have open tasks below (ADR 0128).")
+
 (define-error 'samu-error "samu")
 
 (defun samu--global-args ()
@@ -813,22 +816,61 @@ In a project's own buffer, that project (ADR 0088 §3, §8)."
   "\"1 Aufgabe\" or \"N Aufgaben\" for IDS."
   (if (cdr ids) (format "%d Aufgaben" (length ids)) "1 Aufgabe"))
 
+(defun samu--choice-question (err ids)
+  "The question for IDS from the stderr ERR of exit code 7.
+ERR lists each waiting task, the open tasks below it indented."
+  (let* ((lines (split-string err "\n" t))
+         (tasks (cl-count-if (lambda (l) (string-match-p "\\`[[:alnum:]]" l))
+                             (cl-remove-if (lambda (l) (string-prefix-p "samu:" l))
+                                           lines)))
+         (below (cl-count-if (lambda (l) (string-prefix-p " " l)) lines)))
+    (if (cdr ids)
+        (format "%d der %d Aufgaben haben offene Unteraufgaben. Was passiert mit ihnen? "
+                (max tasks 1) (length ids))
+      (if (= below 1)
+          "1 offene Unteraufgabe. Was passiert mit ihr? "
+        (format "%d offene Unteraufgaben. Was passiert mit ihnen? " below)))))
+
+(defun samu--close (command ids along)
+  "Run `samu bulk COMMAND' on IDS; ask when tasks have open tasks below.
+ALONG names the first answer, \"mit erledigen\" or \"mit verwerfen\".
+Return non-nil when something was closed (ADR 0128 §5)."
+  (pcase-let ((`(,code ,_out ,err)
+               (samu--run (append (list "bulk" command) ids (list "--format" "json")))))
+    (cond
+     ((eql code 0) t)
+     ((eql code samu--exit-needs-choice)
+      (let ((answer (car (read-multiple-choice
+                          (samu--choice-question err ids)
+                          `((?m ,along "die offenen Unteraufgaben ebenso")
+                            (?h "herausholen" "eine Ebene höher rücken, hinter die Aufgabe")
+                            (?a "abbrechen" "nichts ändern"))))))
+        (pcase answer
+          (?m (samu--bulk command ids "--children" "close") t)
+          (?h (samu--bulk command ids "--children" "lift") t)
+          (_ (message "Nichts geändert") nil))))
+     (t (samu--fail code err)))))
+
 (defun samu-toggle-done ()
-  "Complete the tasks, or open them again if all of them are closed."
+  "Complete the tasks, or open them again if all of them are closed.
+With open tasks below, ask whether they are completed along or lifted out."
   (interactive)
   (let* ((ids (samu--targets))
          (rows (samu--target-rows))
          (reopen (cl-every #'samu--row-closed-p rows)))
-    (samu--bulk (if reopen "reopen" "done") ids)
-    (samu--after-action (format "%s %s" (samu--count ids)
-                                (if reopen "wieder offen" "erledigt")))))
+    (if reopen
+        (progn (samu--bulk "reopen" ids)
+               (samu--after-action (format "%s wieder offen" (samu--count ids))))
+      (when (samu--close "done" ids "mit erledigen")
+        (samu--after-action (format "%s erledigt" (samu--count ids)))))))
 
 (defun samu-drop ()
-  "Drop the tasks, after asking."
+  "Drop the tasks, after asking.
+With open tasks below, ask whether they are dropped along or lifted out."
   (interactive)
   (let ((ids (samu--targets)))
-    (when (yes-or-no-p (format "%s verwerfen? " (samu--count ids)))
-      (samu--bulk "drop" ids)
+    (when (and (yes-or-no-p (format "%s verwerfen? " (samu--count ids)))
+               (samu--close "drop" ids "mit verwerfen"))
       (samu--after-action (format "%s verworfen" (samu--count ids))))))
 
 (defun samu-delete ()

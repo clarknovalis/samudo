@@ -109,7 +109,15 @@ object Reminders {
                 .setAutoCancel(true)
                 .setCategory(android.app.Notification.CATEGORY_REMINDER)
                 .setContentIntent(open)
-            if (notice.isTask) builder.addAction(action(context, NoticeAction.DONE, tag, tr("Erledigt")))
+            if (notice.isTask) {
+                // With open tasks below it opens the task, which asks (ADR 0128 §5).
+                val below = runCatching { Store.get(context).openBelow(tag) }.getOrDefault(0uL)
+                if (below > 0uL) {
+                    builder.addAction(android.app.Notification.Action.Builder(null, tr("Erledigen …"), open).build())
+                } else {
+                    builder.addAction(action(context, NoticeAction.DONE, tag, tr("Erledigt")))
+                }
+            }
             builder.addAction(action(context, NoticeAction.LATER, tag, tr("Später")))
             if (appointment == null) builder.addAction(action(context, NoticeAction.TOMORROW, tag, tr("Morgen")))
             manager.notify(tag, 0, builder.build())
@@ -179,7 +187,8 @@ class NoticeAction : BroadcastReceiver() {
                 val now = System.currentTimeMillis()
                 when (intent.action) {
                     DONE -> {
-                        samu.complete(owner)
+                        // Open tasks below since it was shown: leave it to the app.
+                        if (samu.openBelow(owner) == 0uL) samu.closeTasks(listOf(owner), "completed", "close")
                         Sync.afterChange(context)
                         Widgets.refresh(context)
                         Clocking.refresh(context)

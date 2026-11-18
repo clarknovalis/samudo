@@ -41,7 +41,7 @@ schnelle Filter, die letzten Suchen und die Perspektiven (siehe
 | `zustand:"In Arbeit"` | in diesem Zustand ihres Ablaufs |
 | `fällig:`, `geplant:`, `start:` + Bereich | mit diesem Datum im Bereich (siehe unten) |
 | `erledigt:`, `erstellt:`, `geändert:` + Bereich | im Bereich erledigt, angelegt oder geändert |
-| `ist:` + Wort | `markiert`, `verfügbar`, `wartet`, `offen`, `erledigt`, `verworfen`, `gruppe` (Aktionsgruppe), `notiz` (hat eine Notiz), `wiederholt`, `geclockt` (hat Uhren), `blocker` (eine andere offene Aufgabe wartet auf sie), `blockiert` (wartet auf einen offenen Blocker, eigenen oder den ihres Projekts) |
+| `ist:` + Wort | `markiert`, `verfügbar`, `wartet`, `offen`, `erledigt`, `verworfen`, `gruppe` (Aktionsgruppe), `notiz` (hat eine Notiz), `wiederholt`, `geclockt` (hat Uhren), `blocker` (eine andere offene Aufgabe wartet auf sie), `blockiert` (wartet auf einen offenen Blocker, eigenen oder den ihres Projekts), `versteckt` (offen, aber unter einer erledigten oder verworfenen Aufgabe; siehe [Konzepte](concepts.md#erledigen-mit-offenen-aufgaben-darunter)) |
 | `ist:termin` | Termine statt Aufgaben, nach Titel, Ort und Notiz; ein wiederholter einmal, mit seinem nächsten Vorkommen; Datumschips gelten für den Beginn (nur im Web, nicht im Filter eines Scopes) |
 | `~<15m`, `~>=1h`, `~30m`, `~mit`, `~ohne` | nach Schätzung (`<`, `<=`, `>`, `>=`, gleich; mit oder ohne) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:mit`, `prio:ohne` (oder `prio:-`) | nach Priorität |
@@ -115,7 +115,7 @@ und zeigt sie genauso: `samu scope filter Arbeit "ist:markiert oder fällig:heut
 | `ordner:` `zustand:` `ist:` | `folder:` `state:` `is:` |
 | `heute` `morgen` `gestern` `woche` `überfällig` `mit` `ohne` | `today` `tomorrow` `yesterday` `week` `overdue` `any` `none` |
 | `7t` `-30t` | `7d` `-30d` |
-| `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `termin` | `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `appointment` |
+| `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `versteckt` `termin` | `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `hidden` `appointment` |
 
 `#`, `@`, `~`, `prio:` und `prop:` sind in beiden gleich. Ein Chip wird
 **in seiner deutschen Form gespeichert**: Ein Scope oder eine Perspektive

@@ -112,7 +112,11 @@ fun PickBar(changed: () -> Unit, edit: (String) -> Unit) {
         if (rows.any { !it.done && !it.dropped }) {
             TextButton(onClick = {
                 val open = Picks.rows.value.filter { !it.done && !it.dropped }
-                undoable(Undo.count(open.size, tr("Erledigt"), tr("erledigt")), { open.flatMap { complete(it.id) } }, { open.forEach { reopen(it.id) } })
+                // One question for the whole pick (ADR 0128 §5).
+                scope.launch {
+                    runCatching { Closing.run(context, open.map { it.id }, dropped = false, title = open.singleOrNull()?.title) }
+                    changed()
+                }
             }) { Text("✓") }
         }
         if (rows.isNotEmpty()) {
@@ -231,9 +235,18 @@ private fun PickMenu(changed: () -> Unit, edit: (String) -> Unit, close: () -> U
                         item(tr("Verwerfen")) {
                             // With „Rückgängig“ (ADR 0104 §1).
                             val those = rows.filter { !it.dropped }
+                            val open = those.filter { !it.done }
+                            val done = those.filter { it.done }
                             scope.launch {
                                 try {
-                                    Undo.run(context, Undo.count(those.size, tr("Verworfen"), tr("verworfen")), { those.flatMap { dropTask(it.id) } }, { those.forEach { reopen(it.id) } })
+                                    if (open.isEmpty()) {
+                                        Undo.run(context, Undo.count(done.size, tr("Verworfen"), tr("verworfen")), { done.flatMap { dropTask(it.id) } }, { done.forEach { reopen(it.id) } })
+                                    } else {
+                                        // Completed ones are dropped as they are; the open ones
+                                        // ask first with open tasks below (ADR 0128 §5).
+                                        withContext(Dispatchers.IO) { Store.get(context).run { done.forEach { dropTask(it.id) } } }
+                                        Closing.run(context, open.map { it.id }, dropped = true, title = open.singleOrNull()?.title)
+                                    }
                                     changed()
                                     close()
                                 } catch (e: Exception) {

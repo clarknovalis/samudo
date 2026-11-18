@@ -40,7 +40,7 @@ pub struct ClockRow {
 }
 
 /// The ends of `endings` as changes.
-fn ended(endings: Vec<Ending>, stamp: &mut dyn FnMut() -> Hlc) -> Vec<Change> {
+pub(crate) fn ended(endings: Vec<Ending>, stamp: &mut dyn FnMut() -> Hlc) -> Vec<Change> {
     endings
         .into_iter()
         .map(|e| Change::Set {

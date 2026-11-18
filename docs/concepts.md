@@ -29,7 +29,7 @@ the design are in [Architecture](architecture.md).
 | **Inbox** | Tasks without a project. Everything captured without `#project` lands here. |
 | **Folder** | A tree of folders holds projects. A folder is active or dropped; dropping it hides everything below. |
 | **Project** | A goal with tasks. Its *kind* is **parallel** (every open task is available), **sequential** (only the first open task is) or **single actions** (a list of loose tasks that is never "stuck"). Its *status* is active, on hold, completed or dropped. |
-| **Action group** | A task with children. It is not itself available while it has open children; it can be sequential, and can complete itself with its last child. |
+| **Action group** | A task with children. It is not itself available while it has open children; it can be sequential. |
 
 Folders, projects and tags may carry an emoji as icon. A folder, project
 or tag can name its **own scope** ("Only in scope: Work"): it then appears
@@ -89,6 +89,27 @@ available, blocked by another task.
 The views offer three filters: **available**, **remaining**
 (everything open, also what waits) and **all** (also
 completed and dropped).
+
+### Completing a task with open tasks below
+
+Under a completed or dropped task, an open task is no longer available
+and is missing from every view but "all". So every interface asks before
+it completes or drops a task with open tasks below:
+
+- **Complete them too** (**Drop them too**): every open task below gets
+  the same time as the task.
+- **Lift out**: the open direct children, with what lies below them, move
+  one level up, in their order, right after the task; then the task is
+  completed or dropped. From the top of a project they go to the top of
+  the project, from the inbox into the inbox. Completed and dropped
+  children stay where they are; they belong to the task's history.
+- **Cancel**: nothing changes.
+
+Several tasks at once get one question for all of them. Reopening reopens
+only the task itself. Widgets and notifications cannot ask, so they open
+the task instead. What comes from outside (an import, a hook, an older
+client) can still close a group on its own; `is:hidden` finds the open
+tasks that lie hidden that way.
 
 ## Workflows and states
 

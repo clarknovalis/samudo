@@ -563,4 +563,12 @@ val EN: Map<String, String> = mapOf(
     "Zurücksetzen" to "Reset",
     "Ordnung ist eindeutig" to "Order is unique",
     "⇄ {label}" to "⇄ {label}",
+    "Erledigen …" to "Complete …",
+    "„{title}“ hat {n} offene Unteraufgaben." to "“{title}” has {n} open subtasks.",
+    "{k} der {n} Aufgaben haben offene Unteraufgaben." to "{k} of the {n} tasks have open subtasks.",
+    "Mit erledigen" to "Complete them too",
+    "Mit verwerfen" to "Drop them too",
+    "Mit erledigen: alle offenen darunter auch. Herausholen: sie rücken eine Ebene höher." to "Complete them too: every open one below as well. Lift out: they move one level up.",
+    "Mit verwerfen: alle offenen darunter auch. Herausholen: sie rücken eine Ebene höher." to "Drop them too: every open one below as well. Lift out: they move one level up.",
+    "Herausholen" to "Lift out",
 )

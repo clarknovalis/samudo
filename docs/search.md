@@ -39,7 +39,7 @@ searches and perspectives (see [Android app](android.md#search)).
 | `state:"In progress"` | in that state of their workflow |
 | `due:`, `planned:`, `defer:` + range | with that date in the range (see below) |
 | `done:`, `created:`, `modified:` + range | completed, created or modified in the range |
-| `is:` + word | `flagged`, `available`, `waiting`, `open`, `done` (completed), `dropped`, `group` (action group), `note` (has a note), `repeating`, `clocked` (has clocks), `blocker` (another open task waits for it), `blocked` (waits for an open blocker, its own or its project's) |
+| `is:` + word | `flagged`, `available`, `waiting`, `open`, `done` (completed), `dropped`, `group` (action group), `note` (has a note), `repeating`, `clocked` (has clocks), `blocker` (another open task waits for it), `blocked` (waits for an open blocker, its own or its project's), `hidden` (open, but under a completed or dropped task; see [Concepts](concepts.md#completing-a-task-with-open-tasks-below)) |
 | `is:appointment` | appointments instead of tasks, by title, place and note; a repeating one once, with its next occurrence; date chips apply to the start (web only, not in a scope's filter) |
 | `~<15m`, `~>=1h`, `~30m`, `~any`, `~none` | by estimate (`<`, `<=`, `>`, `>=`, equal; with or without one) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:any`, `prio:none` (or `prio:-`) | by priority |
@@ -110,7 +110,7 @@ prints them the same way: `samu scope filter Work "is:flagged or due:today"`.
 | `folder:` `state:` `is:` | `ordner:` `zustand:` `ist:` |
 | `today` `tomorrow` `yesterday` `week` `overdue` `any` `none` | `heute` `morgen` `gestern` `woche` `überfällig` `mit` `ohne` |
 | `7d` `-30d` | `7t` `-30t` |
-| `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `appointment` | `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `termin` |
+| `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `hidden` `appointment` | `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `versteckt` `termin` |
 
 `#`, `@`, `~`, `prio:` and `prop:` are the same in both. A chip is
 **stored in its German form**: a scope or perspective keeps `heute`,

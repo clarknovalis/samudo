@@ -44,7 +44,7 @@ Profil. Sie erscheint unter Leiste › Widget hinzufügen als „samudo -
 |---|---|
 | ↑ ↓, `j` `k` | auswählen |
 | Enter, Doppelklick | öffnen |
-| `x`, Leertaste, der Kreis | erledigen |
+| `x`, Leertaste, der Kreis | erledigen; eine Aufgabe mit offenen Aufgaben darunter öffnet sich stattdessen |
 | `f` | Markierung an/aus |
 | `c` | Uhr an der Aufgabe starten, die laufende anhalten |
 | `a`, Tab | erfassen; Enter legt an, Escape leert oder geht zurück |

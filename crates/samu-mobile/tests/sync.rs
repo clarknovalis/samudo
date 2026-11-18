@@ -4630,3 +4630,175 @@ fn lists_arrange_in_groups_and_by_two_keys() {
             .is_err()
     );
 }
+
+/// A group with two open children and a done one, under a task at the top
+/// with a sibling after it (ADR 0128).
+fn family(other: &Client) -> (String, String, String, String, String) {
+    let project = {
+        let id = samu_api::Id::new().to_string();
+        let value = json!({"id": id, "created": "2026-11-08T08:00:00Z",
+            "modified": "2026-11-08T08:00:00Z", "title": "Haus", "kind": "parallel",
+            "status": "active", "flagged": false, "position": 0});
+        let change = json!([{"op": "create", "object": id, "kind": "project", "value": value,
+                             "hlc": {"wall": 0, "counter": 0, "device": "x"}}]);
+        let outcomes = other
+            .call("POST", "/changes?stamp=server", Some(&change))
+            .unwrap()
+            .json()
+            .unwrap();
+        assert_eq!(outcomes[0]["outcome"], "applied", "{outcomes}");
+        id
+    };
+    let group = make_task(other, "Keller", json!({"project": project, "position": 0}));
+    let after = make_task(other, "Dach", json!({"project": project, "position": 1}));
+    let a = make_task(
+        other,
+        "Regal",
+        json!({"project": project, "parent": group, "position": 0}),
+    );
+    let b = make_task(
+        other,
+        "Lampe",
+        json!({"project": project, "parent": group, "position": 1}),
+    );
+    make_task(
+        other,
+        "Fegen",
+        json!({"project": project, "parent": group, "position": 2,
+               "completed_at": "2026-11-08T09:00:00Z"}),
+    );
+    (group, a, b, after, project)
+}
+
+#[test]
+fn closing_a_group_with_open_children_asks_and_writes_nothing() {
+    let server = Server::start();
+    let other = server.other_client();
+    let (group, a, _, _, _) = family(&other);
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let asked = samu
+        .close_tasks(vec![group.clone()], "completed".into(), "ask".into())
+        .unwrap();
+    assert_eq!((asked.asking, asked.open), (1, 2));
+    assert_eq!(samu.open_below(group.clone()).unwrap(), 2);
+    assert_eq!(samu.open_below(a.clone()).unwrap(), 0);
+    assert!(asked.numbers.is_empty() && asked.back.is_empty());
+    assert_eq!(samu.outbox_count().unwrap(), 0);
+    // Picked along, a child is answered: no question for the group.
+    let other_pick = samu
+        .close_tasks(vec![a.clone()], "completed".into(), "ask".into())
+        .unwrap();
+    assert_eq!(other_pick.asking, 0, "a leaf closes without a question");
+    samu.withdraw(other_pick.numbers).unwrap();
+    assert_eq!(samu.outbox_count().unwrap(), 0);
+}
+
+#[test]
+fn closing_along_offline_gives_the_children_the_same_instant() {
+    let server = Server::start();
+    let other = server.other_client();
+    let (group, a, b, _, _) = family(&other);
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    let clock = samu.clock_in(b.clone()).unwrap();
+
+    let closed = samu
+        .close_tasks(vec![group.clone()], "dropped".into(), "close".into())
+        .unwrap();
+    assert_eq!(closed.asking, 1, "it still says there were some");
+    let rows: Vec<_> = samu
+        .available(None)
+        .unwrap()
+        .into_iter()
+        .flat_map(|s| s.rows)
+        .collect();
+    assert_eq!(titles(&rows), ["Dach"], "only the sibling is left");
+    let report = samu.sync().unwrap();
+    assert_eq!(report.rejected, 0);
+
+    let at = stored(&other, &group)["dropped_at"].clone();
+    assert!(at.is_string(), "{}", stored(&other, &group));
+    assert_eq!(stored(&other, &a)["dropped_at"], at);
+    assert_eq!(stored(&other, &b)["dropped_at"], at);
+    assert!(
+        stored(&other, &clock)["end"].is_string(),
+        "the clock on a child ends"
+    );
+}
+
+#[test]
+fn lifting_out_puts_the_children_after_the_group_and_back() {
+    let server = Server::start();
+    let other = server.other_client();
+    let (group, a, b, after, _) = family(&other);
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let closed = samu
+        .close_tasks(vec![group.clone()], "completed".into(), "lift".into())
+        .unwrap();
+    samu.sync().unwrap();
+    let (sa, sb, safter) = (
+        stored(&other, &a),
+        stored(&other, &b),
+        stored(&other, &after),
+    );
+    assert!(
+        sa.get("parent").is_none() && sb.get("parent").is_none(),
+        "{sa} {sb}"
+    );
+    assert_eq!((&sa["position"], &sb["position"]), (&json!(1), &json!(2)));
+    assert_eq!(safter["position"], 3, "the sibling makes room");
+    assert!(stored(&other, &group)["completed_at"].is_string());
+    assert!(sa.get("completed_at").is_none());
+
+    // Sent already: withdraw is too late, put_back writes it back.
+    assert!(!samu.withdraw(closed.numbers.clone()).unwrap());
+    samu.put_back(closed.back).unwrap();
+    samu.sync().unwrap();
+    let (sa, sb, safter) = (
+        stored(&other, &a),
+        stored(&other, &b),
+        stored(&other, &after),
+    );
+    assert_eq!(sa["parent"], json!(group));
+    assert_eq!(sb["parent"], json!(group));
+    assert_eq!((&sa["position"], &sb["position"]), (&json!(0), &json!(1)));
+    assert_eq!(safter["position"], 1);
+    assert!(stored(&other, &group).get("completed_at").is_none());
+}
+
+#[test]
+fn a_picked_group_closes_after_its_picked_children() {
+    let server = Server::start();
+    let other = server.other_client();
+    let (group, a, b, _, _) = family(&other);
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let closed = samu
+        .close_tasks(
+            vec![group.clone(), a.clone(), b.clone()],
+            "completed".into(),
+            "ask".into(),
+        )
+        .unwrap();
+    assert_eq!(closed.asking, 0);
+    // Before it leaves, withdraw takes it all back.
+    assert!(samu.withdraw(closed.numbers.clone()).unwrap());
+    assert_eq!(samu.outbox_count().unwrap(), 0);
+    let closed = samu
+        .close_tasks(
+            vec![group.clone(), a.clone(), b.clone()],
+            "completed".into(),
+            "ask".into(),
+        )
+        .unwrap();
+    assert_eq!(closed.numbers.len(), 3);
+    samu.sync().unwrap();
+    for id in [&group, &a, &b] {
+        assert!(stored(&other, id)["completed_at"].is_string());
+    }
+}

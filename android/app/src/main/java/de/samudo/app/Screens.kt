@@ -443,7 +443,11 @@ internal fun SwipeRow(row: TaskRow, changed: () -> Unit, why: String? = null, pl
     val complete: () -> Unit = {
         when {
             habit == null && row.done -> act { reopen(row.id) }
-            habit == null -> undoable(tr("Erledigt"), { complete(row.id) }, { reopen(row.id) })
+            // Asks first with open tasks below (ADR 0128 §5).
+            habit == null -> scope.launch {
+                runCatching { Closing.run(context, listOf(row.id), dropped = false, title = row.title) }
+                changed()
+            }
             habit.kind != "avoid" -> act { enterHabit(row.id, "done", null, null) }
         }
     }
@@ -676,8 +680,17 @@ fun TaskScreen(id: String, tick: Int, changed: () -> Unit, open: (String) -> Uni
             if (row.done || row.dropped) {
                 OutlinedButton(onClick = { act { reopen(id) } }) { Text(tr("Wieder öffnen")) }
             } else {
-                Button(onClick = { act { complete(id) }; back() }) { Text(tr("Erledigen")) }
-                OutlinedButton(onClick = { act { dropTask(id) } }) { Text(tr("Verwerfen")) }
+                // Through the question of ADR 0128 §5; back once it is closed.
+                Button(onClick = {
+                    scope.launch {
+                        runCatching { Closing.run(context, listOf(id), dropped = false, title = row.title) { changed(); back() } }
+                    }
+                }) { Text(tr("Erledigen")) }
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        runCatching { Closing.run(context, listOf(id), dropped = true, title = row.title) { changed() } }
+                    }
+                }) { Text(tr("Verwerfen")) }
             }
             OutlinedButton(onClick = { act { setFlag(id, !row.flagged) } }) { Text(if (row.flagged) tr("Markierung weg") else tr("⚑ Markieren")) }
         }

@@ -63,7 +63,7 @@ together.
 |---|---|
 | `n` `p`, `j` `k` | next / previous task |
 | `RET` / `TAB` | show the task / in the other window |
-| `x` | complete / reopen |
+| `x` | complete / reopen; with open tasks below it asks: `m` complete them too, `h` lift out, `a` cancel |
 | `s` / `t` | next state / state by key |
 | `f` | flag on/off |
 | `c`, `I` / `O` | clock toggle; in / out |
@@ -75,7 +75,7 @@ together.
 | `a` / `A` | capture / as a child task |
 | `C` | capture with a template: then the template's key, as in org-capture |
 | `/` | search |
-| `X` / `DEL` | drop / delete, both ask first |
+| `X` / `DEL` | drop / delete, both ask first; dropping asks about open tasks below as `x` does |
 | `w` | copy the `samu:` link |
 | `M` `u` `U` `B` | mark, unmark, unmark all, action on the marked |
 | `S` | scope |
