@@ -20,6 +20,7 @@
 mod calendar;
 mod capture;
 mod change;
+mod convert;
 mod delete;
 mod document;
 mod events;
@@ -45,6 +46,7 @@ pub use calendar::{
 };
 pub use capture::{CaptureMark, CaptureMeaning, CaptureRequest, CaptureResponse, CaptureWarning};
 pub use change::{Change, ChangeOutcome, ObjectKind};
+pub use convert::{ToProjectRequest, ToProjectResponse};
 pub use delete::{DeleteRequest, DeleteResponse, TaskFate};
 pub use document::{
     Align, Block, Document, DocumentFormat, Inline, LinkClass, LinkedObject, ListItem, Property,

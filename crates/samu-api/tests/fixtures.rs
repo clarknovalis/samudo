@@ -26,7 +26,7 @@ use samu_api::{
     Link, LogEntry, Login, PairCode, PairCodeRequest, PairRequest, Perspective, Project,
     ProjectAvailability, Register, Registered, RegistrationInfo, Reminder, RenderRequest,
     RenderResponse, Report, ReportRow, ResetNotice, ScheduledScope, Scope, SessionInfo,
-    SessionSummary, Tag, Task, TaskStatus, Template,
+    SessionSummary, Tag, Task, TaskStatus, Template, ToProjectRequest, ToProjectResponse,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -111,6 +111,8 @@ const TYPES: &[(&str, RoundTrip)] = &[
     ("demo_added", round_trip::<DemoAdded>),
     ("delete_request", round_trip::<DeleteRequest>),
     ("delete_response", round_trip::<DeleteResponse>),
+    ("to_project_request", round_trip::<ToProjectRequest>),
+    ("to_project_response", round_trip::<ToProjectResponse>),
     ("document", round_trip::<Document>),
     ("render_request", round_trip::<RenderRequest>),
     ("render_response", round_trip::<RenderResponse>),

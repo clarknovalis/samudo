@@ -22,7 +22,8 @@ use samu_store::core::api::{
     AnyObject, ApiError, Author, AuthorKind, BareStatus, CaptureRequest, CaptureResponse, Change,
     ChangeNotice, ChangeOutcome, ChangesPage, DeleteRequest, DeleteResponse, ErrorCode, Export,
     Folder, Hlc, Id, LogEntry, LogKind, Login, PairCode, PairCodeRequest, PairRequest, Period,
-    ProjectAvailability, RenderRequest, RenderResponse, ResetNotice, SessionInfo,
+    ProjectAvailability, RenderRequest, RenderResponse, ResetNotice, SessionInfo, ToProjectRequest,
+    ToProjectResponse,
 };
 use samu_store::core::availability::Settings;
 use samu_store::core::clock::{next_stamp, restamp};
@@ -1243,6 +1244,77 @@ async fn delete_object(
     }
 }
 
+/// `POST /objects/{id}/to-project`: a new project takes the task's title,
+/// note, dates and children; the task stays and goes in last (ADR 0126).
+/// Computed in samu-core and written in one transaction; with `preview`,
+/// the same answer and nothing written.
+async fn to_project(
+    State(state): State<Arc<AppState>>,
+    Extension(session): Extension<Session>,
+    UrlPath(id): UrlPath<String>,
+    Json(request): Json<ToProjectRequest>,
+) -> Result<Json<ToProjectResponse>, Failure> {
+    let id: Id = id
+        .parse()
+        .map_err(|_| Failure::bad_request(format!("{id:?} is not an id")))?;
+    let store = state.account(&session.account)?;
+    let mut store = lock(&store)?;
+    let reach = session_reach(&session, &store)?;
+    if let Some(reach) = &reach
+        && !crate::grant::sees_stored(reach, &store, id)?
+    {
+        return Err(Failure::not_found(format!("no object {id}")));
+    }
+    if store.deleted(id)?.is_none_or(|deleted| deleted) {
+        return Err(Failure::not_found(format!("no object {id}")));
+    }
+    let snapshot = store.snapshot()?;
+    let now = Timestamp::now();
+    let plan = samu_store::core::convert::plan(&snapshot.snapshot(), id, Id::new(), &request, now)
+        .map_err(|e| Failure::bad_request(e.to_string()))?;
+    if let Some(reach) = &reach {
+        for change in &plan.changes {
+            if !crate::grant::may_apply(reach, &store, change)? {
+                return Err(crate::grant::forbidden(format!(
+                    "the project reaches {}",
+                    crate::grant::OUTSIDE
+                )));
+            }
+        }
+    }
+    let mut answer = ToProjectResponse {
+        project: plan.project,
+        moved: plan.moved,
+        seq: None,
+    };
+    if request.preview {
+        return Ok(Json(answer));
+    }
+    let seen = store.observed()?;
+    let mut own: Option<Hlc> = None;
+    let changes: Vec<Change> = plan
+        .changes
+        .into_iter()
+        .map(|change| {
+            let stamp = next_stamp(&session.device, own.as_ref(), seen.as_ref(), now);
+            own = Some(stamp.clone());
+            restamp(change, stamp)
+        })
+        .collect();
+    match store.apply_all(&changes, &session.author(), now)? {
+        Ok(outcomes) => {
+            answer.seq = outcomes.iter().rev().find_map(|outcome| match outcome {
+                ChangeOutcome::Applied { seq } => Some(*seq),
+                _ => None,
+            });
+            Ok(Json(answer))
+        }
+        Err((index, outcome)) => Err(Failure::internal(format!(
+            "project not made, change {index}: {outcome:?}"
+        ))),
+    }
+}
+
 /// `GET /objects/{id}/logbook`: what happened to it, oldest first
 /// (ADR 0024 §7).
 async fn get_logbook(
@@ -2106,6 +2178,7 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route("/objects/{id}/logbook", get(get_logbook))
         .route("/logbook", get(get_account_logbook))
         .route("/objects/{id}/delete", post(delete_object))
+        .route("/objects/{id}/to-project", post(to_project))
         .route("/available", get(available))
         .route("/blocks", get(blocks))
         .route("/habits", get(habits))

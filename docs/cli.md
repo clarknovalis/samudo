@@ -193,6 +193,7 @@ samu bulk date due tomorrow -          # ids from stdin
 ```sh
 samu folder add Home
 samu project add Bathroom --folder Home
+samu project from-task 4f2a91c3        # a task with its children becomes a project
 samu tag add Place/Office              # Office under Place
 samu tag add Status --exclusive --default-workflow  # a workflow; its children are states
 samu tag add Status/Waiting --key w    # --ask-note asks for a note on entry
@@ -202,6 +203,14 @@ samu review Bathroom                   # mark reviewed
 
 `rename`, `move` and `delete` work on folders, projects and tags as
 `--help` shows.
+
+`samu project from-task` turns a task into a project: the project takes
+its title, note, dates, flag and tags, and its direct children become the
+project's top tasks. The task itself stays, with its comments, clocks,
+links and properties, as the last task in the project, its title prefixed
+with `Notizen: ` (`--prefix`, or `--keep-title`). A task with the property
+`source` keeps its title, since a sync writes it. `--folder` picks the
+folder, else the one of the task's project; `--dry-run` writes nothing.
 
 ## Comments and files
 

@@ -1957,6 +1957,108 @@ fn projects_and_folders_are_made_renamed_and_deleted() {
     assert_eq!(inbox.as_array().unwrap().len(), 2, "{inbox:#}");
 }
 
+/// ADR 0126: `samu project from-task` makes a project of a task with its
+/// children, into a chosen folder; the task stays with the prefix, or its
+/// title with `--keep-title`; a dry run writes nothing; a task with a
+/// repetition is exit 1.
+#[test]
+fn a_task_becomes_a_project() {
+    let server = signed_in_server();
+    let made = |args: &[&str]| {
+        let out = json_out(&server.samu(args, None));
+        out[0]["id"].as_str().unwrap().to_string()
+    };
+    made(&["folder", "add", "Haus", "--format", "json"]);
+    let group = made(&["add", "Umzug", "--format", "json"]);
+    made(&["add", "Kartons", "--parent", &group, "--format", "json"]);
+    made(&["add", "Möbelwagen", "--parent", &group, "--format", "json"]);
+
+    let dry = json_out(&server.samu(
+        &[
+            "project",
+            "from-task",
+            &group,
+            "--dry-run",
+            "--format",
+            "json",
+        ],
+        None,
+    ));
+    assert_eq!(dry[0]["moved"], 3, "{dry:#}");
+    assert!(dry[0]["seq"].is_null(), "{dry:#}");
+    let projects = |title: &str| {
+        let list = json_out(&server.samu(&["projects", "--format", "json"], None));
+        list.as_array()
+            .unwrap()
+            .iter()
+            .filter(|p| p.to_string().contains(title))
+            .count()
+    };
+    assert_eq!(projects("Umzug"), 0, "a dry run writes nothing");
+
+    let made_project = json_out(&server.samu(
+        &[
+            "project",
+            "from-task",
+            &group,
+            "--folder",
+            "Haus",
+            "--format",
+            "json",
+        ],
+        None,
+    ));
+    let project = made_project[0]["id"].as_str().unwrap().to_string();
+    assert_eq!(projects("Umzug"), 1, "the probe finds it");
+    let inside = json_out(&server.samu(&["list", "--project", &project, "--format", "json"], None));
+    let titles: Vec<String> = inside
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["title"].as_str().unwrap_or_default().to_string())
+        .collect();
+    assert!(titles.contains(&"Notizen: Umzug".to_string()), "{titles:?}");
+    assert!(titles.contains(&"Kartons".to_string()), "{titles:?}");
+    let shown = json_out(&server.samu(&["show", &project, "--format", "json"], None));
+    assert!(shown[0]["object"]["folder"].is_string(), "{shown:#}");
+
+    let plain = made(&["add", "Keller", "--format", "json"]);
+    json_out(&server.samu(
+        &[
+            "project",
+            "from-task",
+            &plain,
+            "--keep-title",
+            "--format",
+            "json",
+        ],
+        None,
+    ));
+    let shown = json_out(&server.samu(&["show", &plain, "--format", "json"], None));
+    assert_eq!(shown[0]["object"]["title"], "Keller", "{shown:#}");
+
+    let repeating = made(&["add", "Gießen", "--format", "json"]);
+    assert_eq!(
+        code(&server.samu(
+            &[
+                "set",
+                &repeating,
+                "repeat",
+                r#"{"rule":"FREQ=DAILY","mode":"fixed"}"#
+            ],
+            None
+        )),
+        0
+    );
+    let refused = server.samu(&["project", "from-task", &repeating], None);
+    assert_eq!(
+        code(&refused),
+        1,
+        "{}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+}
+
 /// ADR 0059, 0060: icons on projects and folders, a colour on a scope; set,
 /// printed back, cleared; a wrong colour is a usage error.
 #[test]

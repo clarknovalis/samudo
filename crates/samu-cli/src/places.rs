@@ -8,7 +8,10 @@
 use anyhow::{Result, bail};
 use clap::{Subcommand, ValueEnum};
 use clap_complete::engine::ArgValueCompleter;
-use samu_api::{AnyObject, Change, ChangesPage, Folder, Id, ObjectKind, Project, Tag};
+use samu_api::{
+    AnyObject, Change, ChangesPage, Folder, Id, ObjectKind, Project, Tag, ToProjectRequest,
+    ToProjectResponse,
+};
 use samu_client::{Client, Error as Failure};
 use serde_json::{Value, json};
 
@@ -44,6 +47,27 @@ pub(crate) enum ProjectCommand {
         folder: Option<String>,
         #[arg(long)]
         top: bool,
+    },
+    /// Turn a task into a project (ADR 0126): the project takes its title,
+    /// note, dates, flag and tags, its children go on top; the task stays,
+    /// with its comments, clocks and links, last in the project.
+    FromTask {
+        #[arg(add = ArgValueCompleter::new(crate::complete::task))]
+        task: String,
+        /// The folder, by title or the end of its id; else the folder of
+        /// the task's project.
+        #[arg(long)]
+        folder: Option<String>,
+        /// Put before the title of the task that stays; not for a task with
+        /// the property `source`, whose title a sync writes.
+        #[arg(long, default_value = "Notizen: ", conflicts_with = "keep_title")]
+        prefix: String,
+        /// Leave the task's title as it is.
+        #[arg(long)]
+        keep_title: bool,
+        /// Say what would happen; write nothing.
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Set what a project is (ADR 0037 §3).
     Set {
@@ -315,6 +339,40 @@ pub(crate) fn project(config: &Config, format: Format, command: ProjectCommand) 
                 value["folder"] = json!(folder);
             }
             create(&client, format, ObjectKind::Project, value)
+        }
+        ProjectCommand::FromTask {
+            task,
+            folder,
+            prefix,
+            keep_title,
+            dry_run,
+        } => {
+            let id = crate::resolve(&client, &task)?;
+            let folder = match folder {
+                Some(f) => Some(find_folder(&places(&client)?.folders, &f)?.id),
+                None => None,
+            };
+            let request = ToProjectRequest {
+                folder,
+                prefix: (!keep_title).then_some(prefix),
+                preview: dry_run,
+            };
+            let answer = client.call(
+                "POST",
+                &format!("/objects/{id}/to-project"),
+                Some(&serde_json::to_value(&request)?),
+            )?;
+            let answer: ToProjectResponse = serde_json::from_value(answer.json()?)?;
+            emit(
+                format,
+                &[json!({
+                    "id": answer.project,
+                    "short": short(&answer.project),
+                    "moved": answer.moved,
+                    "seq": answer.seq,
+                })],
+                &["id", "moved"],
+            )
         }
         ProjectCommand::Rename { project, title } => {
             let id = resolve_project(&client, &project)?;

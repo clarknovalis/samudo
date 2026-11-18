@@ -197,6 +197,7 @@ samu bulk date due morgen -            # IDs von stdin
 ```sh
 samu folder add Zuhause
 samu project add Bad --folder Zuhause
+samu project from-task 4f2a91c3        # eine Aufgabe mit ihren Kindern wird ein Projekt
 samu tag add Ort/Büro                  # Büro unter Ort
 samu tag add Status --exclusive --default-workflow  # ein Ablauf; seine Kinder sind Zustände
 samu tag add Status/Wartet --key w     # --ask-note verlangt beim Betreten eine Notiz
@@ -206,6 +207,15 @@ samu review Bad                        # als geprüft markieren
 
 `rename`, `move` und `delete` wirken auf Ordner, Projekte und Tags, wie
 `--help` zeigt.
+
+`samu project from-task` macht aus einer Aufgabe ein Projekt: Das Projekt
+übernimmt Titel, Notiz, Daten, Markierung und Tags, die direkten Kinder
+werden seine obersten Aufgaben. Die Aufgabe selbst bleibt, mit
+Kommentaren, Clocks, Links und Properties, als letzte Aufgabe im Projekt,
+ihr Titel mit `Notizen: ` davor (`--prefix`, oder `--keep-title`). Eine
+Aufgabe mit der Property `source` behält ihren Titel, den schreibt ein
+Abgleich. `--folder` wählt den Ordner, sonst der des Projekts der Aufgabe;
+`--dry-run` schreibt nichts.
 
 ## Kommentare und Dateien
 

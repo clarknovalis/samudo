@@ -694,6 +694,7 @@ const COVERAGE: &[(&str, &str, &str)] = &[
     ("GET", "/objects/{id}/logbook", "log"),
     ("GET", "/logbook", "logbook"),
     ("POST", "/objects/{id}/delete", "delete"),
+    ("POST", "/objects/{id}/to-project", "project from-task"),
     ("GET", "/available", "list"),
     ("GET", "/blocks", "list"),
     ("GET", "/available/projects", "projects"),

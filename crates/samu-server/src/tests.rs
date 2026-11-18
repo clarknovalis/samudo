@@ -2941,3 +2941,137 @@ async fn capture_with_task_books_more_time() {
     let want = 30 * 60 + 2 * 3600 + if future { 0 } else { 60 };
     assert_eq!(seconds, want);
 }
+
+/// ADR 0126: a task becomes a project — the project takes title, note and
+/// children, the task keeps its id and comment and goes in last; a preview
+/// writes nothing, a closed task is refused. Asked of the database.
+#[tokio::test]
+async fn a_task_becomes_a_project_and_keeps_its_id_and_comments() {
+    let (address, dir) = start(true).await;
+    let token = sign_in(address).await;
+    let (group_id, mut group) = new_task("Umzug");
+    group["note"] = json!("Wohnung in der Südstadt");
+    group["properties"] = json!({"jira": "ABC-1"});
+    let (first_id, mut first) = new_task("Kartons");
+    first["parent"] = json!(group_id);
+    first["position"] = json!(5);
+    let (second_id, mut second) = new_task("Möbelwagen");
+    second["parent"] = json!(group_id);
+    second["position"] = json!(2);
+    let (deep_id, mut deep) = new_task("Klebeband");
+    deep["parent"] = json!(first_id);
+    let (closed_id, mut closed) = new_task("Erledigt");
+    closed["completed_at"] = json!("2026-11-17T08:00:00Z");
+    let comment = samu_store::core::api::Id::new().to_string();
+    let changes = json!([
+        create(&group_id, &group),
+        create(&first_id, &first),
+        create(&second_id, &second),
+        create(&deep_id, &deep),
+        create(&closed_id, &closed),
+        {"op": "create", "object": comment, "kind": "comment",
+         "value": {"id": comment, "created": "2026-11-18T08:00:00Z",
+                   "modified": "2026-11-18T08:00:00Z", "owner": group_id,
+                   "body": "Angebot liegt vor"},
+         "hlc": {"wall": 0, "counter": 0, "device": "ignored"}},
+    ]);
+    let answer = call(
+        address,
+        "POST",
+        "/changes?stamp=server",
+        Some(&token),
+        Some(&changes),
+    )
+    .await;
+    assert_eq!(answer.status, 200, "{}", answer.body);
+
+    let conn = rusqlite::Connection::open(dir.0.join("accounts/privat.db")).unwrap();
+    let projects = || -> i64 {
+        conn.query_row("SELECT count(*) FROM project", [], |r| r.get(0))
+            .unwrap()
+    };
+    let path = format!("/objects/{group_id}/to-project");
+    let preview = call(
+        address,
+        "POST",
+        &path,
+        Some(&token),
+        Some(&json!({"prefix": "Notizen: ", "preview": true})),
+    )
+    .await;
+    assert_eq!(preview.status, 200, "{}", preview.body);
+    assert_eq!(preview.json()["moved"], 4, "{}", preview.body);
+    assert_eq!(projects(), 0, "a preview writes nothing");
+
+    let written = call(
+        address,
+        "POST",
+        &path,
+        Some(&token),
+        Some(&json!({"prefix": "Notizen: "})),
+    )
+    .await;
+    assert_eq!(written.status, 200, "{}", written.body);
+    assert!(written.json()["seq"].as_u64().is_some(), "{}", written.body);
+    let project = written.json()["project"].as_str().unwrap().to_string();
+    let (title, note, kind): (String, Option<String>, String) = conn
+        .query_row(
+            "SELECT p.title, p.note, p.kind FROM project p JOIN object o ON o.id = p.object \
+             WHERE hex(o.uuid) = ?1",
+            [hex(&project)],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        (title.as_str(), note.as_deref(), kind.as_str()),
+        ("Umzug", Some("Wohnung in der Südstadt"), "parallel")
+    );
+    let task = |id: &str| -> (String, Option<String>, Option<String>, i64, Option<String>) {
+        conn.query_row(
+            "SELECT t.title, hex(t.project), nullif(hex(t.parent), ''), t.position, t.note \
+             FROM task t JOIN object o ON o.id = t.object WHERE hex(o.uuid) = ?1",
+            [hex(id)],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        )
+        .unwrap()
+    };
+    let p = Some(hex(&project));
+    assert_eq!(
+        task(&second_id),
+        ("Möbelwagen".into(), p.clone(), None, 0, None)
+    );
+    assert_eq!(
+        task(&first_id),
+        ("Kartons".into(), p.clone(), None, 1, None)
+    );
+    assert_eq!(
+        task(&deep_id),
+        ("Klebeband".into(), p.clone(), Some(hex(&first_id)), 0, None),
+        "the grandchild keeps its parent"
+    );
+    assert_eq!(
+        task(&group_id),
+        ("Notizen: Umzug".into(), p, None, 2, None),
+        "the task stays, last, its note gone to the project"
+    );
+    let owner: String = conn
+        .query_row(
+            "SELECT hex(c.owner) FROM comment c JOIN object o ON o.id = c.object \
+             WHERE hex(o.uuid) = ?1",
+            [hex(&comment)],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(owner, hex(&group_id), "the comment stays on the task");
+
+    let refused = call(
+        address,
+        "POST",
+        &format!("/objects/{closed_id}/to-project"),
+        Some(&token),
+        Some(&json!({})),
+    )
+    .await;
+    assert_eq!(refused.status, 400, "{}", refused.body);
+    assert_eq!(projects(), 1, "a refusal writes nothing");
+}

@@ -200,6 +200,10 @@ pub const ROUTES: &[Route] = &[
         path: "/objects/{id}/delete",
     },
     Route {
+        method: "POST",
+        path: "/objects/{id}/to-project",
+    },
+    Route {
         method: "GET",
         path: "/available",
     },

@@ -32,7 +32,8 @@ use samu_replica::Cache;
 use samu_store::core::api::{
     AnyObject, AuthorKind, BareStatus, Blob, CaptureRequest, CaptureResponse, Change, ChangeNotice,
     ChangeOutcome, ChangesPage, DeleteRequest, DeleteResponse, ErrorCode, Hlc, Id, Login, Period,
-    RenderRequest, RenderResponse, ReplicaState, ResetNotice, Route, SessionInfo,
+    RenderRequest, RenderResponse, ReplicaState, ResetNotice, Route, SessionInfo, ToProjectRequest,
+    ToProjectResponse,
 };
 use samu_store::core::availability::Settings;
 use samu_store::core::clock::{next_stamp, restamp};
@@ -68,6 +69,7 @@ pub(crate) fn locality(route: &Route) -> Option<Where> {
         | ("GET", "/changes")
         | ("GET", "/objects/{id}")
         | ("POST", "/objects/{id}/delete")
+        | ("POST", "/objects/{id}/to-project")
         | ("GET", "/available")
         | ("GET", "/blocks")
         | ("GET", "/available/projects")
@@ -867,6 +869,41 @@ async fn delete_object(
     Ok(Json(answer))
 }
 
+/// `POST /objects/{id}/to-project` from the mirror, queued as one batch
+/// (ADR 0126).
+async fn to_project(
+    State(replica): State<Arc<Replica>>,
+    UrlPath(id): UrlPath<String>,
+    Json(request): Json<ToProjectRequest>,
+) -> Result<Json<ToProjectResponse>, Failure> {
+    let id = parse_id(&id)?;
+    let view = replica.view()?;
+    if view.get(id).is_none() {
+        return Err(Failure::not_found(format!("no object {id}")));
+    }
+    let plan = samu_store::core::convert::plan(
+        &view.snapshot(),
+        id,
+        Id::new(),
+        &request,
+        Timestamp::now(),
+    )
+    .map_err(|e| Failure::bad_request(e.to_string()))?;
+    let mut answer = ToProjectResponse {
+        project: plan.project,
+        moved: plan.moved,
+        seq: None,
+    };
+    if request.preview {
+        return Ok(Json(answer));
+    }
+    let seq = replica
+        .queue(plan.changes, true)
+        .map_err(|reason| Failure::internal(format!("project not queued: {reason}")))?;
+    answer.seq = Some(seq);
+    Ok(Json(answer))
+}
+
 #[derive(Debug, Deserialize)]
 struct AvailableQuery {
     #[serde(default)]
@@ -1445,6 +1482,7 @@ pub(crate) fn router(replica: Arc<Replica>) -> Router {
         .route("/changes", post(post_changes).get(get_changes))
         .route("/objects/{id}", get(get_object))
         .route("/objects/{id}/delete", post(delete_object))
+        .route("/objects/{id}/to-project", post(to_project))
         .route("/available", get(available))
         .route("/blocks", get(blocks))
         .route("/habits", get(habits))

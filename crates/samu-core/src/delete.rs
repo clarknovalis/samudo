@@ -253,16 +253,16 @@ fn out_of_scopes(scopes: &[Scope], id: Id, plan: &mut Plan) {
     }
 }
 
-fn after_last(positions: impl Iterator<Item = i64>) -> i64 {
+pub(crate) fn after_last(positions: impl Iterator<Item = i64>) -> i64 {
     positions.max().map_or(0, |p| p.saturating_add(1))
 }
 
 /// Stamped by the server before it writes.
-fn placeholder() -> Hlc {
+pub(crate) fn placeholder() -> Hlc {
     Hlc::new(0, 0, "")
 }
 
-fn set(plan: &mut Plan, object: Id, field: &str, value: Value) {
+pub(crate) fn set(plan: &mut Plan, object: Id, field: &str, value: Value) {
     plan.changes.push(Change::Set {
         object,
         field: field.into(),
