@@ -3075,3 +3075,116 @@ async fn a_task_becomes_a_project_and_keeps_its_id_and_comments() {
     assert_eq!(refused.status, 400, "{}", refused.body);
     assert_eq!(projects(), 1, "a refusal writes nothing");
 }
+
+/// ADR 0128: closing a group with open children asks first (nothing
+/// written), then `close` completes them along and `lift` moves them one
+/// level up; the logbook counts each. Asked of the database.
+#[tokio::test]
+async fn closing_a_group_asks_then_closes_or_lifts_its_open_children() {
+    let (address, dir) = start(true).await;
+    let token = sign_in(address).await;
+    let (group_id, group) = new_task("Umzug");
+    let (first_id, mut first) = new_task("Kartons");
+    first["parent"] = json!(group_id);
+    first["position"] = json!(0);
+    let (deep_id, mut deep) = new_task("Klebeband");
+    deep["parent"] = json!(first_id);
+    let (other_id, mut other) = new_task("Bad");
+    other["position"] = json!(3);
+    let (rest_id, mut rest) = new_task("Rest");
+    rest["parent"] = json!(other_id);
+    let changes = json!([
+        create(&group_id, &group),
+        create(&first_id, &first),
+        create(&deep_id, &deep),
+        create(&other_id, &other),
+        create(&rest_id, &rest),
+    ]);
+    let answer = call(
+        address,
+        "POST",
+        "/changes?stamp=server",
+        Some(&token),
+        Some(&changes),
+    )
+    .await;
+    assert_eq!(answer.status, 200, "{}", answer.body);
+
+    let conn = rusqlite::Connection::open(dir.0.join("accounts/privat.db")).unwrap();
+    let task = |id: &str| -> (bool, Option<String>, i64) {
+        conn.query_row(
+            "SELECT t.completed_at IS NOT NULL, nullif(hex(t.parent), ''), t.position \
+             FROM task t JOIN object o ON o.id = t.object WHERE hex(o.uuid) = ?1",
+            [hex(id)],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap()
+    };
+
+    let path = format!("/objects/{group_id}/close");
+    let asked = call(
+        address,
+        "POST",
+        &path,
+        Some(&token),
+        Some(&json!({"field": "completed"})),
+    )
+    .await;
+    assert_eq!(asked.status, 200, "{}", asked.body);
+    assert_eq!(asked.json()["open"], 2, "{}", asked.body);
+    assert!(asked.json()["seq"].is_null(), "{}", asked.body);
+    assert!(!task(&group_id).0, "asking writes nothing");
+
+    let closed = call(
+        address,
+        "POST",
+        &path,
+        Some(&token),
+        Some(&json!({"field": "completed", "children": "close", "note": "fertig"})),
+    )
+    .await;
+    assert_eq!(closed.status, 200, "{}", closed.body);
+    assert_eq!(closed.json()["closed"], 3, "{}", closed.body);
+    assert!(closed.json()["seq"].as_u64().is_some(), "{}", closed.body);
+    for id in [&group_id, &first_id, &deep_id] {
+        assert!(task(id).0, "{id} completed");
+    }
+    let logged: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM logbook WHERE kind = 'completed'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(logged, 3);
+    let again = call(
+        address,
+        "POST",
+        &path,
+        Some(&token),
+        Some(&json!({"field": "completed", "children": "close"})),
+    )
+    .await;
+    assert_eq!(again.json()["closed"], 0, "a closed task stays as it is");
+
+    let lifted = call(
+        address,
+        "POST",
+        &format!("/objects/{other_id}/close"),
+        Some(&token),
+        Some(&json!({"field": "dropped", "children": "lift"})),
+    )
+    .await;
+    assert_eq!(lifted.status, 200, "{}", lifted.body);
+    assert_eq!(lifted.json()["lifted"], 1, "{}", lifted.body);
+    assert_eq!(task(&rest_id), (false, None, 4), "right after the task");
+    let dropped: bool = conn
+        .query_row(
+            "SELECT t.dropped_at IS NOT NULL FROM task t JOIN object o ON o.id = t.object \
+             WHERE hex(o.uuid) = ?1",
+            [hex(&other_id)],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(dropped);
+}

@@ -24,6 +24,7 @@ pub mod calendar;
 pub mod capture;
 pub mod clock;
 pub mod clocking;
+pub mod close;
 pub mod convert;
 pub mod delete;
 pub mod forecast;

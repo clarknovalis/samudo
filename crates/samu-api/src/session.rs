@@ -204,6 +204,10 @@ pub const ROUTES: &[Route] = &[
         path: "/objects/{id}/to-project",
     },
     Route {
+        method: "POST",
+        path: "/objects/{id}/close",
+    },
+    Route {
         method: "GET",
         path: "/available",
     },

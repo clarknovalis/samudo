@@ -56,6 +56,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/close.js",
+        include_str!("../../../web/lib/close.js"),
+        JS,
+    ),
+    (
+        "lib/closeask.js",
+        include_str!("../../../web/lib/closeask.js"),
+        JS,
+    ),
+    (
         "lib/colors.js",
         include_str!("../../../web/lib/colors.js"),
         JS,

@@ -9,6 +9,7 @@
 
 import { api, change } from "./api.js";
 import { appointmentDetail } from "./appointment.js";
+import { closeTasks } from "./closeask.js";
 import { clockSection } from "./clock.js";
 import { commentSections } from "./comments.js";
 import { $, el, icon, replace } from "./dom.js";
@@ -66,17 +67,22 @@ function sendDate(input, id, name) {
   return write([change.set(id, name, input.value ? { date: input.value } : null)]);
 }
 
-// Completes a task or opens it again, after what the inspector holds is
-// sent. When the selected task repeats, its next one is selected then, so
-// what is changed next lands there and its new date shows.
+// Completes a task, asking about open tasks below (ADR 0128), or opens it
+// again, after what the inspector holds is sent. When the selected task
+// repeats, its next one is selected then, so what is changed next lands
+// there and its new date shows.
 export async function setDone(status, done) {
-  await flushDetail();
   const id = status.task.id;
-  try {
-    await api.write([change.set(id, "completed_at", done ? new Date().toISOString() : null)]);
-  } catch (error) {
-    update({ message: error.message });
-    return;
+  if (done) {
+    if (!(await closeTasks([id], "completed"))) return update({});
+  } else {
+    await flushDetail();
+    try {
+      await api.write([change.set(id, "completed_at", null)]);
+    } catch (error) {
+      update({ message: error.message });
+      return;
+    }
   }
   if (done && state.selected === id) {
     const next = state.tasks.find((t) => t.repeat_of === id && isOpen(t));
@@ -861,7 +867,7 @@ export function renderDetail() {
         ? el("button", {
             type: "button",
             text: tr("Verwerfen"),
-            onclick: () => write([change.set(task.id, "dropped_at", new Date().toISOString())]),
+            onclick: () => closeTasks([task.id], "dropped"),
           })
         : null,
       el("label", { class: "flagbox" }, [

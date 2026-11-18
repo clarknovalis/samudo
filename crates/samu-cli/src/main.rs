@@ -14,6 +14,7 @@ mod blockers;
 mod bulk;
 mod calendar;
 mod clock;
+mod close;
 mod comments;
 mod complete;
 mod config;
@@ -71,6 +72,9 @@ pub mod exit {
     // (ADR 0051), and 5 stays unused so old scripts do not misread it.
     /// Not signed in, or signing in failed.
     pub const UNAUTHORIZED: u8 = 6;
+    /// A task has open tasks below and no `--children` said what happens
+    /// to them; nothing was written (ADR 0128).
+    pub const NEEDS_CHOICE: u8 = 7;
 }
 
 /// The samu command line.
@@ -265,21 +269,31 @@ enum Command {
         id: String,
         field: String,
     },
-    /// Mark a task completed.
+    /// Mark a task completed. With open tasks below it, nothing changes
+    /// until `--children` says what happens to them (exit code 7).
     Done {
         #[arg(add = ArgValueCompleter::new(complete::task))]
         id: String,
         /// Why, for the logbook.
         #[arg(long)]
         note: Option<String>,
+        /// The open tasks below: complete them along, or lift them out
+        /// one level, right after the task (ADR 0128).
+        #[arg(long, value_enum)]
+        children: Option<close::Children>,
     },
-    /// Mark a task dropped.
+    /// Mark a task dropped. With open tasks below it, nothing changes
+    /// until `--children` says what happens to them (exit code 7).
     Drop {
         #[arg(add = ArgValueCompleter::new(complete::task))]
         id: String,
         /// Why, for the logbook.
         #[arg(long)]
         note: Option<String>,
+        /// The open tasks below: drop them along, or lift them out one
+        /// level, right after the task (ADR 0128).
+        #[arg(long, value_enum)]
+        children: Option<close::Children>,
     },
     /// Put a task into a state of its workflow, the next one, or none
     /// (ADR 0024).
@@ -695,6 +709,7 @@ const COVERAGE: &[(&str, &str, &str)] = &[
     ("GET", "/logbook", "logbook"),
     ("POST", "/objects/{id}/delete", "delete"),
     ("POST", "/objects/{id}/to-project", "project from-task"),
+    ("POST", "/objects/{id}/close", "done"),
     ("GET", "/available", "list"),
     ("GET", "/blocks", "list"),
     ("GET", "/available/projects", "projects"),
@@ -1872,33 +1887,34 @@ fn run(args: Args) -> Result<()> {
             let id = resolve_or_project(&client, &id)?;
             set_field(&client, id, &field, Value::Null)?;
         }
-        Command::Done { id, note } => {
+        Command::Done { id, note, children } => {
             let client = signed_in(&config)?;
             let id = resolve(&client, &id)?;
-            let outcomes = write(
+            let answers = close::close(
                 &client,
-                &[Change::Set {
-                    object: id,
-                    field: "completed_at".into(),
-                    value: json!(jiff::Timestamp::now().to_string()),
-                    note,
-                    hlc: placeholder(),
-                }],
+                &[id],
+                samu_api::CloseField::Completed,
+                children,
+                note,
+                None,
             )?;
-            if let Some(ChangeOutcome::Applied { seq }) = outcomes.first() {
-                report_next(&client, id, *seq)?;
+            close::report(&answers, "completed");
+            if let Some(seq) = answers.first().and_then(|(_, a)| a.seq) {
+                report_next(&client, id, seq)?;
             }
         }
-        Command::Drop { id, note } => {
+        Command::Drop { id, note, children } => {
             let client = signed_in(&config)?;
             let id = resolve(&client, &id)?;
-            set_noted(
+            let answers = close::close(
                 &client,
-                id,
-                "dropped_at",
-                json!(jiff::Timestamp::now().to_string()),
+                &[id],
+                samu_api::CloseField::Dropped,
+                children,
                 note,
+                None,
             )?;
+            close::report(&answers, "dropped");
         }
         Command::State {
             id,
@@ -2560,6 +2576,9 @@ fn exit_code(error: &anyhow::Error) -> u8 {
     {
         return exit::USAGE;
     }
+    if error.downcast_ref::<close::NeedsChoice>().is_some() {
+        return exit::NEEDS_CHOICE;
+    }
     match error.downcast_ref::<Failure>() {
         Some(Failure::NoServer(_)) => exit::NO_SERVER,
         Some(Failure::NotFound(_)) => exit::NOT_FOUND,
@@ -2738,6 +2757,8 @@ mod tests {
             exit_code(&Failure::Unauthorized("x".into()).into()),
             exit::UNAUTHORIZED
         );
+        assert_eq!(exit_code(&close::NeedsChoice(1).into()), exit::NEEDS_CHOICE);
+        assert_eq!(exit::NEEDS_CHOICE, 7);
         assert_eq!(exit_code(&anyhow::anyhow!("x")), exit::FAILURE);
         assert_eq!(
             exit_code(&samu_client::profile::ProfileError::Unknown("x".into()).into()),

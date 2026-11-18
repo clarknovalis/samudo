@@ -62,6 +62,7 @@ const VALUES = [
   ["geclockt", "clocked"],
   ["blocker", "blocker"],
   ["blockiert", "blocked"],
+  ["versteckt", "hidden"],
   ["termin", "appointment"],
 ];
 const SPELLED = { faellig: "fällig", geaendert: "geändert" };
@@ -88,7 +89,7 @@ export const RANGES = {
   modified: BEHIND,
 };
 
-export const IS = ["markiert", "verfügbar", "wartet", "offen", "erledigt", "verworfen", "gruppe", "notiz", "wiederholt", "geclockt", "blocker", "blockiert", "termin"];
+export const IS = ["markiert", "verfügbar", "wartet", "offen", "erledigt", "verworfen", "gruppe", "notiz", "wiederholt", "geclockt", "blocker", "blockiert", "versteckt", "termin"];
 
 // `ist:termin` turns the search to appointments (ADR 0047 §14); a scope's
 // filter does not take it, so its field does not offer it.
@@ -99,6 +100,30 @@ let clocked = { clocks: null, ids: new Set() };
 function clockedIds() {
   if (clocked.clocks !== state.clocks) clocked = { clocks: state.clocks, ids: new Set(state.clocks.map((c) => c.owner)) };
   return clocked.ids;
+}
+// The open tasks under a completed or dropped group, at any height (ADR
+// 0128 §7), made again when the tasks change; as samu-core's `hidden`.
+let hiddenOnes = { tasks: null, ids: new Set() };
+function hiddenIds() {
+  if (hiddenOnes.tasks !== state.tasks) {
+    const by = new Map(state.tasks.map((t) => [t.id, t]));
+    const ids = new Set();
+    for (const t of state.tasks) {
+      if (!isOpen(t)) continue;
+      const seen = new Set([t.id]);
+      for (let p = t.parent; p && !seen.has(p); p = by.get(p)?.parent) {
+        seen.add(p);
+        const group = by.get(p);
+        if (!group) break;
+        if (!isOpen(group)) {
+          ids.add(t.id);
+          break;
+        }
+      }
+    }
+    hiddenOnes = { tasks: state.tasks, ids };
+  }
+  return hiddenOnes.ids;
 }
 const ESTIMATES = ["<15m", "<30m", "<1h", ">1h", "mit", "ohne"];
 // `prio:` (ADR 0056 §4); `prio:-` is `prio:ohne`.
@@ -502,6 +527,8 @@ function isTest(word) {
     // The reason samu-core found (53a0d8e9), its own blocker or its project's.
     case "blockiert":
       return (s) => isOpen(s.task) && (s.reasons ?? []).some((r) => r.reason === "blocked_by");
+    case "versteckt":
+      return (s) => hiddenIds().has(s.task.id);
     // A task is no appointment; `-ist:termin` is the search as before.
     case "termin":
       return () => false;

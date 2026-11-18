@@ -72,6 +72,7 @@ web-check:
 	node web/tests/i18n.mjs
 	node web/tests/table.mjs
 	node web/tests/blocks.mjs
+	node web/tests/close.mjs
 	node web/tests/text.mjs
 	node web/tests/groups.mjs
 	node web/tests/clocks.mjs

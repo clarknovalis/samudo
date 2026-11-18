@@ -20,6 +20,7 @@
 mod calendar;
 mod capture;
 mod change;
+mod close;
 mod convert;
 mod delete;
 mod document;
@@ -46,6 +47,7 @@ pub use calendar::{
 };
 pub use capture::{CaptureMark, CaptureMeaning, CaptureRequest, CaptureResponse, CaptureWarning};
 pub use change::{Change, ChangeOutcome, ObjectKind};
+pub use close::{ChildFate, CloseField, CloseRequest, CloseResponse};
 pub use convert::{ToProjectRequest, ToProjectResponse};
 pub use delete::{DeleteRequest, DeleteResponse, TaskFate};
 pub use document::{

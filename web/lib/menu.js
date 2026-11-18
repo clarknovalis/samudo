@@ -23,6 +23,7 @@ import {
   reopenAll,
 } from "./bulk.js";
 import { openCapture } from "./capture.js";
+import { closeTasks } from "./closeask.js";
 import { openEdit } from "./edit.js";
 import { running, toggleClock } from "./clock.js";
 import { $, el, replace } from "./dom.js";
@@ -118,7 +119,7 @@ function single(status) {
       ? { label: tr("Erledigen"), key: k("complete"), run: () => setDone(status, true) }
       : { label: tr("Wieder öffnen"), key: task.completed_at ? k("complete") : null, run: reopen },
     open
-      ? { label: tr("Verwerfen"), key: k("drop"), run: () => write([change.set(task.id, "dropped_at", new Date().toISOString())]) }
+      ? { label: tr("Verwerfen"), key: k("drop"), run: () => closeTasks([task.id], "dropped") }
       : null,
     { label: task.flagged ? tr("Markierung weg") : tr("Markieren"), key: k("flag"), run: () => toggleFlag(status) },
     "-",

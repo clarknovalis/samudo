@@ -61,6 +61,7 @@ Daten gehen nach stdout, Meldungen nach stderr.
 | 3 | nicht gefunden (auch: `samu clock out` ohne laufende Uhr) |
 | 4 | der Server war nicht erreichbar |
 | 6 | nicht angemeldet, oder die Anmeldung schlug fehl |
+| 7 | `samu done`/`drop` (auch `bulk`): unter einer Aufgabe ist noch etwas offen, und `--children` sagt nicht, was damit geschieht; nichts wurde geändert |
 
 ### Ein Handy koppeln
 
@@ -167,6 +168,8 @@ samu set 4f2a91c3 properties.jira ABC-1
 samu unset 4f2a91c3 due
 samu done 4f2a91c3
 samu drop 4f2a91c3 --note "nicht mehr nötig"
+samu done 7c01e2b4 --children close     # eine Gruppe: ihre offenen Aufgaben miterledigen
+samu done 7c01e2b4 --children lift      # oder eine Ebene höher holen
 samu state 4f2a91c3 Wartet             # ein Zustand seines Ablaufs, per Titel oder Taste
 samu state 4f2a91c3 --next
 samu block 4f2a91c3 9e01d2aa            # warten, bis 9e01d2aa erledigt ist
@@ -177,6 +180,12 @@ samu remind 4f2a91c3 --daily 20:00      # jeden Tag; eine Gewohnheit nur, solang
 samu reminders
 samu delete 4f2a91c3 --dry-run          # zählen, was ginge
 ```
+
+`samu done` und `samu drop` auf einer Aufgabe, unter der noch etwas offen
+ist, ändern nichts und enden mit 7; sie zählen die offenen auf.
+`--children close` schließt sie mit, `--children lift` holt die offenen
+direkten Kinder eine Ebene höher, direkt hinter die Aufgabe. `samu bulk
+done` fragt so nur nach offenen Aufgaben, die nicht selbst ausgewählt sind.
 
 `samu delete` auf einem Projekt verschiebt seine Aufgaben in die Inbox;
 `--tasks delete` löscht sie mit, `--tasks <projekt>` verschiebt sie dorthin.

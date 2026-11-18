@@ -639,6 +639,8 @@ span.prop-value { cursor: text; }
 .overlay .box { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: min(34rem, calc(100vw - 32px)); background: var(--pane); border: 1px solid var(--line); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); display: grid; gap: 8px; }
 .overlay .box > input { width: 100%; padding: 10px 12px; border-color: var(--accent); }
 .overlay .quiet { margin: 0; }
+.overlay .box.close-ask p { margin: 0; }
+.overlay .box.close-ask .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .pair h2 { margin: 0; font-size: 17px; }
 .made h2 { margin: 0; font-size: 17px; }
 .made p { margin: 0; }

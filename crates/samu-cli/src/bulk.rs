@@ -20,25 +20,36 @@ use crate::config::Config;
 use crate::output::{Format, emit};
 use crate::tags::{self, Snapshot, Target};
 use crate::{complete, delete_object, placeholder, resolve_project, short, signed_in, write};
+use samu_api::CloseField as Field;
 use samu_client::Error as Failure;
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BulkCommand {
-    /// Mark the tasks completed.
+    /// Mark the tasks completed. When any has open tasks below, nothing
+    /// changes until `--children` says what happens to them (exit code 7).
     Done {
         #[command(flatten)]
         tasks: Tasks,
         /// Why, for the logbook.
         #[arg(long)]
         note: Option<String>,
+        /// The open tasks below: complete them along, or lift them out
+        /// one level (ADR 0128).
+        #[arg(long, value_enum)]
+        children: Option<crate::close::Children>,
     },
-    /// Mark the tasks dropped.
+    /// Mark the tasks dropped. When any has open tasks below, nothing
+    /// changes until `--children` says what happens to them (exit code 7).
     Drop {
         #[command(flatten)]
         tasks: Tasks,
         /// Why, for the logbook.
         #[arg(long)]
         note: Option<String>,
+        /// The open tasks below: drop them along, or lift them out one
+        /// level (ADR 0128).
+        #[arg(long, value_enum)]
+        children: Option<crate::close::Children>,
     },
     /// Open completed or dropped tasks again.
     Reopen(Tasks),
@@ -136,25 +147,37 @@ pub(crate) fn run(config: &Config, format: Format, command: BulkCommand) -> Resu
     let client = signed_in(config)?;
     let snapshot = tags::snapshot(&client)?;
     let (verb, picked, changes) = match command {
-        BulkCommand::Done { tasks, note } => {
+        BulkCommand::Done {
+            tasks,
+            note,
+            children,
+        } => {
             let picked = pick(&snapshot, &tasks)?;
-            let now = json!(jiff::Timestamp::now().to_string());
-            let changes = picked
-                .iter()
-                .filter(|t| t.completed_at.is_none())
-                .map(|t| noted(t.id, "completed_at", now.clone(), note.clone()))
-                .collect();
-            ("completed", picked, changes)
+            return close_all(
+                &client,
+                format,
+                &snapshot,
+                &picked,
+                Field::Completed,
+                children,
+                note,
+            );
         }
-        BulkCommand::Drop { tasks, note } => {
+        BulkCommand::Drop {
+            tasks,
+            note,
+            children,
+        } => {
             let picked = pick(&snapshot, &tasks)?;
-            let now = json!(jiff::Timestamp::now().to_string());
-            let changes = picked
-                .iter()
-                .filter(|t| t.dropped_at.is_none())
-                .map(|t| noted(t.id, "dropped_at", now.clone(), note.clone()))
-                .collect();
-            ("dropped", picked, changes)
+            return close_all(
+                &client,
+                format,
+                &snapshot,
+                &picked,
+                Field::Dropped,
+                children,
+                note,
+            );
         }
         BulkCommand::Reopen(tasks) => {
             let picked = pick(&snapshot, &tasks)?;
@@ -313,6 +336,49 @@ pub(crate) fn run(config: &Config, format: Format, command: BulkCommand) -> Resu
         picked.iter().filter(|t| touched.contains(&t.id)).count(),
         picked.len()
     );
+    let records: Vec<Value> = picked
+        .iter()
+        .map(|t| {
+            json!({
+                "id": t.id.to_string(),
+                "short": short(&t.id),
+                "title": t.title,
+                "changed": touched.contains(&t.id),
+            })
+        })
+        .collect();
+    emit(format, &records, &["short", "title"])
+}
+
+/// Completes or drops the open ones among `picked` through
+/// `POST /objects/{id}/close` (ADR 0128): with open tasks below any of
+/// them and no `children`, nothing at all is written.
+fn close_all(
+    client: &samu_client::Client,
+    format: Format,
+    snapshot: &Snapshot,
+    picked: &[&Task],
+    field: Field,
+    children: Option<crate::close::Children>,
+    note: Option<String>,
+) -> Result<()> {
+    let verb = match field {
+        Field::Dropped => "dropped",
+        _ => "completed",
+    };
+    let ids: Vec<Id> = picked
+        .iter()
+        .filter(|t| t.completed_at.is_none() && t.dropped_at.is_none())
+        .map(|t| t.id)
+        .collect();
+    let answers = crate::close::close(client, &ids, field, children, note, Some(&snapshot.tasks))?;
+    crate::close::report(&answers, verb);
+    let touched: HashSet<Id> = answers
+        .iter()
+        .filter(|(_, a)| a.seq.is_some())
+        .map(|(id, _)| *id)
+        .collect();
+    eprintln!("{} of {} tasks {verb}", touched.len(), picked.len());
     let records: Vec<Value> = picked
         .iter()
         .map(|t| {

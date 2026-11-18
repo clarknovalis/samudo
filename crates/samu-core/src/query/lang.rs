@@ -63,6 +63,7 @@ const VALUES: &[(&str, &str)] = &[
     ("geclockt", "clocked"),
     ("blocker", "blocker"),
     ("blockiert", "blocked"),
+    ("versteckt", "hidden"),
     ("termin", "appointment"),
 ];
 

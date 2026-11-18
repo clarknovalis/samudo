@@ -843,7 +843,10 @@ fn add_under_a_task() {
     assert_eq!(shown[0]["object"]["parent"], group.as_str());
     assert_eq!(shown[0]["object"]["project"], id);
 
-    assert_eq!(code(&server.samu(&["done", &group], None)), 0);
+    assert_eq!(
+        code(&server.samu(&["done", &group, "--children", "close"], None)),
+        0
+    );
     let refused = server.samu(&["add", "noch eins", "--parent", &group], None);
     assert_eq!(code(&refused), 1);
     let stderr = String::from_utf8_lossy(&refused.stderr);
@@ -4793,4 +4796,58 @@ fn a_search_names_hits_in_another_own_scope() {
             .any(|r| r["title"] == "Belege prüfen"),
         "{inside}"
     );
+}
+
+/// ADR 0128: `done` on a group with open children changes nothing and
+/// exits 7, naming them; `--children lift` moves them out, `bulk done`
+/// takes a group whose open children are picked too. Asked of the server.
+#[test]
+fn done_with_open_children_asks_for_children() {
+    let server = signed_in_server();
+    let add = |args: &[&str]| -> String {
+        let mut all = vec!["add"];
+        all.extend_from_slice(args);
+        all.extend_from_slice(&["--format", "json"]);
+        json_out(&server.samu(&all, None))[0]["id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let group = add(&["Umzug"]);
+    let child = add(&["Kartons", "--parent", &group]);
+    let show = |id: &str| {
+        json_out(&server.samu(&["show", id, "--format", "json"], None))[0]["object"].clone()
+    };
+
+    let asked = server.samu(&["done", &group], None);
+    assert_eq!(code(&asked), 7);
+    let stderr = String::from_utf8_lossy(&asked.stderr);
+    assert!(stderr.contains("Kartons"), "{stderr}");
+    assert!(
+        show(&group).get("completed_at").is_none(),
+        "nothing written"
+    );
+
+    let bulk = server.samu(&["bulk", "done", &group], None);
+    assert_eq!(code(&bulk), 7);
+    assert_eq!(
+        code(&server.samu(&["bulk", "done", &group, &child], None)),
+        0
+    );
+    assert!(show(&group)["completed_at"].is_string());
+    assert!(show(&child)["completed_at"].is_string());
+
+    let other = add(&["Bad"]);
+    let rest = add(&["Fugen", "--parent", &other]);
+    assert_eq!(
+        code(&server.samu(&["drop", &other, "--children", "lift"], None)),
+        0
+    );
+    assert!(show(&other)["dropped_at"].is_string());
+    let rest = show(&rest);
+    assert!(
+        rest.get("parent").is_none_or(serde_json::Value::is_null),
+        "{rest}"
+    );
+    assert!(rest.get("dropped_at").is_none(), "{rest}");
 }

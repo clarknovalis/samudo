@@ -35,6 +35,7 @@ pub(crate) fn restriction(route: &Route) -> Option<Rule> {
         | ("GET", "/logbook")
         | ("POST", "/objects/{id}/delete")
         | ("POST", "/objects/{id}/to-project")
+        | ("POST", "/objects/{id}/close")
         | ("GET", "/available")
         | ("GET", "/blocks")
         | ("GET", "/available/projects")

@@ -8,7 +8,8 @@
 
 import { api, change } from "./api.js";
 import { $, el, replace } from "./dom.js";
-import { flushDetail, statesOf } from "./detail.js";
+import { closeTasks } from "./closeask.js";
+import { statesOf } from "./detail.js";
 import { openEdit } from "./edit.js";
 import { order } from "./list.js";
 import { descendants, moveMany, openPalette, ancestors } from "./palette.js";
@@ -75,21 +76,24 @@ async function write(changes, done = null) {
 
 const tasks = () => pickedStatuses().map((s) => s.task);
 
+// Completes the open ones, with one question for all about what is open
+// below (ADR 0128 §5); with none open, opens them all again.
 export async function completeAll() {
-  // What the inspector holds goes first (e72d21c3).
-  await flushDetail();
   const list = tasks();
   const open = list.filter(isOpen);
-  if (open.length) {
-    const now = new Date().toISOString();
-    return write(open.map((t) => change.set(t.id, "completed_at", now)));
-  }
+  if (open.length) return closeTasks(open.map((t) => t.id), "completed");
   return reopenAll();
 }
 
-export function dropAll() {
+// Drops the open ones as closeTasks does; completed ones are dropped as
+// well, with a field change, since closing leaves them as they are.
+export async function dropAll() {
+  const list = tasks();
+  const done = list.filter((t) => t.completed_at && !t.dropped_at);
+  const open = list.filter(isOpen);
+  if (open.length && !(await closeTasks(open.map((t) => t.id), "dropped"))) return false;
   const now = new Date().toISOString();
-  return write(tasks().filter((t) => !t.dropped_at).map((t) => change.set(t.id, "dropped_at", now)));
+  return write(done.map((t) => change.set(t.id, "dropped_at", now)));
 }
 
 export function reopenAll() {

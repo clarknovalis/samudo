@@ -11,6 +11,7 @@ import { api, change } from "./api.js";
 import { reportTab } from "./report.js";
 import { boardFull, setBoardFull, shiftSelected } from "./board.js";
 import { openCapture } from "./capture.js";
+import { closeTasks } from "./closeask.js";
 import { openEdit } from "./edit.js";
 import {
   askDelete,
@@ -121,7 +122,7 @@ const RUN = {
   menu: (s) => s && openMenuHere(),
   delete: (s) => (picking() ? askDelete() : s && askDelete([s.task.id])),
   drop: (s) =>
-    picking() ? dropAll() : s && isOpen(s.task) && write([change.set(s.task.id, "dropped_at", new Date().toISOString())]),
+    picking() ? dropAll() : s && isOpen(s.task) && closeTasks([s.task.id], "dropped"),
   "review.done": (s) => {
     const project = s && !s.inbox ? s.task.project : shown().kind === "project" ? shown().project : null;
     if (!project) return false;

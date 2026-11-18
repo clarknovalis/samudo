@@ -11,7 +11,8 @@
 import { api, change } from "./api.js";
 import { draggedTasks, forgetDrag, pickedStatuses } from "./bulk.js";
 import { boardColumns, moveChanges, neighbour, placeTask } from "./columns.js";
-import { flushDetail, statesOf } from "./detail.js";
+import { closeTasks } from "./closeask.js";
+import { statesOf } from "./detail.js";
 import { $, el, replace } from "./dom.js";
 import { inEffect, pretty } from "./keymap.js";
 import { byId, chooseOrder, isOpen, laneFold, state, statusOf, update } from "./state.js";
@@ -61,6 +62,13 @@ const toChange = (c, note) =>
 async function moveTo(ids, from, to, note = null) {
   if (!layout) return;
   const statuses = ids.map(statusOf).filter(Boolean);
+  // Into „Erledigt“ the same way as every other completing, with the
+  // question about what is open below (ADR 0128 F3).
+  if (to === "done" && from !== "done") {
+    pending = null;
+    await closeTasks(statuses.map((s) => s.task.id), "completed");
+    return;
+  }
   const { changes, missed, asks } = moveChanges(statuses, from, to, layout.config, layout.columns, statesOf, Date.now());
   if (asks && !note) {
     pending = { ids, from, to, title: asks };
@@ -76,8 +84,6 @@ async function moveTo(ids, from, to, note = null) {
     return;
   }
   try {
-    // What the inspector holds goes first (e72d21c3).
-    if (changes.some((c) => c.field === "completed_at")) await flushDetail();
     await api.write(changes.map((c) => toChange(c, note)));
     update({ message: said });
   } catch (error) {

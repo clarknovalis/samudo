@@ -32,7 +32,8 @@ pub use offers::{Offer, OfferAction, OfferOptions, offers};
 /// The words `ist:` takes; `geclockt` since the clocking (ADR 0046 §6),
 /// `blocker` for an open task an open one waits for (09cf1e2e),
 /// `blockiert` for an open task that waits for an open blocker, its own or
-/// its project's (53a0d8e9).
+/// its project's (53a0d8e9), `versteckt` for an open task under a closed
+/// group, which no view shows (ADR 0128 §7).
 pub const IS: &[&str] = &[
     "markiert",
     "verfügbar",
@@ -46,7 +47,36 @@ pub const IS: &[&str] = &[
     "geclockt",
     "blocker",
     "blockiert",
+    "versteckt",
 ];
+
+/// The open tasks with a completed or dropped group above them, at any
+/// height (ADR 0128 §7).
+fn hidden(tasks: &[Task]) -> HashSet<Id> {
+    let by_id: HashMap<Id, &Task> = tasks.iter().map(|t| (t.id, t)).collect();
+    let closed = |t: &Task| t.completed_at.is_some() || t.dropped_at.is_some();
+    tasks
+        .iter()
+        .filter(|t| !closed(t))
+        .filter(|t| {
+            let mut seen = HashSet::from([t.id]);
+            let mut parent = t.parent;
+            while let Some(p) = parent {
+                // A cycle in broken data stops here.
+                if !seen.insert(p) {
+                    return false;
+                }
+                match by_id.get(&p) {
+                    Some(group) if closed(group) => return true,
+                    Some(group) => parent = group.parent,
+                    None => return false,
+                }
+            }
+            false
+        })
+        .map(|t| t.id)
+        .collect()
+}
 
 /// Why a chip cannot be part of a filter.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -896,6 +926,8 @@ impl<'a> Filter<'a> {
                         .filter(|t| crate::blockers::holds_up(snapshot.tasks, snapshot.links, t.id))
                         .map(|t| t.id)
                         .collect()
+                } else if value == "versteckt" {
+                    hidden(snapshot.tasks)
                 } else {
                     HashSet::new()
                 };
@@ -909,7 +941,7 @@ impl<'a> Filter<'a> {
                     "gruppe" => f.group,
                     "notiz" => t.note.as_deref().is_some_and(|n| !n.trim().is_empty()),
                     "wiederholt" => t.schedule.repeat.is_some() || t.repeat_of.is_some(),
-                    "geclockt" | "blocker" => among.contains(&t.id),
+                    "geclockt" | "blocker" | "versteckt" => among.contains(&t.id),
                     // The reason the availability found, not a second
                     // reading of the links (ADR 0006).
                     "blockiert" => {
@@ -1605,6 +1637,36 @@ mod tests {
         assert_eq!(
             parse("ist:geclockt", &snapshot).unwrap()[0],
             chip(Kind::Is, "geclockt", false)
+        );
+    }
+
+    #[test]
+    fn hidden_is_an_open_task_under_a_closed_group() {
+        let mut group = task(1);
+        group.completed_at = Some(now());
+        let mut child = task(2);
+        child.parent = Some(id(1));
+        let mut grandchild = task(3);
+        grandchild.parent = Some(id(2));
+        let mut done_child = task(4);
+        done_child.parent = Some(id(1));
+        done_child.dropped_at = Some(now());
+        let mut under_open = task(6);
+        under_open.parent = Some(id(5));
+        let tasks = [group, child, grandchild, done_child, task(5), under_open];
+        let snapshot = Snapshot {
+            tasks: &tasks,
+            ..Snapshot::default()
+        };
+        let s = state(true, DueState::None);
+        let hidden = filter(&[chip(Kind::Is, "versteckt", false)], &snapshot);
+        let found: Vec<u128> = (1..=6)
+            .filter(|n| hidden.matches(&tasks[(*n - 1) as usize], &s))
+            .collect();
+        assert_eq!(found, vec![2, 3]);
+        assert_eq!(
+            parse("is:hidden", &snapshot).unwrap()[0],
+            chip(Kind::Is, "versteckt", false)
         );
     }
 

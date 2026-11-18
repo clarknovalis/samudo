@@ -197,6 +197,14 @@ export const api = {
     return answer;
   },
 
+  // Completes or drops a task, with what is open below it closed along,
+  // lifted out, or with `ask` not yet (ADR 0128 §3).
+  async closeObject(id, body) {
+    const answer = await post(`/objects/${encodeURIComponent(id)}/close`, body);
+    if (answer.seq != null) await written();
+    return answer;
+  },
+
   // Sends changes and fails unless every one was applied.
   async write(changes) {
     const outcomes = await post("/changes?stamp=server", changes);

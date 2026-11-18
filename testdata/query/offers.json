@@ -438,6 +438,32 @@
    ]
   },
   {
+   "word": "ist:v",
+   "offers": [
+    {
+     "label": "ist:verfügbar",
+     "chip": {
+      "kind": "is",
+      "value": "verfügbar"
+     }
+    },
+    {
+     "label": "ist:verworfen",
+     "chip": {
+      "kind": "is",
+      "value": "verworfen"
+     }
+    },
+    {
+     "label": "ist:versteckt",
+     "chip": {
+      "kind": "is",
+      "value": "versteckt"
+     }
+    }
+   ]
+  },
+  {
    "word": "ist:t",
    "offers": []
   },
@@ -855,6 +881,19 @@
      "chip": {
       "kind": "is",
       "value": "termin"
+     }
+    }
+   ]
+  },
+  {
+   "word": "is:h",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "is:hidden",
+     "chip": {
+      "kind": "is",
+      "value": "versteckt"
      }
     }
    ]

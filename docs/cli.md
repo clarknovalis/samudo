@@ -60,6 +60,7 @@ Data goes to stdout, messages to stderr.
 | 3 | not found (also: `samu clock out` with no running clock) |
 | 4 | the server could not be reached |
 | 6 | not signed in, or signing in failed |
+| 7 | `samu done`/`drop` (and `bulk`): a task has open tasks below and no `--children` said what happens to them; nothing changed |
 
 ### Pairing a phone
 
@@ -163,6 +164,8 @@ samu set 4f2a91c3 properties.jira ABC-1
 samu unset 4f2a91c3 due
 samu done 4f2a91c3
 samu drop 4f2a91c3 --note "no longer needed"
+samu done 7c01e2b4 --children close     # a group: complete its open tasks along
+samu done 7c01e2b4 --children lift      # or move them one level up
 samu state 4f2a91c3 Waiting            # a state of its workflow, by title or key
 samu state 4f2a91c3 --next
 samu block 4f2a91c3 9e01d2aa            # wait until 9e01d2aa is done
@@ -173,6 +176,12 @@ samu remind 4f2a91c3 --daily 20:00      # every day; a habit only while open
 samu reminders
 samu delete 4f2a91c3 --dry-run          # count what would go
 ```
+
+`samu done` and `samu drop` on a task with open tasks below change nothing
+and exit 7, listing them: `--children close` closes them along,
+`--children lift` moves the open direct children one level up, right after
+the task. `samu bulk done` asks the same only for open tasks that are not
+picked too.
 
 `samu delete` on a project moves its tasks to the inbox; `--tasks delete`
 deletes them along with it, `--tasks <project>` moves them there.
