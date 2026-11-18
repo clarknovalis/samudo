@@ -30,10 +30,11 @@ use jiff::{SignedDuration, Timestamp};
 use samu_client::Client;
 use samu_replica::Cache;
 use samu_store::core::api::{
-    AnyObject, AuthorKind, BareStatus, Blob, CaptureRequest, CaptureResponse, Change, ChangeNotice,
-    ChangeOutcome, ChangesPage, CloseRequest, CloseResponse, DeleteRequest, DeleteResponse,
-    ErrorCode, Hlc, Id, Login, Period, RenderRequest, RenderResponse, ReplicaState, ResetNotice,
-    Route, SessionInfo, ToProjectRequest, ToProjectResponse,
+    AnyObject, AuthorKind, BareStatus, Blob, CaptureLinesRequest, CaptureLinesResponse,
+    CaptureRequest, CaptureResponse, Change, ChangeNotice, ChangeOutcome, ChangesPage,
+    CloseRequest, CloseResponse, DeleteRequest, DeleteResponse, ErrorCode, Hlc, Id, Login, Period,
+    RenderRequest, RenderResponse, ReplicaState, ResetNotice, Route, SessionInfo, ToProjectRequest,
+    ToProjectResponse,
 };
 use samu_store::core::availability::Settings;
 use samu_store::core::clock::{next_stamp, restamp};
@@ -83,6 +84,7 @@ pub(crate) fn locality(route: &Route) -> Option<Where> {
         | ("GET", "/habits")
         | ("GET", "/habits/{id}")
         | ("POST", "/capture")
+        | ("POST", "/capture/lines")
         | ("POST", "/render")
         | ("GET", "/events")
         | ("PUT", "/blobs/{sha256}")
@@ -1256,6 +1258,44 @@ async fn capture(
     Ok(Json(answer))
 }
 
+/// `POST /capture/lines`: as on the server, all lines as one batch into
+/// the outbox (ADR 0129).
+async fn capture_lines(
+    State(replica): State<Arc<Replica>>,
+    Json(request): Json<CaptureLinesRequest>,
+) -> Result<Json<CaptureLinesResponse>, Failure> {
+    let (objects, settings) = replica.read()?;
+    let placeholder = Hlc {
+        wall: 0,
+        counter: 0,
+        device: replica.device.clone(),
+    };
+    let views::CaptureLines {
+        mut answer,
+        changes,
+    } = views::capture_lines(
+        &objects,
+        &settings,
+        &request,
+        Timestamp::now(),
+        &placeholder,
+        &mut Id::new,
+    )?;
+    if request.preview {
+        return Ok(Json(answer));
+    }
+    replica
+        .queue(changes, true)
+        .map_err(|reason| Failure::internal(format!("capture not queued: {reason}")))?;
+    let view = replica.view()?;
+    for made in &mut answer.tasks {
+        if let Some(AnyObject::Task(task)) = view.get(made.task.id) {
+            made.task = task;
+        }
+    }
+    Ok(Json(answer))
+}
+
 /// `POST /appointments/{id}/edit`: the same changes the server would make,
 /// computed over the view and queued (ADR 0068 §5, ADR 0066).
 async fn edit_appointment(
@@ -1527,6 +1567,7 @@ pub(crate) fn router(replica: Arc<Replica>) -> Router {
         .route("/clocks/report", get(clock_report))
         .route("/report", get(report))
         .route("/capture", post(capture))
+        .route("/capture/lines", post(capture_lines))
         .route("/render", post(render))
         .route("/appointments", get(appointments))
         .route("/appointments/{id}/edit", post(edit_appointment))

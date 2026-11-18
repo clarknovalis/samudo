@@ -129,6 +129,11 @@ opens the task, `g` reloads.
 `samu-capture` reads a line of [quick capture](quick-capture.md). `TAB`
 completes `#project`, `@tag` and `/template`. An active region becomes the
 note. From a file, an Org link to the line is added (`samu-capture-link`).
+`samu-capture-lines` makes a task per line of the region, an indented line
+under the one above it ([several lines](quick-capture.md#several-lines));
+without a region it opens a buffer for the lines, `C-c C-c` captures them,
+`C-c C-k` discards. Several lines yanked into `samu-capture` go the same
+way.
 
 `samu-capture-template` (in the views `C`, elsewhere `C-u C-u a`) works
 like `org-capture`: a small window lists the templates with their keys, a

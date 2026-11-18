@@ -38,6 +38,16 @@ val productVersionCode: Int = run {
 // `-Psamudo.keystore=` builds unsigned on a machine that has the key.
 val keystorePath = providers.gradleProperty("samudo.keystore").orNull?.takeIf { it.isNotBlank() }
 val keyAliasName = providers.gradleProperty("samudo.keyAlias").orNull
+val keystorePassword = providers.environmentVariable("SAMUDO_KEYSTORE_PASSWORD").orNull
+// Only a release build needs the key, so a debug build on a machine with
+// samudo.keystore works without the passwords; preReleaseBuild below
+// reports what is missing.
+val keystoreProblem: String? = when {
+    keystorePath == null -> null
+    keyAliasName == null -> "samudo.keystore is set, samudo.keyAlias is not"
+    keystorePassword == null -> "samudo.keystore is set, SAMUDO_KEYSTORE_PASSWORD is not"
+    else -> null
+}
 
 android {
     namespace = "de.samudo.app"
@@ -61,10 +71,9 @@ android {
         if (keystorePath != null) {
             create("release") {
                 storeFile = file(keystorePath)
-                keyAlias = keyAliasName ?: error("samudo.keystore is set, samudo.keyAlias is not")
-                storePassword = System.getenv("SAMUDO_KEYSTORE_PASSWORD")
-                    ?: error("samudo.keystore is set, SAMUDO_KEYSTORE_PASSWORD is not")
-                keyPassword = System.getenv("SAMUDO_KEY_PASSWORD") ?: storePassword
+                keyAlias = keyAliasName
+                storePassword = keystorePassword
+                keyPassword = providers.environmentVariable("SAMUDO_KEY_PASSWORD").orNull ?: keystorePassword
             }
         }
     }
@@ -99,6 +108,15 @@ val rust by tasks.registering(Exec::class) {
 
 tasks.named("preBuild") {
     dependsOn(rust)
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    val problem = keystoreProblem
+    doFirst {
+        if (problem != null) {
+            throw GradleException("$problem; -Psamudo.keystore= builds an unsigned release")
+        }
+    }
 }
 
 // The same libraries and versions as catastr's app.

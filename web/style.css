@@ -393,7 +393,13 @@ button.danger { background: var(--overdue-bg); border-color: var(--overdue); col
 .row.group .title { font-weight: 600; }
 .row .title { flex: 1 1 auto; min-width: 0; }
 .row .fold { width: 18px; height: 18px; flex: none; border: 0; background: none; padding: 0; color: var(--muted); border-radius: 4px; }
-.row .meta { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+/* Line 1 stays one line (ADR 0130 §3): the title takes what it needs,
+   the fields beside it get the rest, right-aligned while they fit and
+   cut at their end, the least important first, when they do not (an
+   auto margin is 0 when space runs out). */
+.row .meta { display: flex; flex: 1 1 0; min-width: 0; overflow: hidden; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+.row .meta > * { flex: none; white-space: nowrap; }
+.row .meta > :first-child { margin-left: auto; }
 /* The tick: a real checkbox, drawn round (ADR 0026 §6). */
 .tick { appearance: none; width: 18px; height: 18px; flex: none; margin: 0; border: 1.5px solid var(--faint); border-radius: 50%; background: none; cursor: pointer; display: grid; place-content: center; }
 .row.dim .tick { border-style: dashed; }
@@ -668,6 +674,18 @@ span.prop-value { cursor: text; }
 #capture-suggest li { padding: 5px 10px; border-radius: 6px; cursor: pointer; }
 #capture-suggest li.current { background: var(--select); }
 #capture-chips:empty, #capture-warnings:empty { display: none; }
+#capture-foot { margin: 0; display: flex; gap: 12px; align-items: baseline; justify-content: space-between; }
+#capture-foot .quiet { margin: 0; }
+#capture-lines { resize: vertical; min-height: 6em; max-height: 50vh; }
+#capture-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 40vh; overflow: auto; }
+#capture-list:empty { display: none; }
+#capture-list li { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+#capture-list .chip { padding: 1px 7px; font-size: 12px; }
+#capture-list .project { background: var(--select); color: var(--accent-strong); }
+#capture-list .tag { background: var(--ok-bg); color: var(--ok); }
+#capture-list .new { outline: 1px dashed var(--ok); }
+#capture-list .due { background: var(--soon-bg); color: var(--soon); }
+#capture-list .warn { color: var(--wait); font-size: 12px; }
 #capture-chips .chip { padding: 2px 9px; }
 #capture-chips .project { background: var(--select); color: var(--accent-strong); }
 #capture-chips .tag { background: var(--ok-bg); color: var(--ok); }
@@ -987,12 +1005,26 @@ table.report tr.openable:hover { background: var(--select); }
 .default-calendar { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
 #detail .appointment-note { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
 
-/* Details as a second line, the note mark (ADR 0053) */
+/* The fields of a row (ADR 0130), the note mark (ADR 0053 §5) */
 #fold-all { padding: 6px 12px; font-size: 13px; color: var(--muted); background: var(--pane); border: 1px solid var(--border); border-radius: 8px; }
-#details { padding: 6px 12px; font-size: 13px; color: var(--muted); background: var(--pane); border: 1px solid var(--border); border-radius: 8px; }
-#details.current { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-.row .lines { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.row .details { font-size: 12px; color: var(--muted); }
+#row-fields { padding: 6px 12px; font-size: 13px; color: var(--muted); background: var(--pane); border: 1px solid var(--border); border-radius: 8px; }
+.row-fields-box { position: relative; }
+.row-menu ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.row-menu li { display: flex; align-items: center; gap: 8px; }
+.row-menu .row-field { margin-right: auto; }
+.row-menu .row-places { display: inline-flex; }
+.row-menu .row-places button { padding: 1px 8px; font-size: 12px; border: 1px solid var(--line); background: var(--pane); color: var(--muted); border-radius: 0; }
+.row-menu .row-places button + button { border-left: 0; }
+.row-menu .row-places button:first-child { border-radius: 6px 0 0 6px; }
+.row-menu .row-places button:last-child { border-radius: 0 6px 6px 0; }
+.row-menu .row-places button.current { background: var(--select); color: var(--fg); border-color: var(--accent); }
+.row .lines { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+/* Line 2: one line, cut with … (ADR 0130 §3); it takes the width of the
+   title and adds none of its own (width 0, at least the whole column). */
+.row .details { width: 0; min-width: 100%; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .details > .field + .field::before { content: " · "; }
+.row .details > .badge { padding: 0 6px; }
+.row .chip-tag { display: inline-block; padding: 0 5px; margin-right: 3px; border: 1px solid var(--line); border-radius: 8px; line-height: 1.4; }
 .row .note-mark { margin-left: 6px; font-size: 12px; color: var(--muted); }
 
 /* The due date and its warning side by side (cbda7d51) */
@@ -1178,7 +1210,7 @@ body[data-scope-color] #scope-button.on { border-color: var(--scope-dot); }
 .board .row.card .fold { display: none; }
 .board.by-state .row.card .state { display: none; }
 .board .row.card .lines { flex: 1 1 8rem; }
-.board .row.card .meta { flex-basis: 100%; justify-content: flex-start; }
+.board .row.card .meta { flex-basis: 100%; flex-wrap: wrap; justify-content: flex-start; }
 @media (max-width: 800px) {
   .board { grid-template-columns: repeat(var(--columns), minmax(85vw, 1fr)); }
   .board-scroll { scroll-snap-type: x mandatory; }

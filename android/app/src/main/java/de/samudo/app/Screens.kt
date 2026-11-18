@@ -54,6 +54,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -72,6 +74,7 @@ import de.samudo.app.mobile.Anchor
 import de.samudo.app.mobile.AppointmentRow
 import de.samudo.app.mobile.BlockerRow
 import de.samudo.app.mobile.CapturePreview
+import de.samudo.app.mobile.LinePreview
 import de.samudo.app.mobile.Offer
 import de.samudo.app.mobile.Span
 import de.samudo.app.mobile.Day
@@ -538,26 +541,40 @@ private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: St
         ) { if (row.done) Text("✓", color = t.onAccent, fontSize = 14.sp) }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(
-                // 🚧 when an open task waits for it; the note mark (ADR 0053 §5).
-                (if (row.blocks) "🚧 " else "") + row.title + (if (row.hasNote) "  ✎" else ""),
-                color = if (dim || row.done) t.muted else t.fg,
-                fontWeight = if (row.group) FontWeight.SemiBold else FontWeight.Normal,
-                textDecoration = if (row.done) TextDecoration.LineThrough else null,
-                fontSize = 15.sp,
-            )
-            val detail = listOfNotNull(why, Words.detail(row, Details.on.value).ifEmpty { null }).joinToString(" · ")
-            if (detail.isNotEmpty()) {
+            // Line 1 (ADR 0130 §1, §3): the title takes what it needs, the
+            // fields placed there get the rest, right-aligned and cut at
+            // their end.
+            val first = rowParts(row, 1, place)
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    detail, fontSize = 13.sp,
-                    color = when (row.dueState) {
-                        de.samudo.app.mobile.Due.OVERDUE -> t.overdue
-                        de.samudo.app.mobile.Due.SOON -> t.soon
-                        else -> t.muted
-                    },
+                    // 🚧 when an open task waits for it; the note mark (ADR 0053 §5).
+                    (if (row.blocks) "🚧 " else "") + row.title + (if (row.hasNote) "  ✎" else ""),
+                    color = if (dim || row.done) t.muted else t.fg,
+                    fontWeight = if (row.group) FontWeight.SemiBold else FontWeight.Normal,
+                    textDecoration = if (row.done) TextDecoration.LineThrough else null,
+                    fontSize = 15.sp,
+                )
+                if (first.isNotEmpty()) {
+                    Box(Modifier.weight(1f).padding(start = 8.dp), contentAlignment = Alignment.CenterEnd) {
+                        Text(
+                            rowText(first, t.muted, t.overdue, t.soon), fontSize = 12.sp, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.semantics { contentDescription = rowLabel(first) },
+                        )
+                    }
+                }
+            }
+            // Line 2: why it stands in Forecast, the fields placed there,
+            // and „nicht gesynct“ always; one line, cut with ….
+            val second = listOfNotNull(why?.let { RowPart(it, it) }) + rowParts(row, 2, place) +
+                listOfNotNull(if (row.pending) RowPart(tr("nicht gesynct"), tr("nicht gesynct")) else null)
+            if (second.isNotEmpty()) {
+                Text(
+                    rowText(second, t.muted, t.overdue, t.soon), fontSize = 13.sp, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { contentDescription = rowLabel(second) },
                 )
             }
-            place?.let { Text(it, fontSize = 12.sp, color = t.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
         row.habit?.takeIf { !row.done && !row.dropped }?.let { HabitFigures(it) }
         if (row.flagged) Text("⚑", color = t.flag, fontSize = 16.sp)
@@ -902,11 +919,12 @@ private fun withoutSpans(field: TextFieldValue, spans: List<Span>): TextFieldVal
 
 /**
  * Capture as a sheet from below, with the parser's preview (ADR 0028 §7);
- * with `parent`, the new task goes under it (ADR 0062 §2).
+ * with `parent`, the new task goes under it (ADR 0062 §2); with `lines`, it
+ * opens for several lines, a task each (ADR 0129).
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = null, onDone: (String?) -> Unit) {
+fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = null, lines: Boolean = false, onDone: (String?) -> Unit) {
     val context = LocalContext.current
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
@@ -917,6 +935,13 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
     var field by remember { mutableStateOf(TextFieldValue("")) }
     val text = field.text
     var preview by remember { mutableStateOf<CapturePreview?>(null) }
+    // Several lines in the field make a task each (ADR 0129); never for a
+    // shared text, which is not parsed (ADR 0013 §2).
+    // Several lines chosen by the switch or the menu, or pasted in.
+    var many by remember { mutableStateOf(lines) }
+    val pasted = remember(text, draft) { draft == null && Store.get(context).isSeveral(text) }
+    val several = draft == null && (many || pasted)
+    var rows by remember { mutableStateOf<List<LinePreview>>(emptyList()) }
     var offer by remember { mutableStateOf<Offer?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val focus = remember { FocusRequester() }
@@ -926,8 +951,16 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
         templates = withContext(Dispatchers.IO) { runCatching { Store.get(context).templates() }.getOrDefault(emptyList()) }
     }
     LaunchedEffect(Unit) { if (draft == null) focus.requestFocus() }
-    LaunchedEffect(text) {
+    LaunchedEffect(text, several) {
         delay(120)
+        if (several) {
+            preview = null
+            rows = withContext(Dispatchers.IO) {
+                runCatching { Store.get(context).previewLines(text, project) }.getOrDefault(emptyList())
+            }
+            return@LaunchedEffect
+        }
+        rows = emptyList()
         preview = if (text.isBlank()) null else withContext(Dispatchers.IO) {
             runCatching { Store.get(context).preview(text, project) }.getOrNull()
         }
@@ -948,6 +981,7 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
                         val samu = Store.get(context)
                         when {
                             draft != null -> samu.captureShared(title, text, draft.note, draft.links, project)
+                            several -> samu.captureLines(text, project, parent?.id).firstOrNull()
                             parent != null -> samu.captureUnder(text, parent.id)
                             else -> samu.capture(text, project)
                         }
@@ -970,6 +1004,13 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
                     title, { title = it }, label = { Text(tr("Titel")) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            } else if (several) {
+                val where = if (parent != null) tr("unter „{title}“", "title" to parent.title) else tr("in {project}", "project" to (rows.firstOrNull()?.preview?.project ?: "Inbox"))
+                Text(
+                    if (rows.size >= 2) tr("{n} Aufgaben {where}, eine je Zeile", "n" to rows.size.toString(), "where" to where)
+                    else tr("Mehrere Aufgaben {where}, eine je Zeile", "where" to where),
+                    color = t.muted, fontSize = 13.sp,
+                )
             } else {
                 // A project the line names wins over the parent (ADR 0062 §2).
                 val named = p?.chips?.any { it.kind == "project" && it.spans.isNotEmpty() } == true
@@ -987,10 +1028,44 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
                 field, { field = it },
                 placeholder = { Text(if (draft != null) tr("#projekt @tag d:fr – ergänzt den Titel") else tr("#projekt @tag ! !A d:fr ~15m // Notiz")) },
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                // With several lines, Enter starts a new line; the button makes them.
+                minLines = if (several) 4 else 1,
+                keyboardOptions = KeyboardOptions(imeAction = if (several) ImeAction.Default else ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { create() }),
             )
-            if (templates.isNotEmpty()) {
+            if (draft == null) {
+                // The switch: to several lines, or back while there is one.
+                val back = several && !pasted
+                if (!several || back) {
+                    Text(if (several) tr("Eine Zeile") else tr("Mehrere Zeilen"), color = t.accent, fontSize = 13.sp,
+                        modifier = Modifier.align(Alignment.End).clickable {
+                            if (several) {
+                                val one = text.lines().joinToString(" ") { it.trim() }.trim()
+                                field = TextFieldValue(one, TextRange(one.length))
+                            }
+                            many = !several
+                        }.padding(4.dp))
+                }
+            }
+            if (several) {
+                Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    rows.forEach { line ->
+                        FlowRow(
+                            Modifier.padding(start = (line.depth.toInt() * 16).dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(line.preview.title, color = t.fg, fontSize = 14.sp)
+                            line.preview.chips.forEach { chip ->
+                                val (bg, fg) = chipColors(chip.kind, t)
+                                Text(Words.chip(chip), color = fg, fontSize = 12.sp,
+                                    modifier = Modifier.background(bg, RoundedCornerShape(999.dp)).padding(8.dp, 2.dp))
+                            }
+                            line.preview.warnings.forEach { Text("• " + Words.warning(it), color = t.wait, fontSize = 12.sp) }
+                        }
+                    }
+                }
+            }
+            if (templates.isNotEmpty() && !several) {
                 // A tap puts `/name` into the line, so the preview shows
                 // what comes of it; one template per line.
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1010,7 +1085,7 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
                     }
                 }
             }
-            offer?.let { o ->
+            offer?.takeIf { !several }?.let { o ->
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     o.items.forEach { name ->
                         Text(o.sign + name, color = t.accent, fontSize = 13.sp,
@@ -1024,12 +1099,7 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
             if (p != null) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     p.chips.forEach { chip ->
-                        val (bg, fg) = when (chip.kind) {
-                            "project" -> t.select to t.accent
-                            "tag", "new_tag" -> t.okBg to t.ok
-                            "due" -> t.soonBg to t.soon
-                            else -> t.rowline to t.fg
-                        }
+                        val (bg, fg) = chipColors(chip.kind, t)
                         // A chip the line names comes out of it with a tap.
                         val removable = chip.spans.isNotEmpty()
                         Text(if (removable) Words.chip(chip) + "  ×" else Words.chip(chip), color = fg, fontSize = 12.sp,
@@ -1048,7 +1118,17 @@ fun CaptureSheet(project: String?, shared: Share? = null, parent: TaskRow? = nul
                 draft.links.forEach { Text("↗ $it", color = t.accent, fontSize = 13.sp, maxLines = 1) }
             }
             error?.let { Text(it, color = t.overdue) }
-            Button(onClick = create, enabled = ready, modifier = Modifier.align(Alignment.End)) { Text(tr("Anlegen")) }
+            Button(onClick = create, enabled = ready, modifier = Modifier.align(Alignment.End)) {
+                Text(if (several && rows.size >= 2) tr("{n} Aufgaben anlegen", "n" to rows.size.toString()) else tr("Anlegen"))
+            }
         }
     }
+}
+
+/** Background and text colour of a capture chip by its kind. */
+private fun chipColors(kind: String, t: Tokens) = when (kind) {
+    "project" -> t.select to t.accent
+    "tag", "new_tag" -> t.okBg to t.ok
+    "due" -> t.soonBg to t.soon
+    else -> t.rowline to t.fg
 }

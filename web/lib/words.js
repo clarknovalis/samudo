@@ -134,20 +134,6 @@ export function stamp(text) {
     : date.toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
-// The second line of a row (ADR 0053 §3): what is set of Start, Fällig,
-// Geplant and the estimate; empty when none is.
-export function detailsText(task) {
-  return [
-    task.priority ? `${tr("Priorität")} ${task.priority}` : null,
-    task.defer ? `${tr("Start")} ${shortDay(task.defer)}` : null,
-    task.due ? `${tr("Fällig")} ${shortDay(task.due)}` : null,
-    task.planned ? `${tr("Geplant")} ${shortDay(task.planned)}` : null,
-    task.estimate ? `~${estimateText(task.estimate)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
 // What is typed as an estimate, as the wire wants it: "90", "90m", "1h",
 // "1h30", "1h 30m", "1:30", "1,5h" and "PT1H30M" → "PT1H30M"; "" → null
 // (none); undefined when it is not a length.

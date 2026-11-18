@@ -85,6 +85,13 @@ export const ACTIONS = [
     hint: tr("#projekt @tag ! !A d:fr s:mo p:morgen ~15m every:1w // Notiz"),
   },
   {
+    id: "capture.lines",
+    title: tr("mehrere Zeilen erfassen"),
+    key: null,
+    place: "any",
+    hint: tr("eine Aufgabe je Zeile, eingerückt darunter; ⇧↵ im Erfassen wechselt auch dorthin"),
+  },
+  {
     id: "capture.template",
     title: tr("mit Vorlage erfassen"),
     key: "C",

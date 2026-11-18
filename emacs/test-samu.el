@@ -420,6 +420,31 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
                      "Kind @agenda // aus dem Text\n\n[[file:/tmp/synthetisch.txt::1][synthetisch.txt]]"
                      "--format" "json")))))
 
+(ert-deftest samu-test-capture-lines ()
+  (should (samu--several-p "Milch\n\n  Brot"))
+  (should-not (samu--several-p "Milch\n  \n"))
+  (samu-test--with-cli '((("add" "--lines") 0 "[{\"short\":\"1\"},{\"short\":\"2\"}]" ""))
+    (cl-letf (((symbol-function 'samu--read-line) (lambda (&rest _) "Milch\n  - Brot"))
+              ((symbol-function 'samu--refresh-all) #'ignore))
+      (should (= 2 (length (samu-capture "p")))))
+    (should (equal (car (samu-test--called '("add")))
+                   '("add" "--lines" "--parent" "p" "-" "--format" "json")))
+    (should (equal (cadr (car samu-test--calls)) "Milch\n  - Brot"))))
+
+(ert-deftest samu-test-capture-lines-in-a-buffer ()
+  (samu-test--with-cli '((("add" "--lines") 0 "[{\"short\":\"1\"},{\"short\":\"2\"}]" ""))
+    (cl-letf (((symbol-function 'samu--refresh-all) #'ignore))
+      (let ((buffer (samu-capture-lines nil "p")))
+        (with-current-buffer buffer
+          (should (eq major-mode 'samu-lines-mode))
+          (should (eq (key-binding (kbd "C-c C-c")) #'samu-lines-finish))
+          (insert "Einkauf\n  Milch\n")
+          (should (= 2 (length (samu-lines-finish)))))
+        (should-not (buffer-live-p buffer))))
+    (should (equal (car (samu-test--called '("add")))
+                   '("add" "--lines" "--parent" "p" "-" "--format" "json")))
+    (should (equal (cadr (car samu-test--calls)) "Einkauf\n  Milch\n"))))
+
 (ert-deftest samu-test-capture-completion ()
   (samu-test--with-cli `((("projects") 0 "[{\"id\":\"p\",\"title\":\"Garten\"}]" "")
                          (("tag" "list") 0 ,samu-test--tags "")

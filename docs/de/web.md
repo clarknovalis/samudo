@@ -29,7 +29,12 @@ die Aufgabe ersetzt die Liste („‹ Liste“ geht zurück).
   des Servers als Chips und Warnungen; in `#…` und `@…` schlägt es bekannte
   Projekte und Tags vor (↑ ↓, Tab oder Enter nimmt einen). Enter legt die
   Aufgabe an; Tab legt sie an und öffnet sie in den Details. `C` und eine
-  Taste erfasst mit einer Vorlage.
+  Taste erfasst mit einer Vorlage. Fügt man
+  [mehrere Zeilen](quick-capture.md#mehrere-zeilen) ein, drückt
+  Umschalt+Enter oder den Schalter „Mehrere Zeilen“, wird das Fenster
+  mehrzeilig und zeigt jede Aufgabe in der Vorschau; Enter legt alle an,
+  Umschalt+Enter beginnt eine neue Zeile. „mehrere Zeilen erfassen“ kann
+  eine eigene Taste bekommen.
 - **Scope**-Auswahl: der [Scope](concepts.md#scopes) dieses Browsers. Ein
   Scope mit Farbe tönt die Linie zwischen Seitenleiste und Liste, solange
   er gewählt ist.
@@ -74,10 +79,16 @@ dort über alles.
   Datum oder gar nicht; sortieren nach eigener Reihenfolge, fällig,
   geplant, Start, Titel, angelegt, geändert, Schätzung oder Priorität, mit
   einem zweiten Schlüssel; bleibt je Ansicht in diesem Browser.
-- Jede Zeile zeigt den Zustand als Plakette vor dem Titel, das
-  Fälligkeitsdatum in Farbe und Worten, Markierung, Priorität, ein Zeichen
-  für eine Notiz und auf Wunsch eine zweite Zeile mit den Daten
-  („Details“). Ein Blocker zeigt 🚧.
+- Jede Zeile zeigt die Priorität als Balken, den Titel, ein Zeichen für
+  eine Notiz, die Markierung und 🚧 für einen Blocker. **Zeile …**
+  bestimmt den Rest, in diesem Browser für alle Listen: Fällig, Zustand,
+  Tags, Ort, Grund, Start, Geplant, Schätzung, Wiederholung, die erste
+  Zeile der Notiz, erstellt und geändert stehen je in Zeile 1 neben dem
+  Titel, in Zeile 2 darunter oder gar nicht. Beide Zeilen bleiben
+  einzeilig; was nicht passt, wird am Ende abgeschnitten, in dieser
+  Reihenfolge. „Kurzform mit Symbolen“ schreibt `▶ Mo 10.11.` für Start,
+  `◷` für Geplant, `~1h30` für die Schätzung, `↻2w` für eine
+  Wiederholung und Tags als Chips.
 - **Board** („Liste | Board“): dieselben Aufgaben als Karten in Spalten.
   Die Spalten sind die Zustände eines Ablaufs oder eine geordnete Liste von
   Tags, dazu „Ohne“ und „Erledigt“ (die letzten 7 Tage), jede mit einem

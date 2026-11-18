@@ -1,0 +1,207 @@
+// SPDX-FileCopyrightText: 2026 Marc Seibert
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+package de.samudo.app
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import de.samudo.app.mobile.Due
+import de.samudo.app.mobile.RowFields
+import de.samudo.app.mobile.RowPlace
+import de.samudo.app.mobile.TaskRow
+import java.time.Instant
+import java.time.ZoneId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/**
+ * What a row shows besides its title (ADR 0130): every field has a place,
+ * line 1, line 2 or off, and the short form is a switch. One layout for
+ * every list on this phone, kept in its own cache by samu-mobile.
+ */
+object RowLayout {
+    /** The fields in order, with their words in the sheet; the keys are samu-mobile's. */
+    fun fields() = listOf(
+        "due" to tr("Fällig"), "state" to tr("Zustand"), "tags" to tr("Tags"), "place" to tr("Ort"),
+        "reason" to tr("Grund"), "defer" to tr("Start"), "planned" to tr("Geplant"),
+        "estimate" to tr("Schätzung"), "repeat" to tr("Wiederholung"), "note" to tr("Notiz"),
+        "created" to tr("erstellt"), "modified" to tr("geändert"),
+    )
+
+    /** Until the cache answers: the phone's default (ADR 0130 §8). */
+    private val START = RowFields(
+        listOf(RowPlace("due", 1u), RowPlace("state", 2u), RowPlace("tags", 2u)),
+        true,
+    )
+
+    val layout = mutableStateOf(START)
+    var open by mutableStateOf(false)
+
+    fun place(key: String): Int = layout.value.places.find { it.key == key }?.place?.toInt() ?: 0
+
+    /** On the main thread; the cache is written off it and gives the settled layout back. */
+    suspend fun set(samu: de.samudo.app.mobile.Samu, next: RowFields) {
+        layout.value = next
+        withContext(Dispatchers.IO) { runCatching { samu.setRowFields(next) } }.getOrNull()?.let { layout.value = it }
+    }
+
+    suspend fun load(samu: de.samudo.app.mobile.Samu) {
+        withContext(Dispatchers.IO) { runCatching { samu.rowFields() } }.getOrNull()?.let { layout.value = it }
+    }
+}
+
+/** One field of a row: what it says, its long form for a screen reader, and its colour. */
+data class RowPart(val text: String, val label: String, val due: Due? = null)
+
+private fun localDay(ms: Long): String = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+
+/** "PT1H30M" → "1h30", "PT45M" → "45m". */
+private fun estimateShort(text: String): String {
+    val m = Regex("""^PT(?:(\d+)H)?(?:(\d+)M)?$""").find(text) ?: return text
+    val (h, min) = m.destructured
+    return when {
+        h.isNotEmpty() && min.isNotEmpty() -> "${h}h$min"
+        h.isNotEmpty() -> "${h}h"
+        else -> "${min}m"
+    }
+}
+
+private val UNIT = mapOf("DAILY" to "d", "WEEKLY" to "w", "MONTHLY" to "M", "YEARLY" to "y")
+
+/**
+ * The fields of `line` (1 or 2) for one row, in order, without the empty
+ * ones. `place` is what the list says of where the task lives; none where
+ * its heading says it already.
+ */
+fun rowParts(row: TaskRow, line: Int, place: String?): List<RowPart> {
+    val short = RowLayout.layout.value.short
+    val open = !row.done && !row.dropped
+    fun make(long: String, brief: String = long, due: Due? = null) = RowPart(if (short) brief else long, long, due)
+    return RowLayout.fields().map { it.first }.filter { RowLayout.place(it) == line }.mapNotNull { key ->
+        when (key) {
+            "due" -> if (open) Words.due(row)?.let { make(it, Words.day(row.due), row.dueState) } else null
+            "state" -> row.state?.substringAfterLast('/')?.let { make(it) }
+            "tags" -> row.tags.takeIf { it.isNotEmpty() }?.let { tags ->
+                make(tags.joinToString(" ") { "@$it" }, tags.joinToString(" ") { "@" + it.substringAfterLast('/') })
+            }
+            "place" -> place?.let { make(it, it.substringBefore(" · ")) }
+            "reason" -> if (open && !row.available) row.reason?.let { val r = Words.reason(it); make(r, "⊘ $r") } else null
+            "defer" -> row.defer?.let { make(tr("Start {n}", "n" to Words.day(it)), "▶ " + Words.day(it)) }
+            "planned" -> row.planned?.let { make(tr("Geplant {n}", "n" to Words.day(it)), "◷ " + Words.day(it)) }
+            "estimate" -> row.estimate?.let { make("~" + Words.estimate(it), "~" + estimateShort(it)) }
+            "repeat" -> row.repeat?.let { r ->
+                make("↻ " + repeatText(r), "↻" + (UNIT[r.freq]?.let { "${r.interval}$it" } ?: ""))
+            }
+            "note" -> row.noteLine?.let { make(it, "¶ $it") }
+            "created" -> make(tr("erstellt {day}", "day" to Words.day(localDay(row.createdMs))), "+" + Words.day(localDay(row.createdMs)))
+            "modified" -> make(tr("geändert {day}", "day" to Words.day(localDay(row.modifiedMs))), "Δ" + Words.day(localDay(row.modifiedMs)))
+            else -> null
+        }
+    }
+}
+
+/** The parts as one line: ` · ` between them, the due date in its colour. */
+fun rowText(parts: List<RowPart>, muted: Color, overdue: Color, soon: Color): AnnotatedString = buildAnnotatedString {
+    parts.forEachIndexed { i, part ->
+        if (i > 0) withStyle(SpanStyle(color = muted)) { append(" · ") }
+        val color = when (part.due) {
+            Due.OVERDUE -> overdue
+            Due.SOON -> soon
+            else -> muted
+        }
+        withStyle(SpanStyle(color = color)) { append(part.text) }
+    }
+}
+
+/** What a screen reader says of the parts: always the long forms. */
+fun rowLabel(parts: List<RowPart>): String = parts.joinToString(", ") { it.label }
+
+/** The sheet „Zeile …“ (ADR 0130 §6): for every field 1 · 2 · aus, and the short form. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RowSheet(close: () -> Unit) {
+    val context = LocalContext.current
+    val t = LocalTokens.current
+    val scope = rememberCoroutineScope()
+    val layout = RowLayout.layout.value
+    val set: (RowFields) -> Unit = { next -> scope.launch { RowLayout.set(Store.get(context), next) } }
+    val placed: (String, Int) -> RowFields = { key, place ->
+        val known = RowLayout.fields().map { it.first }
+        layout.copy(places = known.map { k -> RowPlace(k, (if (k == key) place else RowLayout.place(k)).toUByte()) })
+    }
+    ModalBottomSheet(onDismissRequest = close, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = t.pane) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp, 0.dp, 16.dp, 24.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(tr("Felder der Zeile"), color = t.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            RowLayout.fields().forEach { (key, word) ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(word, color = t.fg, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                    listOf(1 to "1", 2 to "2", 0 to tr("aus")).forEach { (place, text) ->
+                        val on = RowLayout.place(key) == place
+                        val label = when (place) {
+                            1 -> tr("in Zeile 1")
+                            2 -> tr("in Zeile 2")
+                            else -> tr("nicht zeigen")
+                        }
+                        Box(
+                            Modifier.padding(start = 4.dp)
+                                .border(1.dp, if (on) t.accent else t.line, RoundedCornerShape(6.dp))
+                                .background(if (on) t.select else t.pane, RoundedCornerShape(6.dp))
+                                .clickable { if (!on) set(placed(key, place)) }
+                                .semantics { contentDescription = "$word $label" }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) { Text(text, color = if (on) t.fg else t.muted, fontSize = 14.sp) }
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(tr("Kurzform mit Symbolen"), color = t.fg, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                Switch(checked = layout.short, onCheckedChange = { set(layout.copy(short = it)) })
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { set(RowFields(emptyList(), true)) }) { Text(tr("Vorgabe"), color = t.muted) }
+                TextButton(onClick = close) { Text(tr("Fertig"), color = t.accent, fontWeight = FontWeight.SemiBold) }
+            }
+        }
+    }
+}

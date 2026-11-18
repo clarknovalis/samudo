@@ -61,8 +61,12 @@ connection.
 ## The head
 
 One line: the title, the [scope](concepts.md#scopes) as a chip (a tap
-picks another) and a menu (⋮) with "Details", "Sync", "Settings" and, in
-the projects, "New project" or folder. **Pull a list down** to
+picks another) and a menu (⋮) with "Row …", "Sync", "Settings" and, in
+the projects, "New project" or folder. "Row …" places each field of a
+task's row on line 1, line 2 or nowhere, and switches the short form
+with symbols, as in the [web](web.md#list); the phone keeps its own
+choice and starts with the due date beside the title, state and tags
+below it, short. **Pull a list down** to
 sync. The tag chips are the first row of the list and scroll away with
 it; each filters by one tag and everything below it.
 
@@ -145,7 +149,11 @@ it.
 ## Capture and sharing
 
 - **Capture** opens a sheet with [quick capture](quick-capture.md);
-  the preview is computed on the phone, also offline.
+  the preview is computed on the phone, also offline. With
+  [several lines](quick-capture.md#several-lines) pasted in, or after the
+  switch "Several lines" or "Capture several" in the ⋮ menu, Enter starts a
+  new line, the preview lists a task per line and "Add N tasks" makes them
+  all.
 - **Share to samudo** from any app that shares text: the subject or first
   line becomes the title (editable), below it a quick-capture field for
   project, tags and dates. The rest of the text becomes the note, and every

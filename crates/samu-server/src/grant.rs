@@ -47,6 +47,7 @@ pub(crate) fn restriction(route: &Route) -> Option<Rule> {
         | ("GET", "/habits/{id}")
         | ("GET", "/events")
         | ("POST", "/capture")
+        | ("POST", "/capture/lines")
         | ("PUT" | "GET", "/blobs/{sha256}") => Filtered,
         ("GET", "/scopes/scheduled")
         | ("GET", "/export")

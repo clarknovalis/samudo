@@ -14,10 +14,11 @@ use jiff::Timestamp;
 use jiff::civil::Date;
 
 use crate::api::{
-    Appointment, AppointmentInstance, Block, CaptureRequest, CaptureResponse, Change, ClockReport,
-    ClockReportBy, DueState, Folder, ForecastKind, ForecastRow, ForecastSection, ForecastWhy, Hlc,
-    Id, Inline, LinkClass, LinkedObject, ObjectKind, Project, ProjectAvailability, ProjectStatus,
-    Report, ReportPart, ReportWorked, ScheduledScope, Scope, Tagging, Task, TaskStatus,
+    Appointment, AppointmentInstance, Block, CaptureLinesRequest, CaptureLinesResponse,
+    CaptureRequest, CaptureResponse, Change, ClockReport, ClockReportBy, DueState, Folder,
+    ForecastKind, ForecastRow, ForecastSection, ForecastWhy, Hlc, Id, Inline, LinkClass,
+    LinkedObject, ObjectKind, Project, ProjectAvailability, ProjectStatus, Report, ReportPart,
+    ReportWorked, ScheduledScope, Scope, Tagging, Task, TaskStatus,
 };
 use crate::availability::{Evaluation, Settings, TaskState, evaluate, group_summary};
 use crate::overlay::Objects;
@@ -1081,6 +1082,75 @@ pub fn capture(
     Ok(Capture { answer, changes })
 }
 
+/// Several lines of quick capture made into changes (ADR 0129): an answer
+/// per line, and what to write for all of them unless it is a preview.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CaptureLines {
+    pub answer: CaptureLinesResponse,
+    pub changes: Vec<Change>,
+}
+
+/// `POST /capture/lines`: take the text apart with
+/// [`crate::capture::lines`] and capture each line as [`capture`] does,
+/// over what the lines before it made, so an indented line goes under the
+/// task of its line and a tag new in one line is known to the next. A line
+/// that fails fails them all; the error names it.
+pub fn capture_lines(
+    objects: &Objects,
+    settings: &Settings,
+    request: &CaptureLinesRequest,
+    now: Timestamp,
+    placeholder: &Hlc,
+    new_id: &mut impl FnMut() -> Id,
+) -> Result<CaptureLines, ViewError> {
+    let lines = crate::capture::lines(&request.text);
+    if lines.is_empty() {
+        return Err(ViewError::BadRequest("nothing to capture".into()));
+    }
+    let mut laid = objects.clone();
+    let mut tasks: Vec<CaptureResponse> = Vec::new();
+    let mut changes = Vec::new();
+    for (number, line) in (1..).zip(&lines) {
+        let in_line = |e: ViewError| match e {
+            ViewError::BadRequest(m) => ViewError::BadRequest(format!("line {number}: {m}")),
+            ViewError::Unprocessable(m) => ViewError::Unprocessable(format!("line {number}: {m}")),
+            other => other,
+        };
+        let one = CaptureRequest {
+            text: line.text.to_owned(),
+            project: request.project,
+            parent: match line.parent {
+                Some(index) => tasks.get(index).map(|t| t.task.id),
+                None => request.parent,
+            },
+            scope: request.scope,
+            template: request.template,
+            task: None,
+            preview: false,
+        };
+        let made = capture(&laid, settings, &one, now, placeholder, new_id).map_err(in_line)?;
+        for change in &made.changes {
+            crate::overlay::apply(&mut laid, change)
+                .map_err(|e| in_line(ViewError::Unprocessable(e.to_string())))?;
+        }
+        let mut answer = made.answer;
+        // The task as the changes lay it, tags and `x:` included.
+        if let Some(crate::api::AnyObject::Task(task)) = laid.get(answer.task.id) {
+            answer.task = task;
+        }
+        answer.created = true;
+        tasks.push(answer);
+        changes.extend(made.changes);
+    }
+    if request.preview {
+        changes.clear();
+    }
+    Ok(CaptureLines {
+        answer: CaptureLinesResponse { tasks },
+        changes,
+    })
+}
+
 /// What `z:` and `x:` of a line make (ADR 0081 §2).
 struct Booked {
     clocks: Vec<crate::api::Clock>,
@@ -1692,6 +1762,85 @@ mod tests {
                 &mut Id::new
             ),
             Err(ViewError::Unprocessable(_))
+        ));
+    }
+
+    /// ADR 0129: an indented line goes under its line, a tag new in one
+    /// line is made once, a project named wins, a failing line fails all.
+    #[test]
+    fn capture_lines_nests_and_shares_new_tags() {
+        let stamp = Hlc {
+            wall: 0,
+            counter: 0,
+            device: "test".into(),
+        };
+        let mut objects = Objects::default();
+        let garten: Project = serde_json::from_value(serde_json::json!({
+            "id": Id::new(), "title": "Garten", "kind": "parallel", "status": "active",
+            "created": now(), "modified": now(),
+        }))
+        .unwrap();
+        objects.projects.push(garten.clone());
+        let request: CaptureLinesRequest = serde_json::from_value(serde_json::json!({
+            "text": "Einkauf @laden\n  - Milch @laden\n  - Erde #Garten\nAnrufen !A",
+        }))
+        .unwrap();
+        let made =
+            capture_lines(&objects, &settings(), &request, now(), &stamp, &mut Id::new).unwrap();
+        let tasks = &made.answer.tasks;
+        let titles: Vec<&str> = tasks.iter().map(|t| t.task.title.as_str()).collect();
+        assert_eq!(titles, ["Einkauf", "Milch", "Erde", "Anrufen"]);
+        assert_eq!(tasks[1].task.parent, Some(tasks[0].task.id));
+        assert_eq!(tasks[2].task.parent, None);
+        assert_eq!(tasks[2].task.project, Some(garten.id));
+        assert_eq!(tasks[3].task.parent, None);
+        assert!(tasks.iter().all(|t| t.created));
+        // One new tag, on both tasks.
+        assert_eq!(tasks[0].new_tags, ["laden"]);
+        assert!(tasks[1].new_tags.is_empty());
+        assert_eq!(tasks[0].task.tags.len(), 1);
+        assert_eq!(tasks[0].task.tags[0].tag, tasks[1].task.tags[0].tag);
+        let tags_made = made
+            .changes
+            .iter()
+            .filter(|c| {
+                matches!(
+                    c,
+                    Change::Create {
+                        kind: ObjectKind::Tag,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert_eq!(tags_made, 1);
+        // Two tasks at the top, one after the other.
+        assert!(tasks[3].task.position > tasks[0].task.position);
+
+        let mut preview = request.clone();
+        preview.preview = true;
+        let seen =
+            capture_lines(&objects, &settings(), &preview, now(), &stamp, &mut Id::new).unwrap();
+        assert!(seen.changes.is_empty());
+        assert_eq!(seen.answer.tasks.len(), 4);
+        assert_eq!(
+            seen.answer.tasks[1].task.parent,
+            Some(seen.answer.tasks[0].task.id)
+        );
+
+        let mut closed = task("zu", 0);
+        closed.completed_at = Some(now());
+        objects.tasks.push(closed.clone());
+        let mut under = request;
+        under.parent = Some(closed.id);
+        assert!(matches!(
+            capture_lines(&objects, &settings(), &under, now(), &stamp, &mut Id::new),
+            Err(ViewError::Unprocessable(m)) if m.starts_with("line 1:")
+        ));
+        under.text = " \n".into();
+        assert!(matches!(
+            capture_lines(&objects, &settings(), &under, now(), &stamp, &mut Id::new),
+            Err(ViewError::BadRequest(_))
         ));
     }
 

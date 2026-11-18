@@ -62,8 +62,12 @@ verweisen. Nur Löschen braucht eine Verbindung.
 ## Der Kopf
 
 Eine Zeile: der Titel, der [Scope](concepts.md#scopes) als Chip (Tippen
-wählt einen anderen) und ein Menü (⋮) mit „Details“, „Sync“,
+wählt einen anderen) und ein Menü (⋮) mit „Zeile …“, „Sync“,
 „Einstellungen“ und, in den Projekten, „Neues Projekt“ oder Ordner.
+„Zeile …“ setzt jedes Feld der Zeile einer Aufgabe in Zeile 1, Zeile 2
+oder nirgends und schaltet die Kurzform mit Symbolen, wie im
+[Web](web.md#liste); das Handy hat seine eigene Wahl und beginnt mit
+Fällig neben dem Titel, Zustand und Tags darunter, kurz.
 **Eine Liste herunterziehen** synct. Die Tag-Chips sind die erste Zeile
 der Liste und scrollen mit ihr weg; jeder filtert nach einem Tag und
 allem darunter.
@@ -158,7 +162,10 @@ und Name) und öffnet sie.
 
 - **Erfassen** öffnet ein Blatt mit der
   [Schnellerfassung](quick-capture.md); die Vorschau rechnet das Handy,
-  auch offline.
+  auch offline. Mit [mehreren Zeilen](quick-capture.md#mehrere-zeilen),
+  eingefügt oder nach dem Schalter „Mehrere Zeilen“ bzw. „Mehrere erfassen“
+  im ⋮-Menü, beginnt Enter eine neue Zeile, die Vorschau zeigt eine Aufgabe
+  je Zeile, und „N Aufgaben anlegen“ legt alle an.
 - **An samudo teilen** aus jeder App, die Text teilt: Betreff oder erste
   Zeile werden der Titel (bearbeitbar), darunter ein Feld der
   Schnellerfassung für Projekt, Tags und Daten. Der Rest des Textes wird

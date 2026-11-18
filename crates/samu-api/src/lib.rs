@@ -45,7 +45,10 @@ pub use calendar::{
     CalendarImport, CalendarKind, CalendarSource, DiscoveredCalendar, EditRange, EditResult,
     ImportIssue,
 };
-pub use capture::{CaptureMark, CaptureMeaning, CaptureRequest, CaptureResponse, CaptureWarning};
+pub use capture::{
+    CaptureLinesRequest, CaptureLinesResponse, CaptureMark, CaptureMeaning, CaptureRequest,
+    CaptureResponse, CaptureWarning,
+};
 pub use change::{Change, ChangeOutcome, ObjectKind};
 pub use close::{ChildFate, CloseField, CloseRequest, CloseResponse};
 pub use convert::{ToProjectRequest, ToProjectResponse};

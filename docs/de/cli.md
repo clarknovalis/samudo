@@ -116,6 +116,7 @@ samu add "Milch kaufen" --dry-run         # zeigen, nichts schreiben
 samu add --literal "#hashtag im Titel"    # der Text als Titel, wörtlich
 samu add "Teilschritt" --parent 4f2a91c3
 samu add "Entwurf /woche"                 # mit einer Vorlage
+samu add --lines - < liste.txt            # eine Aufgabe je Zeile, eingerückte darunter
 ```
 
 Die Zeichen stehen unter [Schnellerfassung](quick-capture.md). Vorlagen:

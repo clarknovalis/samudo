@@ -45,10 +45,11 @@ use anyhow::{Context, Result, bail};
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::engine::ArgValueCompleter;
 use samu_api::{
-    AnyObject, BareStatus, BlockSection, CaptureRequest, CaptureResponse, CaptureWarning, Change,
-    ChangeOutcome, ChangesPage, DeleteRequest, DeleteResponse, Hlc, HookChange, HookChangeResponse,
-    HookDelivery, HookFormat, HookView, Id, LogEntry, Login, ObjectKind, PairCode, PairCodeRequest,
-    PairRequest, ProjectAvailability, RenderResponse, SessionInfo, TaskFate, TaskStatus,
+    AnyObject, BareStatus, BlockSection, CaptureLinesRequest, CaptureLinesResponse, CaptureRequest,
+    CaptureResponse, CaptureWarning, Change, ChangeOutcome, ChangesPage, DeleteRequest,
+    DeleteResponse, Hlc, HookChange, HookChangeResponse, HookDelivery, HookFormat, HookView, Id,
+    LogEntry, Login, ObjectKind, PairCode, PairCodeRequest, PairRequest, ProjectAvailability,
+    RenderResponse, SessionInfo, TaskFate, TaskStatus,
 };
 use serde_json::{Value, json};
 
@@ -217,6 +218,11 @@ enum Command {
         /// A template by name (ADR 0073), the same as `/name` in the text.
         #[arg(long, conflicts_with = "literal")]
         template: Option<String>,
+        /// A task per line of the text, `-` reads it from stdin (POST
+        /// /capture/lines, ADR 0129): list markers go, an indented line
+        /// goes under the line above it, all or none are made.
+        #[arg(long, conflicts_with_all = ["literal", "note", "flag", "template"])]
+        lines: bool,
     },
     /// Edit a task by a line of quick capture with only marks (POST
     /// /capture with `task`, ADR 0078): `@tag` adds, `#project !A d:fr
@@ -722,6 +728,7 @@ const COVERAGE: &[(&str, &str, &str)] = &[
     ("GET", "/habits", "habit list"),
     ("GET", "/habits/{id}", "habit show"),
     ("POST", "/capture", "add"),
+    ("POST", "/capture/lines", "add"),
     ("POST", "/render", "render"),
     ("GET", "/events", "events"),
     ("POST", "/pair/code", "pair"),
@@ -1333,6 +1340,11 @@ fn print_capture(
     written: bool,
     columns: &[&str],
 ) -> Result<()> {
+    emit(format, &[capture_record(captured, written)], columns)
+}
+
+/// A capture as a record, what it made besides on stderr.
+fn capture_record(captured: &CaptureResponse, written: bool) -> Value {
     for name in &captured.new_tags {
         if written {
             eprintln!("made the tag {name}");
@@ -1349,16 +1361,16 @@ fn print_capture(
         eprintln!("{verb} {}", when.as_str().unwrap_or_default());
     }
     let task = &captured.task;
-    let record = json!({
+    json!({
         "id": task.id,
         "short": short(&task.id),
         "title": task.title,
+        "parent": task.parent,
         "created": captured.created,
         "task": task,
         "new_tags": captured.new_tags,
         "warnings": captured.warnings,
-    });
-    emit(format, &[record], columns)
+    })
 }
 
 /// A capture warning in words, for stderr (ADR 0027 §6).
@@ -1756,12 +1768,58 @@ fn run(args: Args) -> Result<()> {
             title,
             project,
             parent,
+            dry_run,
+            no_scope,
+            lines: true,
+            ..
+        } => {
+            let client = signed_in(&config)?;
+            let project = project.map(|p| resolve_project(&client, &p)).transpose()?;
+            let parent = parent.map(|p| resolve(&client, &p)).transpose()?;
+            let text = if title == ["-"] {
+                let mut text = String::new();
+                std::io::stdin().read_to_string(&mut text)?;
+                text
+            } else {
+                title.join(" ")
+            };
+            let request = CaptureLinesRequest {
+                text,
+                project,
+                parent,
+                scope: if no_scope {
+                    None
+                } else {
+                    scopes::effective_scope(&client, &config)?
+                },
+                template: None,
+                preview: dry_run,
+            };
+            let answer = client.call(
+                "POST",
+                "/capture/lines",
+                Some(&serde_json::to_value(&request)?),
+            )?;
+            let captured: CaptureLinesResponse = serde_json::from_value(answer.json()?)?;
+            let records = captured
+                .tasks
+                .iter()
+                .map(|one| capture_record(one, !dry_run))
+                .collect::<Vec<_>>();
+            let columns: &[&str] = if dry_run { &["title"] } else { &["id"] };
+            emit(args.format, &records, columns)?;
+        }
+        Command::Add {
+            title,
+            project,
+            parent,
             note,
             flag,
             dry_run,
             literal: false,
             no_scope,
             template,
+            lines: false,
         } => {
             let client = signed_in(&config)?;
             let project = project.map(|p| resolve_project(&client, &p)).transpose()?;

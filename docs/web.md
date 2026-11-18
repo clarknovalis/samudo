@@ -28,7 +28,11 @@ and the task replaces the list ("‹ List" goes back).
   window. While you type, the server's preview shows as chips and warnings;
   inside `#…` and `@…` it suggests known projects and tags (↑ ↓, Tab or
   Enter takes one). Enter creates the task; Tab creates it and opens it in
-  the inspector. `C` and a key captures with a template.
+  the inspector. `C` and a key captures with a template. Pasting
+  [several lines](quick-capture.md#several-lines), Shift+Enter or the switch
+  "Several lines" turns the window into a field of several lines with a
+  preview of each task; Enter creates them all, Shift+Enter starts a new
+  line. "capture several lines" can get a key of its own.
 - **Scope** picker: the [scope](concepts.md#scopes) of this browser. A
   scope with a colour tints the line between sidebar and list while it is
   chosen.
@@ -70,9 +74,14 @@ searches everything.
   priority, date or nothing; sort by own order, due, planned, defer,
   title, created, modified, estimate or priority, with a second key; kept
   per view in this browser.
-- Each row shows the state as a badge before the title, the due date in
-  colour and words, flags, priority, a note mark and, optionally, a second
-  line with dates ("Details"). A blocker shows 🚧.
+- Each row shows the priority as a bar, the title, a note mark, a flag
+  and 🚧 for a blocker. **Row …** decides the rest, in this browser for
+  every list: each of due, state, tags, place, reason, defer, planned,
+  estimate, repeat, the note's first line, created and modified goes on
+  line 1 beside the title, on line 2 below it, or off. Both lines stay
+  one line; what does not fit is cut at the end, in that order. "Short
+  form with symbols" writes `▶ Mon 10 Nov` for defer, `◷` for planned,
+  `~1h30` for the estimate, `↻2w` for a repetition and tags as chips.
 - **Board** ("List | Board"): the same tasks as cards in columns. The
   columns are the states of a workflow or an ordered list of tags, plus
   "None" and "Completed" (the last 7 days), each with an optional

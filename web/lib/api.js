@@ -173,6 +173,19 @@ export const api = {
     if (!preview) written();
     return answer;
   },
+  // Several lines at once (ADR 0129): a task per line, an indented line
+  // under the line above it, all or none.
+  async captureLines(text, project, preview, scope, parent = null) {
+    const answer = await post("/capture/lines", {
+      text,
+      project: project ?? undefined,
+      parent: parent ?? undefined,
+      scope: scope ?? undefined,
+      preview,
+    });
+    if (!preview) written();
+    return answer;
+  },
   // Notes and comments as document trees (ADR 0058), one per text.
   render: (texts) => post("/render", { texts: texts.map((text) => ({ text })) }),
   logbook: (id) => get(`/objects/${encodeURIComponent(id)}/logbook`),

@@ -301,17 +301,4 @@ private fun planOn(samu: Samu, id: String, field: String, days: Long) {
     samu.setDate(id, field, day)
 }
 
-/**
- * Details as a second line (ADR 0053): one switch for every list, kept in
- * the phone's own cache, never on the server.
- */
-object Details {
-    val on = mutableStateOf(false)
 
-    /** On the main thread; the cache is written off it. */
-    suspend fun toggle(samu: de.samudo.app.mobile.Samu) {
-        val now = !on.value
-        on.value = now
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { samu.setDetails(now) } }
-    }
-}

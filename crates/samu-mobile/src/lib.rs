@@ -26,6 +26,7 @@ mod line;
 mod notes;
 mod props;
 mod remind;
+mod rowfields;
 mod search;
 mod views;
 
@@ -38,6 +39,7 @@ pub use habits::{HabitDayRow, HabitDetail, HabitEntryRow, HabitLine, HabitRow};
 pub use line::{EditChip, EditPreview};
 pub use notes::{AttachmentRow, CommentRow};
 pub use remind::{AlarmRow, Anchor, Notice, ReminderRow};
+pub use rowfields::{RowFields, RowPlace};
 pub use search::{SearchChip, SearchOffer, SearchSplit};
 pub use views::{PerspectiveRow, ProjectView};
 
@@ -229,6 +231,13 @@ pub struct TaskRow {
     pub priority: Option<String>,
     /// The note is not empty (ADR 0053 §5).
     pub has_note: bool,
+    /// The first line of the note that says something, cut at 60
+    /// characters (ADR 0130 §2).
+    pub note_line: Option<String>,
+    /// Its repetition (ADR 0130 §2); none when it does not repeat.
+    pub repeat: Option<RepeatEdit>,
+    pub created_ms: i64,
+    pub modified_ms: i64,
     /// An open task waits for it: 🚧 before the title.
     pub blocks: bool,
     /// The first reason it is not available.
@@ -723,6 +732,14 @@ pub struct CapturePreview {
     pub project: Option<String>,
     pub chips: Vec<Chip>,
     pub warnings: Vec<WarningRow>,
+}
+
+/// A line of several in the capture sheet (ADR 0129): how deep it goes
+/// under the lines above it, and what it makes.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct LinePreview {
+    pub depth: u32,
+    pub preview: CapturePreview,
 }
 
 /// What a text shared to the app makes (ADR 0013), before anything is
@@ -2501,6 +2518,87 @@ impl Samu {
         })
     }
 
+    /// Whether the text is several lines to capture as several tasks
+    /// (ADR 0129): two lines that are not blank.
+    pub fn is_several(&self, text: String) -> bool {
+        samu_core::capture::lines(&text).len() >= 2
+    }
+
+    /// The preview of each line of a text of several (ADR 0129), with its
+    /// depth. A line under another names its project only when it says
+    /// one; it goes into its line's otherwise.
+    pub fn preview_lines(
+        &self,
+        text: String,
+        project: Option<String>,
+    ) -> Result<Vec<LinePreview>, MobileError> {
+        let lines = samu_core::capture::lines(&text);
+        let mut depths: Vec<u32> = Vec::new();
+        let mut out = Vec::new();
+        for line in &lines {
+            let depth = line.parent.and_then(|p| depths.get(p)).map_or(0, |d| d + 1);
+            depths.push(depth);
+            let mut preview = self.preview(line.text.to_owned(), project.clone())?;
+            if depth > 0 {
+                preview
+                    .chips
+                    .retain(|c| c.kind != "project" || !c.spans.is_empty());
+                if !preview.chips.iter().any(|c| c.kind == "project") {
+                    preview.project = None;
+                }
+            }
+            out.push(LinePreview { depth, preview });
+        }
+        Ok(out)
+    }
+
+    /// Makes a task per line of `text`, an indented one under the line
+    /// above it, all or none, offline (ADR 0129); the top lines go under
+    /// `parent` when there is one. The rule is
+    /// `samu_core::views::capture_lines`, as on the server. Answers the new
+    /// tasks' ids in the order of the lines.
+    pub fn capture_lines(
+        &self,
+        text: String,
+        project: Option<String>,
+        parent: Option<String>,
+    ) -> Result<Vec<String>, MobileError> {
+        let (settings, scope) = {
+            let cache = self.cache()?;
+            let (objects, _) = Self::view(&cache)?;
+            let scope = Self::chosen(&cache, &objects)?.map(|s| s.id);
+            (Self::settings(&cache)?.0, scope)
+        };
+        let request = samu_api::CaptureLinesRequest {
+            text,
+            project: project.as_deref().map(parse_id).transpose()?,
+            parent: parent.as_deref().map(parse_id).transpose()?,
+            scope,
+            template: None,
+            preview: false,
+        };
+        let mut made = Vec::new();
+        self.queue(|objects, stamp| {
+            let placeholder = stamp();
+            let capture = samu_core::views::capture_lines(
+                objects,
+                &settings,
+                &request,
+                Timestamp::now(),
+                &placeholder,
+                &mut Id::new,
+            )
+            .map_err(|e| input(e.to_string()))?;
+            made = capture.answer.tasks.iter().map(|t| t.task.id).collect();
+            Ok(capture
+                .changes
+                .into_iter()
+                .map(|change| samu_core::clock::restamp(change, stamp()))
+                .collect())
+        })?;
+        Ok(made.iter().map(ToString::to_string).collect())
+    }
+
     /// What to offer for the `#…` or `@…` word that the cursor (UTF-16)
     /// stands in, from the first sign on; none outside such a word, when
     /// nothing fits, or when exactly the one name is typed already.
@@ -2758,16 +2856,6 @@ impl Samu {
     }
 
     /// Whether this phone follows the scopes' schedule (ADR 0043 §7).
-    /// Details as a second line (ADR 0053), this phone only.
-    pub fn details(&self) -> Result<bool, MobileError> {
-        Ok(self.cache()?.meta("details")?.as_deref() == Some("1"))
-    }
-
-    pub fn set_details(&self, on: bool) -> Result<(), MobileError> {
-        self.cache()?.set_meta("details", on.then_some("1"))?;
-        Ok(())
-    }
-
     pub fn scope_auto(&self) -> Result<bool, MobileError> {
         Ok(self.cache()?.meta("scope_auto")?.as_deref() == Some("1"))
     }
@@ -4333,6 +4421,14 @@ fn row(
         estimate: task.estimate.as_ref().map(|p| p.0.to_string()),
         priority: task.priority.and_then(priority_text),
         has_note: task.note.as_deref().is_some_and(|n| !n.trim().is_empty()),
+        note_line: task.note.as_deref().and_then(note_line),
+        repeat: task
+            .schedule
+            .repeat
+            .as_ref()
+            .map(|r| edit::repeat_edit(r, None)),
+        created_ms: task.created.as_millisecond(),
+        modified_ms: task.modified.as_millisecond(),
         blocks: blockers::holds_up(&objects.tasks, &objects.links, task.id),
         reason: state
             .and_then(|s| s.reasons.first())
@@ -4351,6 +4447,17 @@ fn row(
         why_date: None,
         habit: habits::row_of(task, objects, zone, Timestamp::now()),
     }
+}
+
+/// The first line of a note that says something, cut at 60 characters
+/// like the web's (ADR 0130 §2).
+fn note_line(note: &str) -> Option<String> {
+    let line = note.lines().map(str::trim).find(|l| !l.is_empty())?;
+    Some(if line.chars().count() > 60 {
+        format!("{}…", line.chars().take(60).collect::<String>())
+    } else {
+        line.to_owned()
+    })
 }
 
 fn why_word(why: forecast::Why) -> &'static str {

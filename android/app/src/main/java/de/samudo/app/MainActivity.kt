@@ -216,7 +216,7 @@ fun App() {
         status = withContext(Dispatchers.IO) { Store.active(context) to Store.get(context).status() }
     }
     LaunchedEffect(slot) {
-        Details.on.value = withContext(Dispatchers.IO) { runCatching { Store.get(context).details() }.getOrDefault(false) }
+        RowLayout.load(Store.get(context))
     }
 
     // The accounts on the phone (ADR 0107 §4), for the menu and the sign-in.
@@ -262,6 +262,8 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
     // A project of the bar is its entry's screen, not one opened in it.
     val ownProject = place.entry.kind == "project" && place.project?.first == place.entry.key
     var capturing by remember { mutableStateOf(false) }
+    // The sheet opened for several lines from the menu (ADR 0129).
+    var capturingLines by remember { mutableStateOf(false) }
     // An appointment's sheet, opened from its reminder.
     var appointment by remember { mutableStateOf<AppointmentRow?>(null) }
     // The tag chip stays when the tab changes; the search keeps its words.
@@ -379,10 +381,10 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                         TextButton(onClick = { menu = true }) { Text("⋮", fontSize = 20.sp, color = t.fg) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             if (lists) {
-                                // Details as a second line (ADR 0053 §1), for every list.
+                                // What a row shows (ADR 0130 §6), for every list.
                                 DropdownMenuItem(
-                                    text = { Text(if (Details.on.value) tr("✓ Details") else "Details") },
-                                    onClick = { menu = false; scope.launch { Details.toggle(Store.get(context)) } },
+                                    text = { Text(tr("Zeile …")) },
+                                    onClick = { menu = false; RowLayout.open = true },
                                 )
                             }
                             if (lists) {
@@ -399,6 +401,7 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                                 onClick = { menu = false; Sync.now(context) },
                             )
                             if (!place.settings) {
+                                DropdownMenuItem(text = { Text(tr("Mehrere erfassen")) }, onClick = { menu = false; capturingLines = true; capturing = true })
                                 DropdownMenuItem(text = { Text(tr("Einstellungen")) }, onClick = { menu = false; place = place.copy(settings = true) })
                             }
                             // Switching quickly, with more than one account (ADR 0107 §4).
@@ -501,6 +504,7 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
     }
     appointment?.let { AppointmentSheet(it) { appointment = null } }
     Arranging.open?.let { key -> ArrangeSheet(key, changed) { Arranging.open = null } }
+    if (RowLayout.open) RowSheet { RowLayout.open = false }
     val share = pendingShare.value
     Closing.ask.value?.let { CloseSheet(it, changed) }
     TaskMenus.editing.value?.let { row ->
@@ -511,8 +515,9 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
     }
     val under = TaskMenus.under.value
     if (capturing || share != null || under != null) {
-        CaptureSheet(project = place.project?.first, shared = share, parent = under.takeIf { share == null }, onDone = { id ->
+        CaptureSheet(project = place.project?.first, shared = share, parent = under.takeIf { share == null }, lines = capturingLines && share == null, onDone = { id ->
             capturing = false
+            capturingLines = false
             pendingShare.value = null
             TaskMenus.under.value = null
             if (id != null) changed()

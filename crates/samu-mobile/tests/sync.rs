@@ -3381,15 +3381,16 @@ fn a_task_says_where_it_lives_with_the_whole_folder_path() {
     );
 }
 
-/// ADR 0053: a row carries what the second line needs (Start, Geplant, the
-/// estimate as written) and whether it has a note; the switch is this
-/// phone's own and stays across opening the cache again.
+/// ADR 0053, 0130: a row carries what its lines need (Start, Geplant, the
+/// estimate as written, the note's first line, the repetition, when it
+/// was made and changed); the layout is this phone's own and stays across
+/// opening the cache again.
 #[test]
-fn a_row_has_its_details_and_note_and_the_switch_stays_on_the_phone() {
+fn a_row_has_its_fields_and_the_layout_stays_on_the_phone() {
     let server = Server::start();
     let samu = phone(&server);
     samu.capture(
-        "Plan zeichnen s:2026-12-01 p:2026-12-02 ~1h30m // Maße vom Bad".into(),
+        "Plan zeichnen s:2026-12-01 p:2026-12-02 ~1h30m every:2w // \n  Maße vom Bad  \nzweite Zeile".into(),
         None,
     )
     .unwrap();
@@ -3406,17 +3407,36 @@ fn a_row_has_its_details_and_note_and_the_switch_stays_on_the_phone() {
     assert_eq!(plan.planned.as_deref(), Some("2026-12-02"));
     assert_eq!(plan.estimate.as_deref(), Some("PT1H30M"));
     assert!(plan.has_note);
+    assert_eq!(plan.note_line.as_deref(), Some("Maße vom Bad"));
+    let repeat = plan.repeat.as_ref().expect("every:2w repeats");
+    assert_eq!(
+        (repeat.freq.as_deref(), repeat.interval),
+        (Some("WEEKLY"), 2)
+    );
+    assert!(plan.created_ms > 0 && plan.modified_ms >= plan.created_ms);
     let milk = rows.iter().find(|r| r.title == "Milch").unwrap();
-    assert!(milk.estimate.is_none() && !milk.has_note);
+    assert!(milk.estimate.is_none() && !milk.has_note && milk.note_line.is_none());
+    assert!(milk.repeat.is_none());
 
-    assert!(!samu.details().unwrap());
-    samu.set_details(true).unwrap();
-    assert!(samu.details().unwrap());
+    let place = |fields: &samu_mobile::RowFields, key: &str| {
+        fields.places.iter().find(|p| p.key == key).unwrap().place
+    };
+    let start = samu.row_fields().unwrap();
+    assert!(start.short);
+    assert_eq!(place(&start, "due"), 1);
+    assert_eq!(place(&start, "tags"), 2);
+    let mut tags_first = start.clone();
+    tags_first
+        .places
+        .iter_mut()
+        .find(|p| p.key == "tags")
+        .unwrap()
+        .place = 1;
+    tags_first.short = false;
+    samu.set_row_fields(tags_first.clone()).unwrap();
     drop(samu);
     let again = Samu::open(server.dir.join("phone").display().to_string()).unwrap();
-    assert!(again.details().unwrap());
-    again.set_details(false).unwrap();
-    assert!(!again.details().unwrap());
+    assert_eq!(again.row_fields().unwrap(), tags_first);
 }
 
 /// ADR 0054: the phone shows own and inherited properties with where they
@@ -4286,6 +4306,59 @@ fn a_subtask_goes_last_under_its_parent_offline() {
     let object = stored(&other, &elsewhere);
     assert_eq!(object["project"], json!(home));
     assert!(object.get("parent").is_none_or(Value::is_null), "{object}");
+}
+
+/// ADR 0129 in the app: several lines make a task each, offline, an
+/// indented one under its line; the preview shows depths; a failing line
+/// makes none.
+#[test]
+fn several_lines_make_a_task_each_offline() {
+    let server = Server::start();
+    let other = server.other_client();
+    let garden = make_project(&other, "Garten");
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let text = "Beet\n  - Erde @baumarkt\n  - Samen #Garten\nGießen";
+    assert!(samu.is_several(text.into()));
+    assert!(!samu.is_several("eine\n\n".into()));
+    let seen = samu
+        .preview_lines(text.into(), Some(garden.clone()))
+        .unwrap();
+    let depths: Vec<u32> = seen.iter().map(|l| l.depth).collect();
+    assert_eq!(depths, [0, 1, 1, 0]);
+    assert_eq!(seen[0].preview.project.as_deref(), Some("Garten"));
+    assert_eq!(seen[1].preview.project, None, "it goes into its line's");
+    assert_eq!(seen[2].preview.project.as_deref(), Some("Garten"));
+    assert_eq!(samu.outbox_count().unwrap(), 0, "a preview writes nothing");
+
+    let ids = samu
+        .capture_lines(text.into(), Some(garden.clone()), None)
+        .unwrap();
+    assert_eq!(ids.len(), 4);
+    assert!(
+        samu.capture_lines(
+            "geht\nnicht".into(),
+            None,
+            Some(samu_api::Id::new().to_string())
+        )
+        .is_err()
+    );
+    let queued = samu.outbox_count().unwrap();
+    samu.sync().unwrap();
+    assert_eq!(samu.outbox_count().unwrap(), 0, "{queued} sent");
+    let beet = stored(&other, &ids[0]);
+    assert_eq!(beet["title"], "Beet");
+    assert_eq!(beet["project"], json!(garden));
+    let erde = stored(&other, &ids[1]);
+    assert_eq!(erde["parent"], json!(ids[0]));
+    assert_eq!(erde["project"], json!(garden));
+    assert_eq!(erde["tags"].as_array().unwrap().len(), 1);
+    let giessen = stored(&other, &ids[3]);
+    assert!(
+        giessen.get("parent").is_none_or(Value::is_null),
+        "{giessen}"
+    );
 }
 
 /// ADR 0078 §1–3 in the app (ADR 0102 §7): the chips of a task, what a

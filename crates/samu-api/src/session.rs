@@ -258,6 +258,10 @@ pub const ROUTES: &[Route] = &[
     },
     Route {
         method: "POST",
+        path: "/capture/lines",
+    },
+    Route {
+        method: "POST",
         path: "/render",
     },
     Route {

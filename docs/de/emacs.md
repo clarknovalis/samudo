@@ -131,7 +131,11 @@ auf einem Eintrag löscht ihn, `RET` öffnet die Aufgabe, `g` lädt neu.
 `samu-capture` liest eine Zeile der [Schnellerfassung](quick-capture.md).
 `TAB` ergänzt `#projekt`, `@tag` und `/vorlage`. Eine aktive Region wird
 die Notiz. Aus einer Datei heraus kommt ein Org-Link auf die Zeile dazu
-(`samu-capture-link`).
+(`samu-capture-link`). `samu-capture-lines` macht aus jeder Zeile der
+Region eine Aufgabe, eine eingerückte Zeile unter der darüber
+([mehrere Zeilen](quick-capture.md#mehrere-zeilen)); ohne Region öffnet es
+einen Puffer für die Zeilen, `C-c C-c` legt sie an, `C-c C-k` verwirft.
+Mehrere Zeilen, die man in `samu-capture` einfügt, gehen denselben Weg.
 
 `samu-capture-template` (in den Ansichten `C`, sonst `C-u C-u a`) arbeitet
 wie `org-capture`: Ein kleines Fenster listet die Vorlagen mit ihren

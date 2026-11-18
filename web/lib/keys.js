@@ -132,6 +132,7 @@ const RUN = {
   "date.today": (s) => due(s, today()),
   "date.tomorrow": (s) => due(s, addDays(today(), 1)),
   capture: () => openCapture(),
+  "capture.lines": () => openCapture(null, null, null, true),
   "capture.template": () => startTemplates(),
   voice: () => toggleVoice(),
   search: () => $("search-input").focus(),

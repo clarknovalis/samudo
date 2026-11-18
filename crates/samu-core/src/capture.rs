@@ -1035,6 +1035,73 @@ pub fn missing_reminders(made: Vec<Reminder>, present: &[Reminder]) -> Vec<Remin
         .collect()
 }
 
+/// One line of a text captured as several tasks (ADR 0129).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Line<'a> {
+    /// The line without its indentation and list marker.
+    pub text: &'a str,
+    /// The index of the line it goes under, an earlier one.
+    pub parent: Option<usize>,
+}
+
+/// Take a text apart into lines of quick capture (ADR 0129 §1, §2): blank
+/// lines drop out, a list marker (`-`, `*`, `+`, `•`, `1.`, `1)`, a box
+/// `[ ]` or `[x]`) goes, and a line indented deeper than the one before
+/// goes under it. A line that goes back goes under the nearest shallower
+/// line above it, or to the top.
+pub fn lines(text: &str) -> Vec<Line<'_>> {
+    let mut out = Vec::new();
+    // The indentation and index of each line still open for children.
+    let mut open: Vec<(usize, usize)> = Vec::new();
+    for raw in text.lines() {
+        let trimmed = raw.trim_start();
+        let indent = raw.chars().count() - trimmed.chars().count();
+        let text = strip_marker(trimmed).trim_end();
+        if text.is_empty() {
+            continue;
+        }
+        while open.last().is_some_and(|&(depth, _)| depth >= indent) {
+            open.pop();
+        }
+        out.push(Line {
+            text,
+            parent: open.last().map(|&(_, index)| index),
+        });
+        open.push((indent, out.len() - 1));
+    }
+    out
+}
+
+/// The line without a list marker in front: a bullet or a number, then a
+/// box, each followed by white space.
+fn strip_marker(line: &str) -> &str {
+    let mut line = line;
+    let bullet = line
+        .strip_prefix(['-', '*', '+', '•'])
+        .and_then(after)
+        .or_else(|| {
+            let digits = line.len() - line.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+            (digits > 0)
+                .then(|| line[digits..].strip_prefix(['.', ')']))
+                .flatten()
+                .and_then(after)
+        });
+    if let Some(rest) = bullet {
+        line = rest;
+    }
+    for open in ["[ ]", "[x]", "[X]"] {
+        if let Some(rest) = line.strip_prefix(open).and_then(after) {
+            return rest;
+        }
+    }
+    line
+}
+
+/// What follows a marker, if white space or nothing follows it.
+fn after(rest: &str) -> Option<&str> {
+    (rest.is_empty() || rest.starts_with(char::is_whitespace)).then(|| rest.trim_start())
+}
+
 /// Parse one line of quick capture. `now` and `zone` fix "today" and the zone
 /// of a time of day (ADR 0007).
 pub fn parse(text: &str, now: Timestamp, zone: &TimeZone) -> Draft {
@@ -1674,6 +1741,50 @@ fn repeat_rule(word: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, reason = "tests may unwrap")]
+
+    /// ADR 0129 §1, §2: markers go, blank lines drop, indentation nests.
+    #[test]
+    fn lines_nest_by_indentation() {
+        let text = "Einkauf\r\n  - Milch #Haus\n\n  - [ ] Brot\n      1. Vollkorn\n    * Butter\nAnrufen d:fr\n\t+ Mama\n";
+        let got: Vec<(&str, Option<usize>)> =
+            lines(text).iter().map(|l| (l.text, l.parent)).collect();
+        assert_eq!(
+            got,
+            [
+                ("Einkauf", None),
+                ("Milch #Haus", Some(0)),
+                ("Brot", Some(0)),
+                ("Vollkorn", Some(2)),
+                ("Butter", Some(2)),
+                ("Anrufen d:fr", None),
+                ("Mama", Some(5)),
+            ]
+        );
+    }
+
+    /// A marker needs white space after it; a lone marker is a blank line.
+    #[test]
+    fn lines_keep_what_is_no_marker() {
+        let got: Vec<&str> =
+            lines("1.5 kg Mehl\n-\n*fett*\n[x] erledigt\n- [X]\n+1 anrufen\neine Zeile")
+                .iter()
+                .map(|l| l.text)
+                .collect();
+        assert_eq!(
+            got,
+            [
+                "1.5 kg Mehl",
+                "*fett*",
+                "erledigt",
+                "+1 anrufen",
+                "eine Zeile"
+            ]
+        );
+        assert!(lines("  \n\n").is_empty());
+        // Going back to a depth in between goes under the nearest shallower.
+        let parents: Vec<_> = lines("a\n    b\n  c").iter().map(|l| l.parent).collect();
+        assert_eq!(parents, [None, Some(0), Some(0)]);
+    }
 
     use super::*;
     use jiff::civil::date;

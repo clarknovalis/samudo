@@ -531,6 +531,55 @@ async fn capture_only_into_the_grant() {
     assert_eq!(all.json().as_array().unwrap().len(), 4, "{}", all.body);
 }
 
+/// §4 for `POST /capture/lines` (ADR 0129): one line outside refuses all,
+/// also as a preview; lines inside go through.
+#[tokio::test]
+async fn capture_lines_only_into_the_grant() {
+    let (address, _dir) = start(true).await;
+    let whole = sign_in(address).await;
+    let account = account(address, &whole).await;
+    let token = restricted(address, &[&account.ai], "rw").await;
+    let before = call(address, "GET", "/available?all=true", Some(&whole), None)
+        .await
+        .json()
+        .as_array()
+        .unwrap()
+        .len();
+    for preview in [true, false] {
+        let answer = call(
+            address,
+            "POST",
+            "/capture/lines",
+            Some(&token),
+            Some(&json!({"text": "drinnen #samudo\n  darunter\nin die inbox", "preview": preview})),
+        )
+        .await;
+        assert_eq!(answer.status, 403, "{}", answer.body);
+    }
+    let all = call(address, "GET", "/available?all=true", Some(&whole), None).await;
+    assert_eq!(
+        all.json().as_array().unwrap().len(),
+        before,
+        "nothing refused was written"
+    );
+    let answer = call(
+        address,
+        "POST",
+        "/capture/lines",
+        Some(&token),
+        Some(&json!({"text": "drinnen #samudo\n  darunter"})),
+    )
+    .await;
+    assert_eq!(answer.status, 200, "{}", answer.body);
+    let all = call(address, "GET", "/available?all=true", Some(&whole), None).await;
+    assert_eq!(
+        all.json().as_array().unwrap().len(),
+        before + 2,
+        "{}",
+        all.body
+    );
+}
+
 /// §4: a delete that would carry something out of the grant is forbidden;
 /// one inside goes through. A delete of what is not seen is 404.
 #[tokio::test]

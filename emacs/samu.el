@@ -1218,14 +1218,90 @@ choose a template by its key first, like `samu-capture-template'."
          (line (string-trim (samu--read-line (if parent "Unteraufgabe: " "Erfassen: ")
                                              initial))))
     (when (string-empty-p line) (user-error "Nichts zu erfassen"))
-    (let ((record (car (samu--call (append '("add") (and parent (list "--parent" parent))
-                                           (list (samu--capture-text line note)))))))
-      (deactivate-mark)
-      (samu--forget)
-      (samu--refresh-all)
-      (message "Erfasst: %s  %s" (samu--get record 'title) (samu--get record 'short))
-      (samu--report record)
-      record)))
+    ;; Several lines pasted in make a task each (ADR 0129).
+    (if (samu--several-p line)
+        (samu-capture-lines line parent)
+      (let ((record (car (samu--call (append '("add") (and parent (list "--parent" parent))
+                                             (list (samu--capture-text line note)))))))
+        (deactivate-mark)
+        (samu--forget)
+        (samu--refresh-all)
+        (message "Erfasst: %s  %s" (samu--get record 'title) (samu--get record 'short))
+        (samu--report record)
+        record))))
+
+(defun samu--several-p (text)
+  "Whether TEXT is several lines to capture: two that are not blank."
+  (>= (cl-count-if (lambda (line) (not (string-blank-p line)))
+                   (split-string text "\n"))
+      2))
+
+;;;###autoload
+(defun samu-capture-lines (&optional text parent)
+  "Capture a task per line of TEXT, all or none (ADR 0129).
+Each line is a line of quick capture; list markers go, and a line
+indented deeper than the one before goes under it.  Interactively, TEXT
+is the region; without one, a buffer opens to write the lines in.
+PARENT, an id, puts the top lines below that task."
+  (interactive
+   (list (and (use-region-p)
+              (buffer-substring-no-properties (region-beginning) (region-end)))))
+  (if text
+      (samu--send-lines text parent)
+    (samu--lines-buffer parent)))
+
+(defun samu--send-lines (text parent)
+  "Send TEXT to `samu add --lines', below PARENT if any; return the records."
+  (let ((records (samu--call (append '("add" "--lines")
+                                     (and parent (list "--parent" parent))
+                                     '("-"))
+                             text)))
+    (deactivate-mark)
+    (samu--forget)
+    (samu--refresh-all)
+    (message "Erfasst: %d Aufgaben" (length records))
+    records))
+
+(defvar-local samu--lines-parent nil
+  "The task the lines of this buffer go below, or nil.")
+
+(defvar samu-lines-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-c") #'samu-lines-finish)
+    (define-key map (kbd "C-c C-k") #'samu-lines-cancel)
+    map)
+  "Keys of the buffer for several lines.")
+
+(define-derived-mode samu-lines-mode text-mode "samu Zeilen"
+  "A task per line, an indented line below the one above it (ADR 0129).
+\\{samu-lines-mode-map}"
+  (add-hook 'completion-at-point-functions #'samu--capture-capf nil t)
+  (setq header-line-format
+        (substitute-command-keys
+         "Eine Aufgabe je Zeile · \\[samu-lines-finish] anlegen · \\[samu-lines-cancel] verwerfen")))
+
+(defun samu--lines-buffer (parent)
+  "Open the buffer for several lines, below PARENT if any."
+  (let ((buffer (get-buffer-create "*samu Zeilen*")))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (samu-lines-mode)
+      (setq samu--lines-parent parent))
+    (pop-to-buffer buffer)
+    buffer))
+
+(defun samu-lines-finish ()
+  "Capture the lines of this buffer and close it; on an error it stays."
+  (interactive)
+  (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+    (when (string-blank-p text) (user-error "Nichts zu erfassen"))
+    (prog1 (samu--send-lines text samu--lines-parent)
+      (quit-window t))))
+
+(defun samu-lines-cancel ()
+  "Close the buffer for several lines without capturing."
+  (interactive)
+  (quit-window t))
 
 (defun samu--choose-template ()
   "A template chosen by its key, as `org-capture' does (ADR 0084 §5).

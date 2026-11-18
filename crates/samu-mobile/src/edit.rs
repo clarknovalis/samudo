@@ -90,7 +90,10 @@ pub struct RepeatEdit {
 
 const MODES: [&str; 3] = ["fixed", "due_after_completion", "defer_after_completion"];
 
-fn repeat_edit(repeat: &samu_api::Repeat, next: Option<samu_api::NextRepeat>) -> RepeatEdit {
+pub(crate) fn repeat_edit(
+    repeat: &samu_api::Repeat,
+    next: Option<samu_api::NextRepeat>,
+) -> RepeatEdit {
     let parts = Parts::parse(&repeat.rule);
     let fits = parts.fits();
     let mode = serde_json::to_value(repeat.mode)

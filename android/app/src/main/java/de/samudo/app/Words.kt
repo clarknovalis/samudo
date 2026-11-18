@@ -147,19 +147,11 @@ object Words {
         }
     }
 
-    /** The line under a row's title. */
-    fun detail(row: TaskRow, details: Boolean = false): String {
+    /** The line under a row's title in the widget; the app's rows follow the layout (ADR 0130). */
+    fun detail(row: TaskRow): String {
         val parts = mutableListOf<String>()
         if (row.state != null) parts += row.state!!.substringAfterLast('/')
-        // With details (ADR 0053 §4): the priority (ADR 0056 §6) and Start
-        // before Fällig, Geplant and the estimate after.
-        if (details) row.priority?.let { parts += tr("Prio {it}", "it" to it) }
-        if (details) row.defer?.let { parts += tr("Start {n}", "n" to day(it)) }
         due(row)?.let { parts += it }
-        if (details) {
-            row.planned?.let { parts += tr("Geplant {n}", "n" to day(it)) }
-            row.estimate?.let { parts += "~${estimate(it)}" }
-        }
         if (!row.available && !row.done) row.reason?.let { parts += reason(it) }
         parts += row.tags.map { "@$it" }
         if (row.pending) parts += tr("nicht gesynct")

@@ -19,11 +19,11 @@ use axum::routing::{get, post};
 use axum::{Extension, Json, Router};
 use jiff::Timestamp;
 use samu_store::core::api::{
-    AnyObject, ApiError, Author, AuthorKind, BareStatus, CaptureRequest, CaptureResponse, Change,
-    ChangeNotice, ChangeOutcome, ChangesPage, CloseRequest, CloseResponse, DeleteRequest,
-    DeleteResponse, ErrorCode, Export, Folder, Hlc, Id, LogEntry, LogKind, Login, PairCode,
-    PairCodeRequest, PairRequest, Period, ProjectAvailability, RenderRequest, RenderResponse,
-    ResetNotice, SessionInfo, ToProjectRequest, ToProjectResponse,
+    AnyObject, ApiError, Author, AuthorKind, BareStatus, CaptureLinesRequest, CaptureLinesResponse,
+    CaptureRequest, CaptureResponse, Change, ChangeNotice, ChangeOutcome, ChangesPage,
+    CloseRequest, CloseResponse, DeleteRequest, DeleteResponse, ErrorCode, Export, Folder, Hlc, Id,
+    LogEntry, LogKind, Login, PairCode, PairCodeRequest, PairRequest, Period, ProjectAvailability,
+    RenderRequest, RenderResponse, ResetNotice, SessionInfo, ToProjectRequest, ToProjectResponse,
 };
 use samu_store::core::availability::Settings;
 use samu_store::core::clock::{next_stamp, restamp};
@@ -1875,70 +1875,136 @@ async fn capture(
     let store = state.account(&session.account)?;
     let mut store = lock(&store)?;
     let (objects, settings) = (seen_snapshot(&session, &store)?, store.settings()?);
-    let mut reach = session_reach(&session, &store)?;
     let placeholder = Hlc {
         wall: 0,
         counter: 0,
         device: session.device.clone(),
     };
+    let run = |request: &CaptureRequest| {
+        views::capture(
+            &objects,
+            &settings,
+            request,
+            Timestamp::now(),
+            &placeholder,
+            &mut Id::new,
+        )
+        .map_err(Failure::from)
+    };
     let views::Capture {
         mut answer,
         changes,
-    } = views::capture(
-        &objects,
-        &settings,
-        &request,
-        Timestamp::now(),
-        &placeholder,
-        &mut Id::new,
-    )?;
-    // A restricted session captures only into its grant: not into the
-    // inbox, never with a new tag (ADR 0095 §4). The changes build on each
-    // other, so they are checked against what the earlier ones make.
-    if let Some(reach) = &mut reach {
-        // A preview makes no changes; the check asks for the ones writing
-        // would make, so a preview is refused like the capture itself.
-        let written;
-        let to_check = if request.preview {
+    } = run(&request)?;
+    // A preview makes no changes; for a restricted session the grant is
+    // checked against the ones writing would make, so a preview is refused
+    // like the capture itself.
+    if let Some(reach) = session_reach(&session, &store)? {
+        let writing = if request.preview {
             let mut writing = request.clone();
             writing.preview = false;
-            written = views::capture(
-                &objects,
-                &settings,
-                &writing,
-                Timestamp::now(),
-                &placeholder,
-                &mut Id::new,
-            )?
-            .changes;
-            &written
+            run(&writing)?.changes
         } else {
-            &changes
+            changes.clone()
         };
-        let mut laid = (*objects).clone();
-        for change in to_check {
-            let Some(id) = crate::grant::object_of(change) else {
-                return Err(crate::grant::forbidden(crate::grant::OUTSIDE));
-            };
-            let before = laid.get(id);
-            samu_store::core::overlay::apply(&mut laid, change)
-                .map_err(|e| Failure::internal(e.to_string()))?;
-            let after = laid.get(id);
-            if !after.is_some_and(|after| reach.may_write(before.as_ref(), &after)) {
-                return Err(crate::grant::forbidden(format!(
-                    "a capture there is {}",
-                    crate::grant::OUTSIDE
-                )));
-            }
-            if let Some(after) = laid.get(id) {
-                reach.admit(&after);
-            }
-        }
+        check_capture(reach, &objects, &writing)?;
     }
     if request.preview {
         return Ok(Json(answer));
     }
-    // Stamped by the server like `POST /changes?stamp=server`.
+    write_capture(&session, &mut store, changes)?;
+    if let Some(stored) = store.get(answer.task.id)?
+        && let AnyObject::Task(stored) = AnyObject::from(stored)
+    {
+        answer.task = stored;
+    }
+    answer.created = request.task.is_none();
+    Ok(Json(answer))
+}
+
+/// `POST /capture/lines`: several lines of quick capture, an indented one
+/// under the line above it, written all or none (ADR 0129).
+async fn capture_lines(
+    State(state): State<Arc<AppState>>,
+    Extension(session): Extension<Session>,
+    Json(request): Json<CaptureLinesRequest>,
+) -> Result<Json<CaptureLinesResponse>, Failure> {
+    let store = state.account(&session.account)?;
+    let mut store = lock(&store)?;
+    let (objects, settings) = (seen_snapshot(&session, &store)?, store.settings()?);
+    let placeholder = Hlc {
+        wall: 0,
+        counter: 0,
+        device: session.device.clone(),
+    };
+    // The changes writing would make, also for a preview: a preview is
+    // refused like the capture itself.
+    let mut writing = request.clone();
+    writing.preview = false;
+    let views::CaptureLines {
+        mut answer,
+        changes,
+    } = views::capture_lines(
+        &objects,
+        &settings,
+        &writing,
+        Timestamp::now(),
+        &placeholder,
+        &mut Id::new,
+    )?;
+    if let Some(reach) = session_reach(&session, &store)? {
+        check_capture(reach, &objects, &changes)?;
+    }
+    if request.preview {
+        return Ok(Json(answer));
+    }
+    write_capture(&session, &mut store, changes)?;
+    for made in &mut answer.tasks {
+        if let Some(stored) = store.get(made.task.id)?
+            && let AnyObject::Task(stored) = AnyObject::from(stored)
+        {
+            made.task = stored;
+        }
+    }
+    Ok(Json(answer))
+}
+
+/// A restricted session captures only into its grant: not into the inbox,
+/// never with a new tag (ADR 0095 §4). The changes build on each other, so
+/// they are checked against what the earlier ones make.
+fn check_capture(
+    mut reach: samu_store::core::grant::Reach,
+    objects: &OwnedSnapshot,
+    changes: &[Change],
+) -> Result<(), Failure> {
+    let mut laid = (*objects).clone();
+    for change in changes {
+        let Some(id) = crate::grant::object_of(change) else {
+            return Err(crate::grant::forbidden(crate::grant::OUTSIDE));
+        };
+        let before = laid.get(id);
+        samu_store::core::overlay::apply(&mut laid, change)
+            .map_err(|e| Failure::internal(e.to_string()))?;
+        let after = laid.get(id);
+        if !after.is_some_and(|after| reach.may_write(before.as_ref(), &after)) {
+            return Err(crate::grant::forbidden(format!(
+                "a capture there is {}",
+                crate::grant::OUTSIDE
+            )));
+        }
+        if let Some(after) = laid.get(id) {
+            reach.admit(&after);
+        }
+    }
+    Ok(())
+}
+
+/// Write a capture's changes, stamped by the server like
+/// `POST /changes?stamp=server`.
+fn write_capture(
+    session: &Session,
+    store: &mut AccountStore,
+    changes: Vec<Change>,
+) -> Result<(), Failure> {
     for change in changes {
         let now = Timestamp::now();
         let seen = store.observed()?;
@@ -1953,13 +2019,7 @@ async fn capture(
             }
         }
     }
-    if let Some(stored) = store.get(answer.task.id)?
-        && let AnyObject::Task(stored) = AnyObject::from(stored)
-    {
-        answer.task = stored;
-    }
-    answer.created = request.task.is_none();
-    Ok(Json(answer))
+    Ok(())
 }
 
 /// Why an edit of an appointment makes no changes, as an answer: 404 for
@@ -2264,6 +2324,7 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route("/clocks/report", get(clock_report))
         .route("/report", get(report))
         .route("/capture", post(capture))
+        .route("/capture/lines", post(capture_lines))
         .route("/render", post(render))
         .route(
             "/calendars/{id}/source",

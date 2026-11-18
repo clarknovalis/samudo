@@ -114,6 +114,7 @@ samu add "Buy milk" --dry-run          # show, write nothing
 samu add --literal "#hashtag in a title"  # the text as the title, word for word
 samu add "Sub-step" --parent 4f2a91c3
 samu add "Draft /weekly"               # with a template
+samu add --lines - < list.txt          # a task per line, indented ones below
 ```
 
 The marks are on [Quick capture](quick-capture.md). Templates:

@@ -23,7 +23,9 @@ import { rowDrop } from "./reorder.js";
 import { baseFilter, captureFrom, current as perspective, filterOf, holds, orderOf, perspectives, searchOf } from "./perspectives.js";
 import { forecastDay, inView, reviewProjects, startPerspectiveDraft, stuckProjects, VIEWS } from "./sidebar.js";
 import { byId, chooseOrder, chooseScope, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
-import { addDays, detailsText, dueText, pathOf, placeOf, reasonText, shortDay, tagPath, today } from "./words.js";
+import { addDays, dueText, pathOf, shortDay, tagPath, today } from "./words.js";
+import { fieldParts } from "./rowfields.js";
+import { closeRowMenu, renderRowMenu, rowLayout, rowMenuOpen, toggleRowMenu } from "./rowmenu.js";
 import { locale, tr } from "./i18n.js";
 
 // The rows in the order drawn, for the keys (j/k).
@@ -60,17 +62,6 @@ const WHY = { due: tr("fällig"), planned: tr("geplant"), defer: tr("verfügbar 
 // heading says it already (by project, or one project's view), the project
 // where the heading is its folder, else project and folder path.
 let place = "none";
-
-// Details as a second line (ADR 0053): one switch for every list, kept in
-// this browser only.
-const DETAILS_KEY = "samu.details";
-let details = (() => {
-  try {
-    return localStorage.getItem(DETAILS_KEY) === "on";
-  } catch {
-    return false;
-  }
-})();
 
 // The first lines of a note, for the mark's hover (ADR 0053 §5).
 const noteHint = (note) => (note.length > 300 ? `${note.slice(0, 300)} …` : note);
@@ -125,7 +116,6 @@ function row(status, depth, context, why = null, bare = false) {
   const group = status.group;
   const folded = group && (bare ? !state.opened.has(task.id) : state.folded.has(task.id));
   const due = open ? dueText(status) : null;
-  const reason = open && !status.available && status.reasons[0] ? reasonText(status.reasons[0]) : null;
   const summary = group
     ? task.sequential
       ? group.next
@@ -156,8 +146,7 @@ function row(status, depth, context, why = null, bare = false) {
     },
     [
       ...lead(status, bare),
-      status.state ? el("span", { class: "state", text: tagTitle(status.state) }) : null,
-      lines(task),
+      lines(task, status, depth),
       el("span", { class: "meta" }, [
         why ? el("span", { class: `why why-${why.kind}`, text: why.text }) : null,
         group
@@ -167,10 +156,9 @@ function row(status, depth, context, why = null, bare = false) {
           : null,
         group ? el("span", { class: "badge", text: `${group.done}/${group.done + group.open}` }) : null,
         folded && summary ? el("span", { class: "summary", text: summary }) : null,
-        place !== "none" && !depth ? el("span", { class: "place", text: placeOf(task, place === "full") }) : null,
         task.flagged ? el("span", { class: "flag", text: tr("⚑ markiert") }) : null,
-        due ? el("span", { class: `badge due-${due.kind}`, text: due.text }) : null,
-        reason ? el("span", { class: "reason", text: reason }) : null,
+        // The fields placed on line 1 (ADR 0130 §2).
+        ...fieldParts(status, 1, rowLayout(), whereOf(depth)).map(fieldSpan),
       ]),
     ],
   );
@@ -450,18 +438,33 @@ function comparer(chosen) {
 const flat = (statuses) => statuses.map((s) => ({ ...s, task: { ...s.task, parent: null } }));
 const LAST = "\uffff";
 
+// What a row says of its place (21df91a1): a child says it never, its
+// group above does.
+const whereOf = (depth) => (depth || place === "none" ? "none" : place);
+
+// One field of a row (ADR 0130): its short form keeps the long one for a
+// hover and a screen reader; tags in the short form are chips.
+function fieldSpan(part) {
+  const short = part.text !== part.label;
+  const kind = part.kind?.startsWith("due-") ? `badge ${part.kind}` : part.kind;
+  const attrs = { class: ["field", `field-${part.key}`, kind].filter(Boolean).join(" "), title: short ? part.label : null };
+  if (part.items && rowLayout().short) return el("span", attrs, part.items.map((item) => el("span", { class: "chip-tag", text: item })));
+  return el("span", { ...attrs, text: part.text });
+}
+
 // The title, 🚧 before it when an open task waits for it, the note mark
-// when there is a note, and with details on the second line (ADR 0053).
-function lines(task) {
+// when there is a note, and the fields placed on line 2 (ADR 0130). The
+// table draws it without `status`: its columns say the rest.
+function lines(task, status = null, depth = 0) {
   const note = task.note?.trim();
-  const second = details ? detailsText(task) : "";
+  const second = status ? fieldParts(status, 2, rowLayout(), whereOf(depth)) : [];
   return el("span", { class: "lines" }, [
     el("span", { class: "title" }, [
       holdsUp(task.id) ? el("span", { class: "blocker-mark", title: `${tr("Hält auf:")} ${heldUpBy(task.id).map((h) => h.task.title).join(", ")}`, "aria-label": "Blocker", text: "🚧 " }) : null,
       task.title,
       note ? el("span", { class: "note-mark", title: noteHint(note), "aria-label": tr("hat Notiz"), text: "✎" }) : null,
     ]),
-    second ? el("span", { class: "details", text: second }) : null,
+    second.length ? el("span", { class: "details" }, second.map(fieldSpan)) : null,
   ]);
 }
 
@@ -788,10 +791,7 @@ function renderOrderMenu(chosen, board) {
 }
 
 function renderOrder() {
-  const switcher = $("details");
-  switcher.hidden = ["stuck", "calendar", "time"].includes(shown().kind);
-  switcher.classList.toggle("current", details);
-  switcher.setAttribute("aria-pressed", String(details));
+  renderRowMenu(!["stuck", "calendar", "time"].includes(shown().kind));
   const box = $("order");
   // A block perspective is arranged block by block (ADR 0116 §5).
   box.hidden = ["stuck", "review", "forecast", "calendar", "time"].includes(shown().kind) || Boolean(blocksShown());
@@ -867,14 +867,28 @@ export function wireOrder() {
   });
   $("board-full").addEventListener("click", () => setBoardFull(!boardFull()));
   $("fold-all").addEventListener("click", foldHeadings);
-  $("details").addEventListener("click", () => {
-    details = !details;
-    try {
-      localStorage.setItem(DETAILS_KEY, details ? "on" : "off");
-    } catch {
-      // Private mode: the choice lasts as long as the page.
+  // The menu „Zeile …“ (ADR 0130 §6), one menu at a time.
+  $("row-fields").addEventListener("click", () => {
+    if (!rowMenuOpen()) {
+      setOrderMenu(false);
+      closeBoardMenu();
+      closeTableMenu();
     }
-    renderList();
+    toggleRowMenu();
+  });
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (!rowMenuOpen() || event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeRowMenu();
+      $("row-fields").focus();
+    },
+    true,
+  );
+  document.addEventListener("mousedown", (event) => {
+    if (rowMenuOpen() && !event.target.closest("#row-menu, #row-fields")) closeRowMenu();
   });
 }
 

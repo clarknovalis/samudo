@@ -90,6 +90,7 @@ Writes with logic of their own have their own routes:
 | Route | |
 |---|---|
 | `POST /capture` | a line of [quick capture](quick-capture.md): preview, create, or apply to a task |
+| `POST /capture/lines` | [several lines](quick-capture.md#several-lines), a task each, all or none; with preview |
 | `POST /objects/{id}/delete` | delete with what hangs on it |
 | `POST /objects/{id}/close` | complete or drop; with open tasks below `children` says `ask` (write nothing, answer how many are open), `close` or `lift`; `preview` never writes |
 | `PUT /blobs/{sha256}` | upload a file; then create an attachment that names it |

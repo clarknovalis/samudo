@@ -152,7 +152,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
           <button type="button" data-filter="all">Alle</button>
         </div>
         <button type="button" id="fold-all" title="Alle Gruppen zu- oder aufklappen (Z); Alt-Klick auf einen Pfeil: nur diese offen" hidden>Alle zu</button>
-        <button type="button" id="details" aria-pressed="false" title="Start, Fällig, Geplant und Schätzung als zweite Zeile (ADR 0053)">Details</button>
+        <div class="row-fields-box">
+          <button type="button" id="row-fields" aria-expanded="false" aria-controls="row-menu" title="Was eine Zeile zeigt: je Feld Zeile 1, Zeile 2 oder aus (ADR 0130)">Zeile …</button>
+          <div id="row-menu" class="board-menu row-menu" role="dialog" aria-label="Felder der Zeile" hidden></div>
+        </div>
       </div>
       <div id="bulk" class="bulk" role="toolbar" aria-label="Auswahl" hidden></div>
       <div id="list"></div>
@@ -171,11 +174,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
       <form id="capture-form" class="box">
         <label for="capture-input" id="capture-where"></label>
         <input id="capture-input" placeholder="Neue Aufgabe  #projekt @tag ! !A d:fr ~15m // Notiz" autocomplete="off" spellcheck="false">
+        <textarea id="capture-lines" rows="6" aria-label="Eine Aufgabe je Zeile" autocomplete="off" spellcheck="false" hidden></textarea>
+        <ul id="capture-list" aria-label="Aufgaben"></ul>
         <ul id="capture-suggest" role="listbox" aria-label="Vorschläge" hidden></ul>
         <div id="capture-chips" class="chips"></div>
         <div id="capture-templates" class="chips templates" aria-label="Vorlagen"></div>
         <ul id="capture-warnings"></ul>
-        <p id="capture-hint" class="quiet"></p>
+        <p id="capture-foot"><span id="capture-hint" class="quiet"></span> <button type="button" id="capture-toggle" class="link"></button></p>
       </form>
     </div>
     <div id="edit" class="overlay" hidden>

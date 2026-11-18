@@ -1227,6 +1227,99 @@ async fn capture_with_task_edits_it() {
     );
 }
 
+/// `POST /capture/lines` (ADR 0129): a preview writes nothing; the lines
+/// are written with an indented one under its line, a new tag made once;
+/// a failing line writes none.
+#[tokio::test]
+async fn capture_lines_makes_a_task_per_line() {
+    let (address, _dir) = start(true).await;
+    let token = sign_in(address).await;
+    let objects = || async {
+        call(address, "GET", "/changes?after=0", Some(&token), None)
+            .await
+            .json()["objects"]
+            .as_array()
+            .unwrap()
+            .clone()
+    };
+    let before = objects().await.len();
+    let text = "Einkauf @laden\n  - Milch @laden\n  - [ ] Brot\nAnrufen !A";
+    let preview = call(
+        address,
+        "POST",
+        "/capture/lines",
+        Some(&token),
+        Some(&json!({"text": text, "preview": true})),
+    )
+    .await;
+    assert_eq!(preview.status, 200, "{}", preview.body);
+    assert_eq!(preview.json()["tasks"].as_array().unwrap().len(), 4);
+    assert_eq!(objects().await.len(), before, "a preview writes nothing");
+
+    let made = call(
+        address,
+        "POST",
+        "/capture/lines",
+        Some(&token),
+        Some(&json!({"text": text})),
+    )
+    .await;
+    assert_eq!(made.status, 200, "{}", made.body);
+    let made = made.json();
+    let ids: Vec<String> = made["tasks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["task"]["id"].as_str().unwrap().to_string())
+        .collect();
+    // Asked of the store, not of the answer.
+    let mut stored = Vec::new();
+    for id in &ids {
+        let answer = call(
+            address,
+            "GET",
+            &format!("/objects/{id}"),
+            Some(&token),
+            None,
+        )
+        .await;
+        stored.push(answer.json()["object"].clone());
+    }
+    let [einkauf, milch, brot, anrufen] = &stored[..] else {
+        panic!("four tasks: {stored:?}");
+    };
+    assert_eq!(einkauf["title"], "Einkauf");
+    assert_eq!(milch["parent"], ids[0].as_str());
+    assert_eq!(brot["title"], "Brot");
+    assert_eq!(brot["parent"], ids[0].as_str());
+    assert!(anrufen.get("parent").is_none(), "{anrufen}");
+    assert_eq!(anrufen["priority"], "A");
+    assert_eq!(einkauf["tags"][0]["tag"], milch["tags"][0]["tag"]);
+    let all = objects().await;
+    let laden = all
+        .iter()
+        .filter(|o| o["kind"] == "tag" && o["object"]["title"] == "laden")
+        .count();
+    assert_eq!(laden, 1, "one new tag for both lines");
+    assert_eq!(all.len(), before + 5);
+
+    let refused = call(
+        address,
+        "POST",
+        "/capture/lines",
+        Some(&token),
+        Some(&json!({"text": "geht\nauch", "parent": samu_store::core::api::Id::new()})),
+    )
+    .await;
+    assert_eq!(refused.status, 422, "{}", refused.body);
+    assert!(refused.body.contains("line 1"), "{}", refused.body);
+    assert_eq!(
+        objects().await.len(),
+        before + 5,
+        "nothing refused was written"
+    );
+}
+
 /// `POST /capture` with `parent` (ADR 0062 §3): the new task is the last
 /// child, in the parent's project; a closed or unknown parent is refused.
 #[tokio::test]

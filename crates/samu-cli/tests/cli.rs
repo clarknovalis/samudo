@@ -453,6 +453,51 @@ fn done_on_a_repetition_names_the_next_task() {
     assert!(!String::from_utf8_lossy(&done.stderr).contains("next:"));
 }
 
+/// ADR 0129: `add --lines` makes a task per line, from the arguments or
+/// stdin; an indented line goes under its line; `--dry-run` writes nothing.
+#[test]
+fn add_lines_makes_a_task_per_line() {
+    let server = signed_in_server();
+    let tasks = |server: &Server| {
+        json_out(&server.samu(&["list", "--all", "--format", "json"], None))
+            .as_array()
+            .unwrap()
+            .len()
+    };
+    let before = tasks(&server);
+    let text = "Einkauf\n  - Milch\n  - Brot\n\nAnrufen !A\n";
+    let seen = json_out(&server.samu(
+        &["add", "--lines", "--dry-run", "-", "--format", "json"],
+        Some(text),
+    ));
+    assert_eq!(seen.as_array().unwrap().len(), 4, "{seen}");
+    assert_eq!(tasks(&server), before, "a dry run writes nothing");
+
+    let made = json_out(&server.samu(&["add", "--lines", "-", "--format", "json"], Some(text)));
+    let made = made.as_array().unwrap();
+    assert_eq!(made.len(), 4);
+    let einkauf = made[0]["id"].as_str().unwrap();
+    // Asked of the server, not of the answer.
+    let milch = json_out(&server.samu(
+        &["show", made[1]["id"].as_str().unwrap(), "--format", "json"],
+        None,
+    ));
+    assert_eq!(milch[0]["object"]["parent"], einkauf);
+    assert_eq!(milch[0]["title"], "Milch");
+    assert_eq!(tasks(&server), before + 4);
+
+    // From the arguments, the words joined; one line is one task.
+    let one = json_out(&server.samu(&["add", "--lines", "Nur", "eine", "--format", "json"], None));
+    assert_eq!(one.as_array().unwrap().len(), 1);
+    assert_eq!(one[0]["title"], "Nur eine");
+    // Nothing to capture is refused, and nothing is written.
+    assert_ne!(
+        code(&server.samu(&["add", "--lines", "-"], Some("\n  \n"))),
+        0
+    );
+    assert_eq!(tasks(&server), before + 5);
+}
+
 #[test]
 fn add_show_set_done_delete() {
     let server = signed_in_server();
@@ -874,7 +919,7 @@ fn list_shows_more_and_filters() {
     let first = json_out(&server.samu(
         &[
             "add",
-            "Fliesen aussuchen #neu @ort/baumarkt ! d:2026-11-20 // Muster ansehen",
+            "Fliesen aussuchen #neu @ort/baumarkt ! d:2099-11-20 // Muster ansehen",
             "--format",
             "json",
         ],
@@ -899,7 +944,7 @@ fn list_shows_more_and_filters() {
         [
             "w",
             "!",
-            "2026-11-20",
+            "2099-11-20",
             "Neues Bad",
             "Fliesen aussuchen",
             "@ort/baumarkt"

@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
 
 //! Quick capture over `POST /capture` (ADR 0011, ADR 0027): a line of text
-//! in, the task it makes out, with what was recognised where.
+//! in, the task it makes out, with what was recognised where; over
+//! `POST /capture/lines` several lines at once (ADR 0129).
 
 use serde::{Deserialize, Serialize};
 
@@ -58,6 +59,36 @@ pub struct CaptureResponse {
     /// Clocks booked with `z:` (ADR 0081 §2), on the task.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub clocks: Vec<Clock>,
+}
+
+/// What a client sends to `POST /capture/lines` (ADR 0129): a text of
+/// several lines, each a line of quick capture; an indented line goes under
+/// the line above it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaptureLinesRequest {
+    pub text: String,
+    /// The project when a line names none and goes under no other line.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<Id>,
+    /// An open task the top lines go under, as with `CaptureRequest`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<Id>,
+    /// The scope chosen on the device, for every line.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<Id>,
+    /// A template chosen by a button, for every line; a `/name` wins.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template: Option<Id>,
+    /// Compute and write nothing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub preview: bool,
+}
+
+/// What `POST /capture/lines` answers: a capture per line, in their order.
+/// A task under another line has that line's task as its `parent`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaptureLinesResponse {
+    pub tasks: Vec<CaptureResponse>,
 }
 
 /// A recognised stretch of the text, as UTF-8 byte offsets (ADR 0027 §4).

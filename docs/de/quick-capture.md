@@ -83,6 +83,31 @@ Projekt, Priorität, Datum, Schätzung, Wiederholung und Markierung
 Vorlage an. Freier Text wird abgelehnt, denn der Titel hat sein eigenes
 Feld: `samu set <id> title "Neuer Titel"`.
 
+## Mehrere Zeilen
+
+Ein Text aus mehreren Zeilen ergibt eine Aufgabe je Zeile, jede Zeile mit
+ihren eigenen Zeichen und ihrer `// Notiz`. Leere Zeilen fallen weg, und
+Listenzeichen am Zeilenanfang werden entfernt: `-`, `*`, `+`, `•`, `1.`,
+`1)` und ein Kästchen `[ ]` oder `[x]`. Eine Zeile, die tiefer eingerückt
+ist als die vorige, kommt als Unteraufgabe darunter:
+
+```text
+Einkauf #Zuhause
+  - Milch @laden
+  - Brot
+Fliesenleger anrufen d:fr
+```
+
+ergibt vier Aufgaben, „Milch“ und „Brot“ unter „Einkauf“. Angelegt werden
+alle auf einmal oder keine: Scheitert eine Zeile, etwa an einem Projekt,
+in das die Sitzung nicht schreiben darf, entsteht keine. Einen solchen Text
+fügt man ins Erfassen-Fenster im Web oder ins Erfassen-Feld der App ein,
+oder man schaltet auf „Mehrere Zeilen“ und tippt sie (im Web auch mit
+Umschalt+Enter, in der App auch „Mehrere erfassen“ im ⋮-Menü). Auf der
+Kommandozeile nimmt `samu add --lines -` den Text von stdin. In Emacs
+nimmt `samu-capture-lines` die Region, ohne Region öffnet es einen eigenen
+Puffer. Ein in die App geteilter Text bleibt eine Aufgabe.
+
 ## Vorlagen
 
 Eine Vorlage ist eine Zeile aus Zeichen unter einem Namen, mit wahlweise
@@ -111,4 +136,5 @@ Ist ein [Scope](concepts.md#scopes) gewählt, geht eine Zeile ohne Projekt
 in das Projekt der Ansicht, in der man ist, sonst in das Erfassen-Projekt
 des Scopes; eine Zeile ohne Tags bekommt die Erfassen-Tags des Scopes. Was
 die Zeile nennt, gewinnt immer. `samu add --no-scope` lässt den Scope
-weg; `--parent <id>` legt die neue Aufgabe unter eine andere.
+weg; `--parent <id>` legt die neue Aufgabe unter eine andere. Bei
+mehreren Zeilen gilt `--parent` für die oberen.

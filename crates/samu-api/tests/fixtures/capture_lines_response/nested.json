@@ -1,0 +1,47 @@
+{
+  "tasks": [
+    {
+      "task": {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c11",
+        "created": "2026-11-18T09:00:00Z",
+        "modified": "2026-11-18T09:00:00Z",
+        "title": "Einkauf",
+        "flagged": false,
+        "sequential": false,
+        "complete_with_last_child": false,
+        "position": 4
+      },
+      "created": true
+    },
+    {
+      "task": {
+        "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c12",
+        "created": "2026-11-18T09:00:00Z",
+        "modified": "2026-11-18T09:00:00Z",
+        "title": "Milch",
+        "parent": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c11",
+        "flagged": false,
+        "sequential": false,
+        "complete_with_last_child": false,
+        "position": 0,
+        "tags": [
+          {
+            "tag": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01",
+            "position": 0
+          }
+        ]
+      },
+      "created": true,
+      "new_tags": [
+        "Laden"
+      ],
+      "marks": [
+        {
+          "start": 6,
+          "end": 12,
+          "meaning": "tag"
+        }
+      ]
+    }
+  ]
+}

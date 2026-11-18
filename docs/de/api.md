@@ -92,6 +92,7 @@ Schreiben mit eigener Logik hat eigene Routen:
 | Route | |
 |---|---|
 | `POST /capture` | eine Zeile der [Schnellerfassung](quick-capture.md): Vorschau, anlegen oder auf eine Aufgabe anwenden |
+| `POST /capture/lines` | [mehrere Zeilen](quick-capture.md#mehrere-zeilen), je eine Aufgabe, alle oder keine; mit Vorschau |
 | `POST /objects/{id}/delete` | löschen, mit dem, was daran hängt |
 | `POST /objects/{id}/close` | erledigen oder verwerfen; mit offenen Aufgaben darunter sagt `children` `ask` (nichts schreiben, antworten, wie viele offen sind), `close` oder `lift`; `preview` schreibt nie |
 | `PUT /blobs/{sha256}` | eine Datei hochladen; danach einen Anhang anlegen, der sie nennt |

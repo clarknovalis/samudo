@@ -236,6 +236,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/rowfields.js",
+        include_str!("../../../web/lib/rowfields.js"),
+        JS,
+    ),
+    (
+        "lib/rowmenu.js",
+        include_str!("../../../web/lib/rowmenu.js"),
+        JS,
+    ),
+    (
         "lib/remind.js",
         include_str!("../../../web/lib/remind.js"),
         JS,

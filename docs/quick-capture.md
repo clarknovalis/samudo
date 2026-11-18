@@ -80,6 +80,31 @@ priority, date, estimate, repeat or flag overwrites, `// text` is appended
 to the note, `/name` applies a template. Free text is refused, since the
 title has its own field: `samu set <id> title "New title"`.
 
+## Several lines
+
+A text of several lines makes a task per line, each line with its own
+marks and `// note`. Blank lines are skipped, and list markers at the
+start of a line are removed: `-`, `*`, `+`, `•`, `1.`, `1)` and a box `[ ]`
+or `[x]`. A line indented deeper than the one before goes under it as a
+subtask:
+
+```text
+Groceries #Home
+  - Milk @shop
+  - Bread
+Call the tiler d:fri
+```
+
+makes four tasks, "Milk" and "Bread" under "Groceries". The tasks are made
+all at once or not at all: if one line fails, for example a project the
+session may not write to, none is made. Paste such a text into the web's
+capture window or the app's capture field, or switch the window to
+"Several lines" and type them (in the web also Shift+Enter, in the app
+also "Capture several" in the ⋮ menu). On the command line, use
+`samu add --lines -` with the text on stdin. In Emacs, use
+`samu-capture-lines`: on the region, or without one in a buffer of its own.
+A text shared to the app stays one task.
+
 ## Templates
 
 A template is a line of marks under a name, with optional reminders and a
@@ -107,4 +132,5 @@ While a [scope](concepts.md#scopes) is chosen, a line that names no project
 goes to the project of the view you are in, else to the scope's capture
 project; a line without tags gets the scope's capture tags. What the line
 names always wins. `samu add --no-scope` leaves the scope out;
-`--parent <id>` puts the new task under another one.
+`--parent <id>` puts the new task under another one. With several lines,
+`--parent` takes the top lines.
