@@ -87,6 +87,7 @@ pub(crate) fn locality(route: &Route) -> Option<Where> {
         | ("GET", "/appointments")
         | ("POST", "/appointments/{id}/edit") => Local,
         ("GET", "/objects/{id}/logbook")
+        | ("GET", "/logbook")
         | ("GET", "/export")
         | ("GET", "/hooks")
         | ("POST", "/hooks")
@@ -877,6 +878,9 @@ struct AvailableQuery {
     all: bool,
     scope: Option<Id>,
     perspective: Option<Id>,
+    /// Also what another own scope hides, marked (ADR 0124 §2).
+    #[serde(default)]
+    elsewhere: bool,
     #[serde(default)]
     bare: bool,
 }
@@ -893,6 +897,7 @@ async fn available(
         all: query.all,
         scope: query.scope,
         perspective: query.perspective,
+        elsewhere: query.elsewhere,
     };
     let statuses = views::available(&objects, &settings, Timestamp::now(), &filter)?;
     if query.bare {
@@ -956,6 +961,9 @@ struct ProjectsQuery {
     #[serde(default)]
     all: bool,
     scope: Option<Id>,
+    /// Also what another own scope hides, marked (ADR 0124 §2).
+    #[serde(default)]
+    elsewhere: bool,
 }
 
 async fn available_projects(
@@ -968,6 +976,7 @@ async fn available_projects(
         review: query.review,
         all: query.all,
         scope: query.scope,
+        elsewhere: query.elsewhere,
     };
     Ok(Json(views::projects(
         &objects,

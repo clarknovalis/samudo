@@ -139,6 +139,7 @@ samu projects --review         # Review fällig
 samu forecast                  # überfällig, heute, markiert, nächste Tage, später
 samu show 4f2a91c3             # ein Objekt, alle Felder
 samu log 4f2a91c3              # sein Logbuch
+samu logbook --since 1h --kind deleted,moved   # das des Kontos
 samu prop 4f2a91c3             # seine Properties, auch geerbte
 samu blockers 4f2a91c3         # die Aufgaben, auf die es wartet
 ```
@@ -228,9 +229,14 @@ samu clock status
 samu clock out
 samu clock add 4f2a91c3 "gestern 2h"
 samu clock list 4f2a91c3
+samu clock set 7c01 --start 2026-11-09T08:30 --note "Telefonat"
 samu report --days 7 --by project
 samu report --q "#Bad" --part time
 ```
+
+`clock set` ändert Beginn, Ende oder Notiz einer Clock; `--running`
+lässt eine beendete wieder laufen. Im Web: im Inspektor unter „Zeit“
+auf die Clock klicken.
 
 Der Bericht zählt die eigene Arbeit; `--q "autor:agent"` zeigt die der
 Agenten, `autor:alle` die aller (englisch `author:agent`, `author:all`

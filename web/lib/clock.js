@@ -18,6 +18,7 @@ import { inEffect, pretty } from "./keymap.js";
 import { byId, isOpen, state, update } from "./state.js";
 import { addDays, captureWarningText, estimateText, today } from "./words.js";
 import { locale, tr } from "./i18n.js";
+import { clockEdits, overlapping } from "./clockedit.js";
 
 // The local day of an instant as `YYYY-MM-DD`.
 function dayOf(date) {
@@ -248,9 +249,15 @@ export function clockSection(task, section) {
         ? el(
             "ul",
             { class: "clocklist" },
-            mine.map((c) =>
+            mine.flatMap((c) => [
               el("li", { class: c.end ? null : "running" }, [
-                el("span", { text: `${timeText(c.start)} – ${c.end ? new Date(c.end).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) : tr("läuft")}` }),
+                el("button", {
+                  type: "button",
+                  class: "link span",
+                  title: tr("bearbeiten"),
+                  text: `${timeText(c.start)} – ${c.end ? new Date(c.end).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) : tr("läuft")}`,
+                  onclick: () => update({ editingClock: state.editingClock === c.id ? null : c.id }),
+                }),
                 el("span", { class: "len", text: length(secondsOf(c)) }),
                 el("button", {
                   type: "button",
@@ -259,8 +266,10 @@ export function clockSection(task, section) {
                   "aria-label": tr("Clock löschen"),
                   onclick: () => write([change.delete(c.id)]),
                 }),
+                c.note ? el("span", { class: "clocknote", text: c.note }) : null,
               ]),
-            ),
+              state.editingClock === c.id ? clockEditor(c) : null,
+            ]).filter(Boolean),
           )
         : null,
       // ADR 0081 §3: one field in the syntax of `z:`; the exact fields folded.
@@ -274,6 +283,61 @@ export function clockSection(task, section) {
       ]),
     ]),
   );
+}
+
+// Beginning, end and note of one clock (ADR 0046); the server refuses an
+// end before the start, overlapping is allowed and only pointed out.
+function clockEditor(clock) {
+  const start = el("input", { type: "datetime-local", "aria-label": tr("Beginn"), value: localInput(new Date(clock.start)) });
+  const end = el("input", { type: "datetime-local", "aria-label": tr("Ende"), value: clock.end ? localInput(new Date(clock.end)) : "" });
+  const note = el("input", { type: "text", class: "note", "aria-label": tr("Notiz"), placeholder: tr("Notiz"), value: clock.note ?? "" });
+  const save = async () => {
+    const from = new Date(start.value);
+    const to = end.value ? new Date(end.value) : null;
+    if (Number.isNaN(from.getTime()) || (to && (Number.isNaN(to.getTime()) || to < from))) {
+      update({ message: tr("Das Ende liegt vor dem Beginn.") });
+      return;
+    }
+    // Minutes are what the field shows: an untouched field keeps its seconds.
+    const same = (a, b) => b && localInput(new Date(a)) === localInput(b);
+    const after = {
+      ...clock,
+      start: same(clock.start, from) ? clock.start : from.toISOString(),
+      end: to ? (clock.end && same(clock.end, to) ? clock.end : to.toISOString()) : null,
+      note: note.value.trim() || null,
+    };
+    if (!after.end && clock.end) {
+      const other = running();
+      if (other && other.id !== clock.id) {
+        update({ message: tr("Es läuft schon eine andere Uhr.") });
+        return;
+      }
+    }
+    const edits = clockEdits(clock, after);
+    if (edits.length) {
+      try {
+        await api.write(edits.map(([field, value]) => change.set(clock.id, field, value)));
+      } catch (error) {
+        update({ message: error.message });
+        return;
+      }
+    }
+    const crossed = overlapping(after, state.clocks);
+    update({
+      editingClock: null,
+      message: crossed.length ? tr("Überschneidet sich mit {n} anderen Clocks.", { n: crossed.length }) : null,
+    });
+  };
+  return el("li", { class: "clockedit" }, [
+    el("div", { class: "row-inputs" }, [
+      start,
+      "–",
+      end,
+      note,
+      el("button", { type: "button", class: "primary", text: tr("Speichern"), onclick: save }),
+      el("button", { type: "button", text: tr("Abbrechen"), onclick: () => update({ editingClock: null }) }),
+    ]),
+  ]);
 }
 
 // "PT1H30M" → 5400.

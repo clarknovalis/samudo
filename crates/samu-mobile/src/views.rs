@@ -7,19 +7,16 @@
 //! through samu-core as the server's routes do (ADR 0006); grouping and
 //! sorting a perspective's hits is the list's own business.
 
-use std::cmp::Ordering;
-
 use jiff::Timestamp;
-use jiff::civil::{Date, Weekday};
 use samu_api::{
     Change, Id, ObjectKind, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, Task,
 };
-use samu_core::query::Lang;
 use samu_core::views::{PerspectiveTest, ProjectsFilter};
-use serde_json::{Value, json};
+use serde_json::json;
 
+use crate::arrange::{settled, wire_name};
 use crate::search::{self, SearchChip};
-use crate::{MobileError, Samu, Section, TaskRow, input, is_open, parse_id, period_minutes, say};
+use crate::{MobileError, Samu, Section, TaskRow, input, is_open, parse_id};
 
 /// A project in Stuck or Review.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -58,78 +55,6 @@ pub struct PerspectiveRow {
     pub sort: String,
 }
 
-/// The name on the wire of an enum `serde_json::to_value` made.
-fn wire_name(value: serde_json::Result<Value>) -> String {
-    match value {
-        Ok(Value::String(name)) => name,
-        _ => "unknown".to_owned(),
-    }
-}
-
-/// `Fr, 20.11.`, in English `Fri 20 Nov`.
-fn short_day(day: Date, lang: Lang) -> String {
-    let name = match day.weekday() {
-        Weekday::Monday => say(lang, "Mo", "Mon"),
-        Weekday::Tuesday => say(lang, "Di", "Tue"),
-        Weekday::Wednesday => say(lang, "Mi", "Wed"),
-        Weekday::Thursday => say(lang, "Do", "Thu"),
-        Weekday::Friday => say(lang, "Fr", "Fri"),
-        Weekday::Saturday => say(lang, "Sa", "Sat"),
-        Weekday::Sunday => say(lang, "So", "Sun"),
-    };
-    if lang == Lang::En {
-        const MONTHS: [&str; 12] = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-        ];
-        let month = MONTHS[usize::try_from(day.month() - 1).unwrap_or(0)];
-        return format!("{name} {} {month}", day.day());
-    }
-    format!("{name}, {:02}.{:02}.", day.day(), day.month())
-}
-
-/// The value a task is sorted by, as the web's `sortValue`: a text or a
-/// number; none goes last either way.
-#[derive(PartialEq, PartialOrd)]
-enum Key {
-    Number(i64),
-    Text(String),
-}
-
-fn sort_key(task: &Task, row: &TaskRow, sort: PerspectiveSort) -> Option<Key> {
-    use PerspectiveSort as S;
-    match sort {
-        S::Due => row.due.clone().map(Key::Text),
-        S::Planned => row.planned.clone().map(Key::Text),
-        S::Defer => row.defer.clone().map(Key::Text),
-        S::Title => Some(Key::Text(task.title.to_lowercase())),
-        S::Created => Some(Key::Text(task.created.to_string())),
-        S::Modified => Some(Key::Text(task.modified.to_string())),
-        S::Estimate => task
-            .estimate
-            .as_ref()
-            .and_then(period_minutes)
-            .map(Key::Number),
-        S::Priority => row.priority.clone().map(Key::Text),
-        S::Position | S::Unknown => Some(Key::Number(task.position)),
-    }
-}
-
-/// One level of the order; what lacks the value goes last, also when
-/// descending.
-fn by(a: Option<Key>, b: Option<Key>, desc: bool) -> Ordering {
-    match (a, b) {
-        (None, None) => Ordering::Equal,
-        (None, Some(_)) => Ordering::Greater,
-        (Some(_), None) => Ordering::Less,
-        (Some(a), Some(b)) => {
-            let order = a.partial_cmp(&b).unwrap_or(Ordering::Equal);
-            if desc { order.reverse() } else { order }
-        }
-    }
-}
-
-type Hit = (Task, Option<Id>, TaskRow);
-
 impl Samu {
     /// The chosen scope's id, for the views of samu-core.
     fn chosen_id(&self) -> Result<Option<Id>, MobileError> {
@@ -151,6 +76,7 @@ impl Samu {
                 review,
                 all: false,
                 scope,
+                elsewhere: false,
             };
             let found = samu_core::views::projects(&objects, &settings, Timestamp::now(), &filter)
                 .map_err(|e| input(e.to_string()))?;
@@ -193,118 +119,6 @@ impl Samu {
             })
             .collect()
     }
-
-    /// Sections of a perspective's hits, grouped as it says where the app
-    /// can (project, date, none), else by project (ADR 0102 §4).
-    fn arranged(
-        &self,
-        hits: Vec<Hit>,
-        group: PerspectiveGroup,
-        order: impl Fn(&Hit, &Hit) -> Ordering,
-    ) -> Result<Vec<Section>, MobileError> {
-        let mut hits = hits;
-        match group {
-            PerspectiveGroup::None => {
-                hits.sort_by(&order);
-                Ok(if hits.is_empty() {
-                    Vec::new()
-                } else {
-                    vec![Section {
-                        project_id: None,
-                        title: None,
-                        folder: None,
-                        rows: hits.into_iter().map(|(_, _, r)| r).collect(),
-                    }]
-                })
-            }
-            PerspectiveGroup::Date => {
-                let lang = self.ui_lang();
-                let today = {
-                    let cache = self.cache()?;
-                    let (settings, _) = Self::settings(&cache)?;
-                    Timestamp::now().to_zoned(settings.zone).date()
-                };
-                // As the web's date groups: overdue, then each day by due,
-                // else planned, then what has no date.
-                let day_of = |(task, _, row): &Hit| -> Option<Date> {
-                    row.due
-                        .as_deref()
-                        .or(row.planned.as_deref())
-                        .and_then(|d| d.get(..10))
-                        .and_then(|d| d.parse::<Date>().ok())
-                        .map(|d| {
-                            if d < today && is_open(task) {
-                                Date::MIN
-                            } else {
-                                d
-                            }
-                        })
-                };
-                hits.sort_by(|a, b| {
-                    by(
-                        day_of(a).map(|d| Key::Text(d.to_string())),
-                        day_of(b).map(|d| Key::Text(d.to_string())),
-                        false,
-                    )
-                    .then_with(|| order(a, b))
-                });
-                let mut sections: Vec<(Option<Date>, Section)> = Vec::new();
-                for hit in hits {
-                    let day = day_of(&hit);
-                    if sections.last().is_none_or(|(d, _)| *d != day) {
-                        let title = match day {
-                            None => say(lang, "Ohne Datum", "No date").to_owned(),
-                            Some(Date::MIN) => say(lang, "Überfällig", "Overdue").to_owned(),
-                            Some(d) if d == today => say(lang, "Heute", "Today").to_owned(),
-                            Some(d) => short_day(d, lang),
-                        };
-                        sections.push((
-                            day,
-                            Section {
-                                project_id: None,
-                                title: Some(title),
-                                folder: None,
-                                rows: Vec::new(),
-                            },
-                        ));
-                    }
-                    if let Some((_, section)) = sections.last_mut() {
-                        section.rows.push(hit.2);
-                    }
-                }
-                Ok(sections.into_iter().map(|(_, s)| s).collect())
-            }
-            _ => {
-                // By project in its order; `hits` already stand so.
-                let mut sections: Vec<(Option<Id>, Vec<Hit>)> = Vec::new();
-                for hit in hits {
-                    match sections.last_mut() {
-                        Some((home, list)) if *home == hit.1 => list.push(hit),
-                        _ => sections.push((hit.1, vec![hit])),
-                    }
-                }
-                Ok(sections
-                    .into_iter()
-                    .map(|(home, mut list)| {
-                        list.sort_by(&order);
-                        let first = &list[0].2;
-                        Section {
-                            project_id: home.map(|h| h.to_string()),
-                            title: home.and(first.project.clone()),
-                            // `Projekt · Ordner/Unterordner` without the project.
-                            folder: home
-                                .and(first.place.as_deref().zip(first.project.as_deref()))
-                                .and_then(|(place, title)| {
-                                    place.strip_prefix(title)?.strip_prefix(" · ")
-                                })
-                                .map(str::to_owned),
-                            rows: list.into_iter().map(|(_, _, r)| r).collect(),
-                        }
-                    })
-                    .collect())
-            }
-        }
-    }
 }
 
 #[uniffi::export]
@@ -313,14 +127,22 @@ impl Samu {
     /// (`today` of samu-core), available or not, by project. Unlike
     /// [`Samu::today`], which feeds the widget from Forecast.
     pub fn today_list(&self, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
-        self.rows(tag.as_deref(), |t, s| is_open(t) && s.today)
+        self.listed(
+            "today",
+            tag.as_deref(),
+            |t, s| is_open(t) && s.today,
+            |_| true,
+        )
     }
 
     /// Markiert: open, available and flagged, by project.
     pub fn flagged(&self, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
-        self.rows(tag.as_deref(), |t, s| {
-            is_open(t) && s.available && t.flagged
-        })
+        self.listed(
+            "flagged",
+            tag.as_deref(),
+            |t, s| is_open(t) && s.available && t.flagged,
+            |_| true,
+        )
     }
 
     /// Stuck: available projects without a next action (ADR 0006), in
@@ -465,38 +287,9 @@ impl Samu {
         let snapshot = objects.snapshot();
         let test = PerspectiveTest::new(perspective, &snapshot, Timestamp::now(), &settings.zone);
         let arrange = perspective.arrange.clone().unwrap_or_default();
-        let plain = arrange.sort == PerspectiveSort::Position
-            && arrange.then.is_none()
-            && !arrange.desc
-            && matches!(
-                arrange.group,
-                PerspectiveGroup::Project | PerspectiveGroup::Unknown
-            );
         let pick = |t: &Task, s: &samu_core::availability::TaskState| {
             (test.all || is_open(t)) && (!test.available || s.available) && test.task(t, s)
         };
-        if plain {
-            // The project's own order, as a tree.
-            return self.rows(tag.as_deref(), pick);
-        }
-        let hits = self.picked(tag.as_deref(), pick)?;
-        let order = |a: &Hit, b: &Hit| {
-            by(
-                sort_key(&a.0, &a.2, arrange.sort),
-                sort_key(&b.0, &b.2, arrange.sort),
-                arrange.desc,
-            )
-            .then_with(|| match arrange.then {
-                Some(then) => by(
-                    sort_key(&a.0, &a.2, then),
-                    sort_key(&b.0, &b.2, then),
-                    arrange.then_desc,
-                ),
-                None => Ordering::Equal,
-            })
-            .then_with(|| a.0.position.cmp(&b.0.position))
-            .then_with(|| a.0.title.cmp(&b.0.title))
-        };
-        self.arranged(hits, arrange.group, order)
+        self.listed_as(&settled(arrange), tag.as_deref(), pick, |_| true)
     }
 }

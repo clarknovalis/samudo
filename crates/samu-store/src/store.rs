@@ -15,8 +15,8 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use serde_json::Value as Json;
 
 use crate::core::api::{
-    Author, AuthorKind, Change, ChangeOutcome, Clock, Hlc, Id, Link, LogEntry, LogKind, ObjectKind,
-    Project, Reminder, ReminderAnchor, Scope, Tagging, Task,
+    AccountLogEntry, Author, AuthorKind, Change, ChangeOutcome, Clock, Hlc, Id, Link, LogEntry,
+    LogKind, ObjectKind, Project, Reminder, ReminderAnchor, Scope, Tagging, Task,
 };
 use crate::core::availability::Settings;
 use crate::core::clock::wins;
@@ -66,6 +66,17 @@ pub struct Changed {
     pub deleted: bool,
     /// Created after the change number asked about.
     pub created: bool,
+}
+
+/// What `GET /logbook` asks for (ADR 0123 §4).
+#[derive(Debug, Clone)]
+pub struct LogFilter {
+    pub since: Timestamp,
+    pub until: Timestamp,
+    /// None: every kind.
+    pub kinds: Vec<LogKind>,
+    pub device: Option<String>,
+    pub limit: usize,
 }
 
 /// What the `object` table knows about one object.
@@ -1052,6 +1063,101 @@ impl AccountStore {
         Ok(entries)
     }
 
+    /// The logbook of the account, newest first (ADR 0123 §4): entries at
+    /// or after `filter.since` and before `filter.until`, of the kinds and
+    /// the device asked for, at most `filter.limit`; each with what the
+    /// object is and its title, also when it is deleted.
+    pub fn logbook_all(&self, filter: &LogFilter) -> Result<Vec<AccountLogEntry>> {
+        let wide = |t: Timestamp, s: i64| {
+            t.checked_add(jiff::SignedDuration::from_secs(s))
+                .unwrap_or(t)
+                .to_string()
+        };
+        let mut statement = self.conn.prepare(
+            "SELECT o.uuid, l.at, l.kind, l.device, l.note, l.old_value, l.new_value, \
+             l.author_kind, l.field FROM logbook l JOIN object o ON o.id = l.object \
+             WHERE l.at >= ?1 AND l.at < ?2 AND (?3 IS NULL OR l.device = ?3) \
+             ORDER BY l.at DESC, l.id DESC",
+        )?;
+        let rows = statement.query_map(
+            params![wide(filter.since, -1), wide(filter.until, 1), filter.device],
+            log_row,
+        )?;
+        let mut entries = Vec::new();
+        for row in rows {
+            let entry = log_entry(row?)?;
+            if entry.at < filter.since || entry.at >= filter.until {
+                continue;
+            }
+            if !filter.kinds.is_empty() && !filter.kinds.contains(&entry.kind) {
+                continue;
+            }
+            let Some(h) = head(&self.conn, entry.object)? else {
+                continue;
+            };
+            let title = load(&self.conn, entry.object, &h)
+                .ok()
+                .and_then(|object| object.to_json().ok())
+                .and_then(|json| json.get("title").and_then(Json::as_str).map(str::to_string));
+            entries.push(AccountLogEntry {
+                entry,
+                object_kind: h.kind,
+                title,
+                deleted: h.deleted,
+            });
+            if entries.len() >= filter.limit {
+                break;
+            }
+        }
+        Ok(entries)
+    }
+
+    /// Applies what deleting `root` takes with it (ADR 0036) in one
+    /// transaction like [`Self::apply_all`], and writes one logbook entry
+    /// for all of it: `deleted` on `root` with `counts` (ADR 0123 §2). The
+    /// changes write none of their own.
+    pub fn apply_delete(
+        &mut self,
+        changes: &[Change],
+        author: &Author,
+        now: Timestamp,
+        root: Id,
+        counts: &Json,
+    ) -> Result<std::result::Result<Vec<ChangeOutcome>, (usize, ChangeOutcome)>> {
+        let tx = self.conn.transaction()?;
+        let mut outcomes = Vec::with_capacity(changes.len());
+        for (index, change) in changes.iter().enumerate() {
+            match apply_in(&tx, change, author, now, false)? {
+                applied @ ChangeOutcome::Applied { .. } => outcomes.push(applied),
+                other => return Ok(Err((index, other))),
+            }
+        }
+        let stamp = changes.iter().rev().find_map(|change| match change {
+            Change::Delete { object, hlc } if *object == root => Some(hlc),
+            _ => None,
+        });
+        if let (Some(hlc), Some(h)) = (stamp, head(&tx, root)?) {
+            let kind = serde_json::to_value(LogKind::Deleted)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_string))
+                .unwrap_or_default();
+            tx.execute(
+                "INSERT INTO logbook (object, at, kind, note, old_value, new_value, device, author_kind) \
+                 VALUES (?1, ?2, ?3, NULL, NULL, ?4, ?5, ?6)",
+                params![
+                    h.rowid,
+                    now.to_string(),
+                    kind,
+                    counts.to_string(),
+                    hlc.device,
+                    author_kind_name(author.kind)
+                ],
+            )?;
+        }
+        tx.commit()?;
+        Ok(Ok(outcomes))
+    }
+
     /// The field stamps written at or after `from` and before `to`
     /// (ADR 0080 §1, `report_worked = fields`): the object, the field, when
     /// and from which device. Only the last change of a field has a stamp.
@@ -1188,7 +1294,7 @@ impl AccountStore {
         now: Timestamp,
     ) -> Result<ChangeOutcome> {
         let tx = self.conn.transaction()?;
-        let outcome = apply_in(&tx, change, author, now)?;
+        let outcome = apply_in(&tx, change, author, now, true)?;
         // Only an applied change is kept; a refusal leaves no trace, not even
         // a spent change number.
         if matches!(outcome, ChangeOutcome::Applied { .. }) {
@@ -1210,7 +1316,7 @@ impl AccountStore {
         let tx = self.conn.transaction()?;
         let mut outcomes = Vec::with_capacity(changes.len());
         for (index, change) in changes.iter().enumerate() {
-            match apply_in(&tx, change, author, now)? {
+            match apply_in(&tx, change, author, now, true)? {
                 applied @ ChangeOutcome::Applied { .. } => outcomes.push(applied),
                 // Dropping the transaction rolls it back.
                 other => return Ok(Err((index, other))),
@@ -1245,7 +1351,7 @@ impl AccountStore {
         if let Some(blob) = found {
             return Ok(Delivered::Found(id_of_blob(&blob)?));
         }
-        match apply_in(&tx, change, author, now)? {
+        match apply_in(&tx, change, author, now, true)? {
             ChangeOutcome::Applied { .. } => {
                 tx.execute(
                     "INSERT INTO delivery (system, delivery_id, object, received) \
@@ -1385,7 +1491,7 @@ fn log_entry(row: LogRow) -> Result<LogEntry> {
     };
     let kind: LogKind = serde_json::from_value(Json::String(kind)).unwrap_or(LogKind::Unknown);
     // A change to an appointment keeps values, the rest ids.
-    let (old, new, old_value, new_value) = if field.is_some() {
+    let (old, new, old_value, new_value) = if field.is_some() || kind == LogKind::Deleted {
         let value = |v: Option<String>| -> Result<Option<Json>> {
             v.map(|v| serde_json::from_str(&v).map_err(|e| corrupt(format!("{v:?}: {e}"))))
                 .transpose()
@@ -1421,6 +1527,7 @@ fn apply_in(
     change: &Change,
     author: &Author,
     now: Timestamp,
+    logged: bool,
 ) -> Result<ChangeOutcome> {
     if author_kind_name(author.kind).is_none() {
         return Ok(rejected("an author kind this server does not know"));
@@ -1446,6 +1553,7 @@ fn apply_in(
                     note: note.as_deref(),
                     author,
                     now,
+                    logged,
                 };
                 set(tx, *object, field, value, &edit)?
             }
@@ -1463,6 +1571,7 @@ fn apply_in(
                 note: note.as_deref(),
                 author,
                 now,
+                logged,
             };
             if field == "members" {
                 member(tx, *object, *element, true, &edit)?
@@ -1482,6 +1591,7 @@ fn apply_in(
                 note: note.as_deref(),
                 author,
                 now,
+                logged,
             };
             if field == "members" {
                 member(tx, *object, *element, false, &edit)?
@@ -1489,7 +1599,7 @@ fn apply_in(
                 tagging(tx, *object, field, *element, None, &edit)?
             }
         }
-        Change::Delete { object, hlc } => delete(tx, *object, hlc, author, now)?,
+        Change::Delete { object, hlc } => delete(tx, *object, hlc, author, now, logged)?,
         Change::Unknown => rejected("an operation this server does not know"),
     };
     Ok(outcome)
@@ -1619,6 +1729,7 @@ fn create(
             note: None,
             author,
             now,
+            logged: true,
         };
         log_appointment(tx, rowid, LogKind::Created, &edit, None)?;
     }
@@ -1676,6 +1787,9 @@ struct Edit<'a> {
     /// The session's (ADR 0039 §1).
     author: &'a Author,
     now: Timestamp,
+    /// Whether it writes logbook entries; not for the changes that come
+    /// with a delete, which writes one for all (ADR 0123 §2).
+    logged: bool,
 }
 
 /// A client's change to an appointment in the logbook (ADR 0068 §3):
@@ -1687,6 +1801,9 @@ fn log_appointment(
     edit: &Edit<'_>,
     change: Option<(&str, Option<&Json>, Option<&Json>)>,
 ) -> Result<()> {
+    if !edit.logged {
+        return Ok(());
+    }
     let kind = serde_json::to_value(kind)
         .ok()
         .and_then(|v| v.as_str().map(str::to_string))
@@ -1721,6 +1838,9 @@ fn log(
     old: Option<Id>,
     new: Option<Id>,
 ) -> Result<()> {
+    if !edit.logged {
+        return Ok(());
+    }
     let kind = serde_json::to_value(kind)
         .ok()
         .and_then(|v| v.as_str().map(str::to_string))
@@ -1856,6 +1976,19 @@ fn set(
         )?;
         let change = (field, was.as_ref(), Some(value));
         log_appointment(tx, h.rowid, LogKind::Changed, edit, Some(change))?;
+    }
+    // Where it is changed (ADR 0123 §3); a value written again is no move.
+    let place = matches!(
+        (h.kind, field),
+        (ObjectKind::Task, "project" | "parent")
+            | (ObjectKind::Project, "folder")
+            | (ObjectKind::Folder, "parent")
+    );
+    let was_value = was.as_ref().filter(|v| !v.is_null());
+    let new_value = Some(value).filter(|v| !v.is_null());
+    if place && was_value != new_value {
+        let change = (field, was_value, new_value);
+        log_appointment(tx, h.rowid, LogKind::Moved, edit, Some(change))?;
     }
     // Completing a repetition makes the next task (ADR 0033 §2); why it
     // made none goes into the logbook entry below.
@@ -2885,6 +3018,7 @@ fn delete(
     hlc: &Hlc,
     author: &Author,
     now: Timestamp,
+    logged: bool,
 ) -> Result<ChangeOutcome> {
     let Some(h) = head(tx, id)? else {
         return Ok(rejected(format!("no object {id}")));
@@ -2923,14 +3057,16 @@ fn delete(
     observe(tx, hlc)?;
     if let Some(a) = &appointment {
         calendar::writes::queued(tx, h.rowid, a, a.calendar, "@delete", None, hlc, now)?;
-        let edit = Edit {
-            hlc,
-            note: None,
-            author,
-            now,
-        };
-        log_appointment(tx, h.rowid, LogKind::Deleted, &edit, None)?;
     }
+    // Every kind into the logbook (ADR 0068 §3, ADR 0123 §1).
+    let edit = Edit {
+        hlc,
+        note: None,
+        author,
+        now,
+        logged,
+    };
+    log_appointment(tx, h.rowid, LogKind::Deleted, &edit, None)?;
     // A calendar takes its appointments and its source along (ADR 0047).
     if h.kind == ObjectKind::Calendar {
         calendar::forget(tx, id, h.rowid, hlc, now)?;

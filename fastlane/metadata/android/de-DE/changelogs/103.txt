@@ -1,0 +1,1 @@
+Anordnen in der App wie im Web: ⇅ im Kopf jeder Liste öffnet Gruppieren (Projekt, Ordner, Tag, Zustand, Priorität, Datum), Sortieren und eine zweite Sortierung, je mit Richtung. Eine Perspektive behält ihre Anordnung auf allen Geräten, die anderen Listen merkt sich das Telefon.

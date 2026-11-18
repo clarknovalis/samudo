@@ -40,12 +40,13 @@ for ten minutes; `POST /pair` trades it for a session on the new device.
 
 | Route | |
 |---|---|
-| `GET /available` | open tasks with availability, every reason, state and next state; filters: available only, today, project, all, scope, perspective |
+| `GET /available` | open tasks with availability, every reason, state and next state; filters: available only, today, project, all, scope, perspective; `elsewhere=true` adds what another own scope alone shows, marked `elsewhere` with that scope, for a hint only |
 | `GET /blocks?perspective=<id>` | what a perspective shows, block by block: `[{title, icon, block, missing, tasks}]`, `tasks` as in `/available`; a plain perspective is one block, and `/available` answers a block perspective with every block's tasks once; with `scope` |
-| `GET /available/projects`, `/available/folders` | projects (stuck, review due) and folders |
+| `GET /available/projects`, `/available/folders` | projects (stuck, review due) and folders; projects take `elsewhere=true` as well |
 | `GET /forecast` | the forecast sections, each row with why it is there |
 | `GET /objects/{id}` | one object of any kind |
 | `GET /objects/{id}/logbook` | its history |
+| `GET /logbook?since=&until=&kind=&device=&limit=` | the account's logbook, newest first, each entry with `object_kind` and `title`; the last 7 days and 200 entries by default |
 | `GET /changes?after=<seq>` | every object changed after a change number, for a client's cache |
 | `GET /habits`, `/habits/{id}` | habit status, streaks, entries |
 | `GET /appointments` | appointments of some days, repetitions unfolded |

@@ -89,9 +89,12 @@ export const api = {
   // task's `id`: the tasks themselves come from `/changes` (ADR 0065).
   // With a scope only what it shows, and what is due outside marked
   // `outside`.
-  statuses: (scope) => get(scoped("/available?all=true&bare=true", scope)),
-  // Every open project with what samu-core computed: available, stuck.
-  projectStatuses: (scope) => get(scoped("/available/projects", scope)),
+  // With `elsewhere` too what another own scope alone shows, marked with
+  // it (ADR 0124 §2).
+  statuses: (scope) => get(scoped("/available?all=true&bare=true&elsewhere=true", scope)),
+  // Every open project with what samu-core computed: available, stuck;
+  // those of another own scope marked `elsewhere`.
+  projectStatuses: (scope) => get(scoped("/available/projects?elsewhere=true", scope)),
   // The open habits the scope shows (ADR 0091 §4), with the history and
   // entries from `from` on.
   habits: (scope, from) => get(scoped(`/habits?from=${from}`, scope)),
@@ -173,6 +176,13 @@ export const api = {
   // Notes and comments as document trees (ADR 0058), one per text.
   render: (texts) => post("/render", { texts: texts.map((text) => ({ text })) }),
   logbook: (id) => get(`/objects/${encodeURIComponent(id)}/logbook`),
+  // The account's logbook, newest first (ADR 0123 §4).
+  accountLogbook: ({ since, kinds = [], device = "" }) => {
+    const query = [`since=${encodeURIComponent(since)}`, "limit=500"];
+    if (kinds.length) query.push(`kind=${kinds.join(",")}`);
+    if (device) query.push(`device=${encodeURIComponent(device)}`);
+    return get(`/logbook?${query.join("&")}`);
+  },
   // A file under its SHA-256 (ADR 0039 §4); answers its hash, size and the
   // type it was first recorded with.
   putBlob: (hash, type, body) =>

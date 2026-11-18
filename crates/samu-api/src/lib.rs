@@ -59,7 +59,7 @@ pub use export::{
 pub use hlc::Hlc;
 pub use hook::{HookChange, HookChangeResponse, HookDelivery, HookFormat, HookView};
 pub use id::Id;
-pub use logbook::{LogEntry, LogKind};
+pub use logbook::{AccountLogEntry, LogEntry, LogKind};
 pub use model::{
     AccountSettings, Attachment, Author, AuthorKind, Blob, BoardSource, Clock, Comment, Folder,
     FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer, InspectorLayout,

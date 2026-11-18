@@ -40,6 +40,12 @@ habits. In its own scope it needs no tick; ticked in an "everything except"
 scope it is left out like anything else. Inside a folder with an own
 scope, the nearest folder with one decides.
 
+So that nothing seems to vanish, samudo says where it went: a search names
+how many hits another own scope alone shows, with a click there (`samu
+list --search` says it on stderr); the project choice marks such projects
+"only in scope Work"; and moving a task into one says so, with "Go there"
+and "Undo".
+
 ## Tasks
 
 A task has a title, a note (Org or Markdown), a place, and optionally:
@@ -199,7 +205,11 @@ comments and changes are marked as such.
 
 ## History and deletion
 
-Every object has a **logbook** of what happened to it. Deleting leaves
+Every object has a **logbook** of what happened to it: state changes,
+completing, dropping, moving and deleting, each with the device and
+whether a person or an agent did it. The account's whole logbook, newest
+first, is under Settings → Logbook and `samu logbook`; a delete that takes
+other things with it is one entry there, with how many. Deleting leaves
 nothing dangling: a project's tasks go to the inbox (or are deleted with
 it, if you say so), a folder's content moves up, a task takes its children
 with it, and a tag comes off everything first. The deleted object stays as

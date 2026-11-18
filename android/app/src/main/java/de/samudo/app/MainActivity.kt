@@ -344,6 +344,14 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                 place.project != null || (view !in setOf("projects", "search", "stuck", "review") &&
                     !(view == "forecast" && forecastMode != ForecastMode.LIST))
                 )
+            // The list's key for Anordnen (ADR 0125 §1); none where there is no button.
+            val arrangeKey: String? = when {
+                place.settings || place.task != null -> null
+                place.project != null -> "project:${place.project!!.first}"
+                view in setOf("inbox", "available", "today", "flagged", "search") -> view
+                view == "perspective" || view == "tag" -> "$view:${place.entry.key}"
+                else -> null
+            }
             val picking = Picks.active && place.task == null && !place.settings
             val scopes = rememberScopeState(tick)
             if (picking) {
@@ -364,6 +372,9 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                     Spacer(Modifier.width(10.dp))
                     if (!place.settings) ScopeChip(scopes, changed) { place = place.copy(settings = true) }
                   }
+                    arrangeKey?.let { key ->
+                        TextButton(onClick = { Arranging.open = key }) { Text("⇅", fontSize = 18.sp, color = t.fg) }
+                    }
                     Box {
                         TextButton(onClick = { menu = true }) { Text("⋮", fontSize = 20.sp, color = t.fg) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -415,9 +426,16 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
             }
             // A tag of the bar is its own filter; the search has its chips in
             // the field. In a list they scroll away with it (ADR 0102 §6).
+            val tagChips = (lists && view != "tag") || (view == "forecast" && place.project == null && place.task == null && !place.settings)
             val chips: (@Composable () -> Unit)? =
-                if ((lists && view != "tag") || (view == "forecast" && place.project == null && place.task == null && !place.settings)) {
-                    { TagChips(tick, tag) { tag = it } }
+                if (tagChips || arrangeKey != null) {
+                    {
+                        Column {
+                            // The arrangement, when not the default (ADR 0125 §2).
+                            if (arrangeKey != null) ArrangeLine(tick, arrangeKey)
+                            if (tagChips) TagChips(tick, tag) { tag = it }
+                        }
+                    }
                 } else {
                     null
                 }
@@ -459,7 +477,7 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                     }
                     view == "tag" -> {
                         val id = place.entry.key
-                        TaskList(tick, "tag-$id", { it.available(id) }, changed, open = openTask)
+                        TaskList(tick, "tag-$id", { it.tagged(id) }, changed, open = openTask, head = chips)
                     }
                     view == "forecast" -> Column {
                         ForecastModes(forecastMode) { forecastMode = it }
@@ -482,6 +500,7 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
         }
     }
     appointment?.let { AppointmentSheet(it) { appointment = null } }
+    Arranging.open?.let { key -> ArrangeSheet(key, changed) { Arranging.open = null } }
     val share = pendingShare.value
     TaskMenus.editing.value?.let { row ->
         EditSheet(row) { saved ->

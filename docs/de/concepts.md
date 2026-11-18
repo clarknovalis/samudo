@@ -44,6 +44,12 @@ In seinem eigenen Scope braucht es kein Kreuz; angekreuzt in einem Scope
 „alles außer“ fällt es heraus wie alles andere. In einem Ordner mit
 eigenem Scope entscheidet der nächste Ordner, der einen hat.
 
+Damit nichts scheinbar verschwindet, sagt samudo, wohin: Die Suche nennt,
+wie viele Treffer nur ein anderer eigener Scope zeigt, mit einem Klick
+dorthin (`samu list --search` meldet es auf stderr); die Projektauswahl
+kennzeichnet solche Projekte mit „nur im Scope Work“; und wer eine Aufgabe
+dorthin verschiebt, bekommt eine Meldung mit „Dorthin“ und „Rückgängig“.
+
 ## Aufgaben
 
 Eine Aufgabe hat einen Titel, eine Notiz (Org oder Markdown), einen Ort
@@ -214,7 +220,12 @@ an, damit ihre Kommentare und Änderungen als solche erkennbar sind.
 
 ## Verlauf und Löschen
 
-Jedes Objekt hat ein **Logbuch** darüber, was ihm geschehen ist. Löschen
+Jedes Objekt hat ein **Logbuch** darüber, was ihm geschehen ist:
+Zustandswechsel, Erledigen, Verwerfen, Verschieben und Löschen, jeweils mit
+dem Gerät und ob eine Person oder ein Agent es war. Das ganze Logbuch des
+Kontos, das Neueste zuerst, steht unter Einstellungen → Logbook und in
+`samu logbook`; ein Löschen, das anderes mitnimmt, ist dort ein Eintrag
+mit der Anzahl. Löschen
 lässt nichts in der Luft hängen: Die Aufgaben eines Projekts gehen in die
 Inbox (oder werden mitgelöscht, wenn man es sagt), der Inhalt eines Ordners
 rückt nach oben, eine Aufgabe nimmt ihre Kinder mit, und ein Tag wird

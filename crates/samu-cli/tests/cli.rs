@@ -2449,6 +2449,40 @@ fn clocks_start_stop_and_report() {
     let mine = json_out(&server.samu(&["clock", "list", &steuer, "--format", "json"], None));
     assert_eq!(mine.as_array().unwrap().len(), 2);
 
+    // Edited: both ends moved past the old end, and a note; asked of the
+    // server, not of the output.
+    let booked = mine[1]["id"].as_str().unwrap().to_owned();
+    json_out(&server.samu(
+        &[
+            "clock",
+            "set",
+            &booked,
+            "--start",
+            "2026-11-09T10:00:00Z",
+            "--end",
+            "2026-11-09T10:20:00Z",
+            "--note",
+            "Belege",
+            "--format",
+            "json",
+        ],
+        None,
+    ));
+    let shown = json_out(&server.samu(&["show", &booked, "--format", "json"], None));
+    assert_eq!(shown[0]["object"]["start"], "2026-11-09T10:00:00Z");
+    assert_eq!(shown[0]["object"]["end"], "2026-11-09T10:20:00Z");
+    assert_eq!(shown[0]["object"]["note"], "Belege");
+    // The end before the start: refused, and nothing changed.
+    assert_eq!(
+        code(&server.samu(
+            &["clock", "set", &booked, "--end", "2026-11-09T09:00:00Z"],
+            None,
+        )),
+        1
+    );
+    let shown = json_out(&server.samu(&["show", &booked, "--format", "json"], None));
+    assert_eq!(shown[0]["object"]["end"], "2026-11-09T10:20:00Z");
+
     // Done stops the clock on it.
     json_out(&server.samu(
         &[
@@ -4545,5 +4579,116 @@ fn list_shows_columns_and_a_table_perspective_its_own() {
             None
         )),
         0
+    );
+}
+
+/// ADR 0123: a move and a delete with what came with it, read back from
+/// the account's logbook through the route.
+#[test]
+fn the_logbook_shows_deleted_and_moved_newest_first() {
+    let server = signed_in_server();
+    let made = |args: &[&str]| -> String {
+        json_out(&server.samu(args, None))[0]["id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let steuer = made(&["project", "add", "Steuer", "--format", "json"]);
+    let exit = made(&["project", "add", "Exit", "--format", "json"]);
+    let belege = made(&["add", "Belege", "--project", &steuer, "--format", "json"]);
+    made(&["add", "Anruf", "--project", &steuer, "--format", "json"]);
+
+    assert_eq!(
+        code(&server.samu(&["set", &belege, "project", &format!("\"{exit}\"")], None)),
+        0
+    );
+    assert_eq!(code(&server.samu(&["delete", &steuer], None)), 0);
+
+    let all = json_out(&server.samu(&["logbook", "--since", "1h", "--format", "json"], None));
+    let seen: Vec<(&str, &str)> = all
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (e["kind"].as_str().unwrap(), e["title"].as_str().unwrap()))
+        .collect();
+    // One entry for the project and the task it sent to the inbox.
+    assert_eq!(seen, [("deleted", "Steuer"), ("moved", "Belege")]);
+    assert_eq!(all[0]["new_value"]["moved"], 1);
+    assert_eq!(all[0]["deleted"], true);
+    assert_eq!(all[1]["new_value"], exit.as_str());
+
+    let moved = json_out(&server.samu(&["logbook", "--kind", "moved", "--format", "json"], None));
+    assert_eq!(moved.as_array().unwrap().len(), 1);
+    assert_eq!(
+        code(&server.samu(&["logbook", "--kind", "verschoben"], None)),
+        1
+    );
+}
+
+/// ADR 0124 §3: a search names the hits another own scope alone shows,
+/// on stderr, and does not list them.
+#[test]
+fn a_search_names_hits_in_another_own_scope() {
+    let server = signed_in_server();
+    let made = |args: &[&str]| -> String {
+        json_out(&server.samu(args, None))[0]["id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    made(&["scope", "add", "Exit", "--except", "--format", "json"]);
+    let steuer = made(&["project", "add", "Steuer", "--format", "json"]);
+    made(&[
+        "add",
+        "Belege prüfen",
+        "--project",
+        &steuer,
+        "--format",
+        "json",
+    ]);
+    made(&["add", "Belege kaufen", "--format", "json"]);
+    assert_eq!(
+        code(&server.samu(&["set", &steuer, "own_scope", "Exit"], None)),
+        0
+    );
+
+    let out = server.samu(
+        &[
+            "list",
+            "--no-scope",
+            "--search",
+            "belege",
+            "--format",
+            "json",
+        ],
+        None,
+    );
+    let rows = json_out(&out);
+    let titles: Vec<&str> = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["title"].as_str().unwrap())
+        .collect();
+    assert_eq!(titles, ["Belege kaufen"]);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("1 more in scope Exit (--scope \"Exit\")"),
+        "{stderr}"
+    );
+    // In that scope it is a row.
+    let inside = json_out(&server.samu(
+        &[
+            "list", "--scope", "Exit", "--search", "belege", "--format", "json",
+        ],
+        None,
+    ));
+    assert!(
+        inside
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["title"] == "Belege prüfen"),
+        "{inside}"
     );
 }

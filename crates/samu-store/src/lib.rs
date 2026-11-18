@@ -28,6 +28,6 @@ pub use server::{
     new_token, token_digest, valid_account_name,
 };
 pub use store::{
-    AccountStore, Changed, Delivered, Fetched, KnownResource, OwnedSnapshot, Pending,
+    AccountStore, Changed, Delivered, Fetched, KnownResource, LogFilter, OwnedSnapshot, Pending,
     RestoreRefused, SecretKey, StoredSource, Synced, WriteJob,
 };

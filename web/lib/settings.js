@@ -24,6 +24,7 @@ import { propertiesPane } from "./props.js";
 import { templatesPane } from "./templates.js";
 import { keysPane } from "./keycapture.js";
 import { accountPane } from "./register.js";
+import { forgetLogbook, logbookPane } from "./logbook.js";
 import { alarmChoice, permission, setAlarmChoice } from "./alarms.js";
 import { byId, chooseScope, onlyIn, state, update } from "./state.js";
 import { tr } from "./i18n.js";
@@ -48,6 +49,7 @@ const SECTIONS = [
   ["templates", tr("Vorlagen")],
   ["keys", tr("Tastatur")],
   ["account", tr("Konto")],
+  ["logbook", "Logbook"],
 ];
 
 // Reminders in this browser (ADR 0101 §6, §8): switches of this browser
@@ -165,6 +167,7 @@ function nav() {
           text,
           onclick: () => {
             confirming = null;
+            if (key === "logbook") forgetLogbook();
             update({ settings: { ...state.settings, section: key, place: null } });
           },
         })),
@@ -554,7 +557,9 @@ export function renderSettings() {
                 ? keysPane()
                 : section === "account"
                   ? accountPane()
-                  : placesPane(section);
+                  : section === "logbook"
+                    ? logbookPane()
+                    : placesPane(section);
   replace(
     $("settings-body"),
     el("div", { class: "settings-grid" }, [

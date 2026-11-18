@@ -1,0 +1,21 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c09",
+    "created": "2026-11-07T08:00:00Z",
+    "modified": "2026-11-07T08:00:00Z",
+    "title": "Server patchen",
+    "project": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b01",
+    "due": {
+      "date": "2026-11-07"
+    },
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0
+  },
+  "available": true,
+  "reasons": [],
+  "due": "overdue",
+  "today": false,
+  "elsewhere": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01"
+}

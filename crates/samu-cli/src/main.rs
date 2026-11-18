@@ -325,6 +325,28 @@ enum Command {
         #[arg(add = ArgValueCompleter::new(complete::task))]
         id: String,
     },
+    /// The account's logbook, newest first (GET /logbook, ADR 0123):
+    /// deleted, moved, completed … with device and author.
+    Logbook {
+        /// From: a length back from now (`30m`, `1h`, `2d`), a day
+        /// (`2026-11-18`, from its start here) or an instant; 7 days by
+        /// default.
+        #[arg(long)]
+        since: Option<String>,
+        /// Until, the same way; now by default.
+        #[arg(long)]
+        until: Option<String>,
+        /// Only these kinds, comma-separated: deleted, moved, completed,
+        /// dropped, reopened, state, created, changed, imported.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Only changes from this device.
+        #[arg(long)]
+        device: Option<String>,
+        /// At most this many entries (up to 1000).
+        #[arg(long, default_value_t = 200)]
+        limit: usize,
+    },
     /// Tags and workflows (ADR 0024).
     #[command(subcommand)]
     Tag(tags::TagCommand),
@@ -670,6 +692,7 @@ const COVERAGE: &[(&str, &str, &str)] = &[
     ("GET", "/changes", "changes"),
     ("GET", "/objects/{id}", "show"),
     ("GET", "/objects/{id}/logbook", "log"),
+    ("GET", "/logbook", "logbook"),
     ("POST", "/objects/{id}/delete", "delete"),
     ("GET", "/available", "list"),
     ("GET", "/blocks", "list"),
@@ -1917,6 +1940,45 @@ fn run(args: Args) -> Result<()> {
                 &["at", "kind", "device", "old", "new", "note"],
             )?;
         }
+        Command::Logbook {
+            since,
+            until,
+            kind,
+            device,
+            limit,
+        } => {
+            let client = signed_in(&config)?;
+            let now = jiff::Timestamp::now();
+            let mut query = vec![format!("limit={limit}")];
+            if let Some(since) = since {
+                query.push(format!("since={}", when_back(&since, now)?));
+            }
+            if let Some(until) = until {
+                query.push(format!("until={}", when_back(&until, now)?));
+            }
+            if let Some(kind) = kind {
+                query.push(format!("kind={}", report::urlencoding(&kind)));
+            }
+            if let Some(device) = device {
+                query.push(format!("device={}", report::urlencoding(&device)));
+            }
+            let answer = client.call("GET", &format!("/logbook?{}", query.join("&")), None)?;
+            let entries: Vec<samu_api::AccountLogEntry> = serde_json::from_value(answer.json()?)?;
+            let records: Vec<Value> = entries.iter().map(logbook_record).collect();
+            emit(
+                args.format,
+                &records,
+                &[
+                    "at",
+                    "kind",
+                    "object_kind",
+                    "short",
+                    "title",
+                    "device",
+                    "detail",
+                ],
+            )?;
+        }
         Command::Tag(command) => tags::run(&config, args.format, command)?,
         Command::Bulk(command) => bulk::run(&config, args.format, command)?,
         Command::Scope(command) => scopes::run(&config, args.format, command)?,
@@ -2114,6 +2176,10 @@ fn run(args: Args) -> Result<()> {
             if let Some(project) = project {
                 query.push(format!("project={}", resolve_project(&client, &project)?));
             }
+            // A search names what another own scope hides (ADR 0124 §3).
+            if search.is_some() && !bare {
+                query.push("elsewhere=true".to_string());
+            }
             let path = if query.is_empty() {
                 "/available".to_string()
             } else {
@@ -2147,6 +2213,9 @@ fn run(args: Args) -> Result<()> {
                     eprintln!("{outside} due, hidden: shown only in its own scope");
                 }
             }
+            let (mut elsewhere, rest): (Vec<TaskStatus>, Vec<TaskStatus>) =
+                statuses.into_iter().partition(|s| s.elsewhere.is_some());
+            statuses = rest;
             let page: ChangesPage =
                 serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
             let names = Names::new(&page, &statuses);
@@ -2157,6 +2226,16 @@ fn run(args: Args) -> Result<()> {
                 flagged,
                 search.as_deref(),
             )?;
+            narrow(
+                &mut elsewhere,
+                &names,
+                tag.as_deref(),
+                flagged,
+                search.as_deref(),
+            )?;
+            for line in elsewhere_hint(&elsewhere, &page) {
+                eprintln!("{line}");
+            }
             let mut records: Vec<Value> =
                 statuses.iter().map(|s| status_record(s, &names)).collect();
             if let Some(columns) = columns {
@@ -2500,6 +2579,104 @@ fn main() -> ExitCode {
             ExitCode::from(exit_code(&error))
         }
     }
+}
+
+/// `2 more in scope Exit (--scope Exit)`, a line per own scope that alone
+/// shows search hits (ADR 0124 §3); the hits themselves stay unshown.
+fn elsewhere_hint(hits: &[TaskStatus], page: &ChangesPage) -> Vec<String> {
+    let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for hit in hits {
+        let Some(scope) = hit.elsewhere else {
+            continue;
+        };
+        let title = page
+            .objects
+            .iter()
+            .find_map(|o| match o {
+                AnyObject::Scope(s) if s.id == scope => Some(s.title.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| short(&scope));
+        *counts.entry(title).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .map(|(title, n)| format!("{n} more in scope {title} (--scope {title:?})"))
+        .collect()
+}
+
+/// `--since`/`--until` of `samu logbook`: a length back from `now`
+/// (`30m`, `1h`, `2d`), a day from its start in this computer's zone, or an
+/// instant as `--at` takes it.
+fn when_back(text: &str, now: jiff::Timestamp) -> Result<jiff::Timestamp> {
+    let text = text.trim();
+    if let Some((number, unit)) = text
+        .find(|c: char| !c.is_ascii_digit())
+        .filter(|&i| i > 0 && i + 1 == text.len())
+        .map(|i| text.split_at(i))
+    {
+        let n: i64 = number.parse()?;
+        let seconds = match unit {
+            "m" => 60,
+            "h" => 3_600,
+            "d" => 86_400,
+            "w" => 604_800,
+            _ => bail!("{text:?}: a length is minutes (m), hours (h), days (d) or weeks (w)"),
+        };
+        return Ok(now.checked_sub(jiff::SignedDuration::from_secs(n * seconds))?);
+    }
+    if let Ok(day) = text.parse::<jiff::civil::Date>() {
+        return Ok(day.to_zoned(jiff::tz::TimeZone::system())?.timestamp());
+    }
+    remind::instant(text)
+}
+
+/// One entry of `samu logbook`, with a `detail` that says it in a line.
+fn logbook_record(entry: &samu_api::AccountLogEntry) -> Value {
+    let e = &entry.entry;
+    let short_value = |v: Option<&Value>| match v {
+        Some(Value::String(s)) => s.parse::<Id>().map_or_else(|_| s.clone(), |id| short(&id)),
+        Some(other) => other.to_string(),
+        None => "–".into(),
+    };
+    let detail = match e.kind {
+        samu_api::LogKind::Moved => format!(
+            "{}: {} → {}",
+            e.field.as_deref().unwrap_or("?"),
+            short_value(e.old_value.as_ref()),
+            short_value(e.new_value.as_ref())
+        ),
+        samu_api::LogKind::Deleted => e
+            .new_value
+            .as_ref()
+            .map(|counts| {
+                ["deleted", "moved", "untagged"]
+                    .iter()
+                    .filter_map(|k| {
+                        counts
+                            .get(*k)
+                            .and_then(Value::as_u64)
+                            .filter(|n| *n > 0)
+                            .map(|n| format!("{n} {k}"))
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })
+            .unwrap_or_default(),
+        samu_api::LogKind::Changed => format!(
+            "{}: {} → {}",
+            e.field.as_deref().unwrap_or("?"),
+            short_value(e.old_value.as_ref()),
+            short_value(e.new_value.as_ref())
+        ),
+        _ => e.note.clone().unwrap_or_default(),
+    };
+    let mut record = serde_json::to_value(entry).unwrap_or(Value::Null);
+    if let Value::Object(map) = &mut record {
+        map.insert("short".into(), json!(short(&e.object)));
+        map.insert("detail".into(), json!(detail));
+    }
+    record
 }
 
 #[cfg(test)]

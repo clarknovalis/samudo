@@ -96,13 +96,17 @@ function showMessage() {
   box.hidden = !state.message;
   if (state.message === shownMessage) return;
   shownMessage = state.message;
-  replace(box, state.message ?? "");
+  // A message is text, or `{ text, actions: [[label, do]] }` with buttons
+  // (ADR 0124 §5); a click anywhere still takes it away.
+  const message = state.message;
+  const text = typeof message === "object" && message ? message.text : (message ?? "");
+  const actions = typeof message === "object" && message ? (message.actions ?? []) : [];
+  replace(box, text, ...actions.map(([label, act]) => el("button", { type: "button", class: "link", text: label, onclick: act })));
   clearTimeout(messageTimer);
-  if (!state.message) return;
-  const mine = state.message;
+  if (!message) return;
   messageTimer = setTimeout(() => {
-    if (state.message === mine) update({ message: null });
-  }, Math.min(12000, 4000 + 60 * mine.length));
+    if (state.message === message) update({ message: null });
+  }, Math.min(12000, 4000 + 60 * text.length + (actions.length ? 4000 : 0)));
 }
 
 // What arrives draws the inspector alone, not every view once more; until
@@ -234,9 +238,13 @@ async function loadNow() {
       forecast,
       // Due outside the scope is counted for the header, never listed
       // (ADR 0035 §6).
-      statuses: all.filter((s) => !s.outside),
+      // What another own scope alone shows: only for the search's hint and
+      // the project choice (ADR 0124 §3, §4).
+      statuses: all.filter((s) => !s.outside && !s.elsewhere),
       outside: all.filter((s) => s.outside),
-      projectStatuses,
+      elsewhere: all.filter((s) => s.elsewhere),
+      projectStatuses: projectStatuses.filter((p) => !p.elsewhere),
+      elsewhereProjects: projectStatuses.filter((p) => p.elsewhere),
       habits,
       shownFolders: shownFolders.map((f) => f.id),
     });

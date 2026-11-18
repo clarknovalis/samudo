@@ -67,6 +67,10 @@ export const state = {
   scheduled: null,
   // Open tasks outside the scope that are due: counted, never shown (§6).
   outside: [],
+  // Tasks and projects another own scope alone shows (ADR 0124): for the
+  // search's hint and the project choice, never listed.
+  elsewhere: [],
+  elsewhereProjects: [],
   // The scope menu in the header is open.
   scopeMenu: false,
   // The settings window (ADR 0035 §8): { scope } is the one being edited.
@@ -286,4 +290,10 @@ export function heldUpBy(id) {
 export function holdsUp(id) {
   const task = byId(state.tasks, id);
   return Boolean(task) && isOpen(task) && heldUpBy(id).length > 0;
+}
+
+// The own scope that alone shows this project, when it is not the one
+// looked through (ADR 0124 §4); null otherwise.
+export function elsewhereOf(project) {
+  return project ? (state.elsewhereProjects.find((p) => p.project.id === project)?.elsewhere ?? null) : null;
 }

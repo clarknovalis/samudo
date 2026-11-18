@@ -12,7 +12,7 @@ import { appointmentDetail } from "./appointment.js";
 import { clockSection } from "./clock.js";
 import { commentSections } from "./comments.js";
 import { $, el, icon, replace } from "./dom.js";
-import { blockersOf, moveTo, openBlockPalette, openPalette } from "./palette.js";
+import { blockersOf, moveTo, openBlockPalette, openPalette, withScope } from "./palette.js";
 import { openObject } from "./address.js";
 import { newTagField } from "./placeops.js";
 import { seriesSection } from "./habits.js";
@@ -536,7 +536,8 @@ function projectSelect(task) {
     [
       el("option", { value: "", text: "Inbox", selected: !task.project }),
       // With the folder path, so two projects of one title are told apart.
-      ...projects.map((p) => el("option", { value: p.id, text: placeOf({ project: p.id }), selected: p.id === task.project })),
+      // One another own scope alone shows says so (ADR 0124 §4).
+      ...projects.map((p) => el("option", { value: p.id, text: withScope(placeOf({ project: p.id }), p.id), selected: p.id === task.project })),
     ],
   );
 }

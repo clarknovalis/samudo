@@ -250,6 +250,7 @@ fun SearchScreen(
                 tick, query to tag, { it.search(query, tag) }, changed,
                 empty = tr("Nichts gefunden."),
                 open = { id -> keep(); open(id) },
+                head = { ArrangeLine(tick, "search") },
             )
         }
     }

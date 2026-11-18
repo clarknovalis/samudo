@@ -16,16 +16,17 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use samu_api::{
-    AccountDelete, AccountSettings, Alert, AnyObject, ApiError, Appointment, AppointmentAlarm,
-    AppointmentEdit, AppointmentEditResponse, AppointmentInstance, Attachment, BareStatus, Blob,
-    BlockSection, Calendar, CalendarImport, CalendarSource, CaptureRequest, CaptureResponse,
-    Change, ChangeNotice, ChangeOutcome, ChangesPage, Clock, ClockReport, ClockReportRow, Comment,
-    DeleteRequest, DeleteResponse, DemoAdded, DemoRequest, DiscoveredCalendar, Document, Export,
-    ExportManifest, ExportedObject, Folder, ForecastSection, Grant, HabitEntry, HabitStatus, Hlc,
-    HookChange, HookChangeResponse, HookDelivery, HookView, Link, LogEntry, Login, PairCode,
-    PairCodeRequest, PairRequest, Perspective, Project, ProjectAvailability, Register, Registered,
-    RegistrationInfo, Reminder, RenderRequest, RenderResponse, Report, ReportRow, ResetNotice,
-    ScheduledScope, Scope, SessionInfo, SessionSummary, Tag, Task, TaskStatus, Template,
+    AccountDelete, AccountLogEntry, AccountSettings, Alert, AnyObject, ApiError, Appointment,
+    AppointmentAlarm, AppointmentEdit, AppointmentEditResponse, AppointmentInstance, Attachment,
+    BareStatus, Blob, BlockSection, Calendar, CalendarImport, CalendarSource, CaptureRequest,
+    CaptureResponse, Change, ChangeNotice, ChangeOutcome, ChangesPage, Clock, ClockReport,
+    ClockReportRow, Comment, DeleteRequest, DeleteResponse, DemoAdded, DemoRequest,
+    DiscoveredCalendar, Document, Export, ExportManifest, ExportedObject, Folder, ForecastSection,
+    Grant, HabitEntry, HabitStatus, Hlc, HookChange, HookChangeResponse, HookDelivery, HookView,
+    Link, LogEntry, Login, PairCode, PairCodeRequest, PairRequest, Perspective, Project,
+    ProjectAvailability, Register, Registered, RegistrationInfo, Reminder, RenderRequest,
+    RenderResponse, Report, ReportRow, ResetNotice, ScheduledScope, Scope, SessionInfo,
+    SessionSummary, Tag, Task, TaskStatus, Template,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -98,6 +99,7 @@ const TYPES: &[(&str, RoundTrip)] = &[
     ("hook_change_response", round_trip::<HookChangeResponse>),
     ("hook_delivery", round_trip::<HookDelivery>),
     ("log_entry", round_trip::<LogEntry>),
+    ("account_log_entry", round_trip::<AccountLogEntry>),
     ("pair_code_request", round_trip::<PairCodeRequest>),
     ("pair_code", round_trip::<PairCode>),
     ("pair_request", round_trip::<PairRequest>),
@@ -235,6 +237,8 @@ fn unknown_enum_values_read_as_unknown() {
         ("session_summary/restricted.json", &["grant", "access"]),
         ("session_summary/current.json", &["kind"]),
         ("log_entry/by_agent.json", &["author_kind"]),
+        ("log_entry/moved.json", &["kind"]),
+        ("account_log_entry/moved.json", &["object_kind"]),
         ("any_object/comment.json", &["kind"]),
         ("any_object/scope.json", &["kind"]),
         ("task/full.json", &["repeat", "mode"]),

@@ -1,0 +1,11 @@
+{
+  "object": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "at": "2026-11-18T11:20:00Z",
+  "kind": "moved",
+  "device": "browser",
+  "field": "project",
+  "old_value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c02",
+  "new_value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c03",
+  "object_kind": "task",
+  "title": "Belege sortieren"
+}

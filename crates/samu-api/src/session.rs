@@ -192,6 +192,10 @@ pub const ROUTES: &[Route] = &[
         path: "/objects/{id}/logbook",
     },
     Route {
+        method: "GET",
+        path: "/logbook",
+    },
+    Route {
         method: "POST",
         path: "/objects/{id}/delete",
     },

@@ -44,6 +44,11 @@ pub struct TaskStatus {
     /// soon. Counted for a hint, shown in no view (ADR 0035 §6).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub outside: bool,
+    /// Only with `elsewhere=true`: hidden here because it names an own
+    /// scope other than the one looked through, and this is that scope
+    /// (ADR 0094, ADR 0124 §2). Counted for a hint, shown in no view.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elsewhere: Option<Id>,
     /// In the inbox: no project, or one that is not there (ADR 0036 §6).
     /// Group by this, not by `task.project`.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -82,6 +87,8 @@ pub struct BareStatus {
     pub group: Option<GroupSummary>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub outside: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elsewhere: Option<Id>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub inbox: bool,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -105,6 +112,7 @@ impl From<TaskStatus> for BareStatus {
             next_state,
             group,
             outside,
+            elsewhere,
             inbox,
             inherited,
             next_repeat,
@@ -120,6 +128,7 @@ impl From<TaskStatus> for BareStatus {
             next_state,
             group,
             outside,
+            elsewhere,
             inbox,
             inherited,
             next_repeat,
@@ -154,6 +163,12 @@ pub struct Inherited {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectAvailability {
     pub project: Project,
+    /// Only with `elsewhere=true`: hidden here because it names an own
+    /// scope other than the one looked through, and this is that scope
+    /// (ADR 0094, ADR 0124 §2). Counted for a hint, shown in no view.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elsewhere: Option<Id>,
+
     pub available: bool,
     /// Every reason it is not available; empty when it is.
     #[serde(default)]

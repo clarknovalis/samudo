@@ -120,6 +120,11 @@ export const logWords = {
   completed: tr("erledigt"),
   dropped: tr("verworfen"),
   reopened: tr("wieder offen"),
+  deleted: tr("gelöscht"),
+  moved: tr("verschoben"),
+  created: tr("angelegt"),
+  changed: tr("geändert"),
+  imported: tr("importiert"),
 };
 
 export function stamp(text) {

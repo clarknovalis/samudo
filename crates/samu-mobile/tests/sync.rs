@@ -4424,3 +4424,209 @@ fn withdraw_takes_a_completion_back_before_the_server_sees_it() {
     samu.sync().unwrap();
     assert!(stored(&other, &sent)["dropped_at"].is_null());
 }
+
+fn arranged(group: &str, sort: &str, then: Option<&str>, then_desc: bool) -> samu_mobile::Arrange {
+    samu_mobile::Arrange {
+        group: group.into(),
+        sort: sort.into(),
+        desc: false,
+        then: then.map(Into::into),
+        then_desc,
+    }
+}
+
+/// ADR 0125: every list arranges as the web does, in groups and by two
+/// keys; a view on this phone, a perspective through the outbox.
+#[test]
+fn lists_arrange_in_groups_and_by_two_keys() {
+    let server = Server::start();
+    let other = server.other_client();
+    let status = make_tag(&other, "Status", None);
+    other
+        .call(
+            "POST",
+            "/changes?stamp=server",
+            Some(&json!([
+                {"op": "set", "object": status, "field": "exclusive", "value": true,
+                 "hlc": {"wall": 0, "counter": 0, "device": "x"}},
+                {"op": "set", "object": status, "field": "default_workflow", "value": true,
+                 "hlc": {"wall": 0, "counter": 0, "device": "x"}}
+            ])),
+        )
+        .unwrap();
+    let running = make_tag(&other, "Läuft", Some(&status));
+    let waiting = make_tag(&other, "Warten", Some(&status));
+    other
+        .call(
+            "POST",
+            "/changes?stamp=server",
+            Some(
+                &json!([{"op": "set", "object": waiting, "field": "position", "value": 1,
+                          "hlc": {"wall": 0, "counter": 0, "device": "x"}}]),
+            ),
+        )
+        .unwrap();
+    let office = make_tag(&other, "Büro", None);
+    let garden = make_project(&other, "Garten");
+    let samu = phone(&server);
+    let house = samu.create_folder("Haus".into(), None).unwrap();
+    let cellar = samu
+        .create_project("Keller".into(), Some(house.clone()))
+        .unwrap();
+    samu.sync().unwrap();
+    let (tomorrow, later) = (day(&samu, 1), day(&samu, 3));
+    make_task(&other, "Zettel", json!({}));
+    make_task(
+        &other,
+        "jäten",
+        json!({"project": garden, "priority": "B", "due": {"date": tomorrow},
+               "tags": [{"tag": running, "position": 0}]}),
+    );
+    make_task(
+        &other,
+        "gießen",
+        json!({"project": garden, "priority": "B", "due": {"date": later}}),
+    );
+    make_task(&other, "mähen", json!({"project": garden, "priority": "A"}));
+    make_task(
+        &other,
+        "aufräumen",
+        json!({"project": cellar, "priority": "A",
+               "tags": [{"tag": waiting, "position": 0}, {"tag": office, "position": 1}]}),
+    );
+    samu.sync().unwrap();
+
+    let default = samu.arrange("available".into()).unwrap();
+    assert_eq!(default, arranged("project", "position", None, false));
+    let first = samu.available(None).unwrap();
+    let by_project = section_titles(&first);
+    assert_eq!(
+        by_project[0],
+        (None, vec!["Zettel"]),
+        "the inbox first, as before"
+    );
+
+    // Priority, then due late first: the second key decides within B.
+    samu.set_arrange(
+        "available".into(),
+        arranged("priority", "priority", Some("due"), true),
+    )
+    .unwrap();
+    assert_eq!(
+        section_titles(&samu.available(None).unwrap()),
+        [
+            (Some("Priorität A"), vec!["aufräumen", "mähen"]),
+            (Some("Priorität B"), vec!["gießen", "jäten"]),
+            (Some("Ohne Priorität"), vec!["Zettel"]),
+        ]
+    );
+    samu.set_arrange(
+        "available".into(),
+        arranged("none", "priority", Some("due"), false),
+    )
+    .unwrap();
+    assert_eq!(
+        section_titles(&samu.available(None).unwrap()),
+        [(
+            None,
+            vec!["aufräumen", "mähen", "jäten", "gießen", "Zettel"]
+        )],
+        "what has no value last, on each level"
+    );
+    samu.set_arrange("available".into(), arranged("state", "title", None, false))
+        .unwrap();
+    assert_eq!(
+        section_titles(&samu.available(None).unwrap()),
+        [
+            (Some("Läuft"), vec!["jäten"]),
+            (Some("Warten"), vec!["aufräumen"]),
+            (Some("Ohne Zustand"), vec!["gießen", "mähen", "Zettel"]),
+        ],
+        "in the order of the workflow"
+    );
+    samu.set_arrange("available".into(), arranged("folder", "title", None, false))
+        .unwrap();
+    assert_eq!(
+        section_titles(&samu.available(None).unwrap()),
+        [
+            (Some("Inbox"), vec!["Zettel"]),
+            (Some("Haus"), vec!["aufräumen"]),
+            (Some("Ohne Ordner"), vec!["gießen", "jäten", "mähen"]),
+        ]
+    );
+    samu.set_arrange("available".into(), arranged("tag", "title", None, false))
+        .unwrap();
+    assert_eq!(
+        section_titles(&samu.available(None).unwrap()),
+        [
+            (Some("Büro"), vec!["aufräumen"]),
+            (Some("Status/Läuft"), vec!["jäten"]),
+            (Some("Status/Warten"), vec!["aufräumen"]),
+            (Some("Ohne Tag"), vec!["gießen", "mähen", "Zettel"]),
+        ],
+        "a task with two tags stands in both"
+    );
+
+    // Each view on its own; a project by its id; the tag of the bar too.
+    assert_eq!(samu.arrange("inbox".into()).unwrap(), default);
+    samu.set_arrange(
+        format!("project:{garden}"),
+        arranged("none", "due", None, false),
+    )
+    .unwrap();
+    assert_eq!(
+        section_titles(&samu.project(garden.clone(), None).unwrap()),
+        [(None, vec!["jäten", "gießen", "mähen"])]
+    );
+    assert_eq!(
+        section_titles(&samu.tagged(office.clone()).unwrap()),
+        [(Some("Keller"), vec!["aufräumen"])]
+    );
+
+    // Zurücksetzen forgets it; the second key goes with Ordnung.
+    samu.set_arrange(
+        "available".into(),
+        arranged("project", "position", Some("due"), true),
+    )
+    .unwrap();
+    assert_eq!(samu.arrange("available".into()).unwrap(), default);
+    assert_eq!(section_titles(&samu.available(None).unwrap()), by_project);
+
+    // Refused: what no list is, and what no grouping or key is.
+    assert!(
+        samu.set_arrange("forecast".into(), default.clone())
+            .is_err()
+    );
+    assert!(
+        samu.set_arrange("available".into(), arranged("colour", "title", None, false))
+            .is_err()
+    );
+    assert!(
+        samu.set_arrange("available".into(), arranged("none", "size", None, false))
+            .is_err()
+    );
+
+    // A perspective keeps it on the server, offline first.
+    let view = make_perspective(
+        &other,
+        "Garten",
+        json!({"chips": [{"kind": "project", "value": garden}]}),
+    );
+    samu.sync().unwrap();
+    let key = format!("perspective:{view}");
+    samu.set_arrange(key.clone(), arranged("none", "title", None, false))
+        .unwrap();
+    assert_eq!(
+        section_titles(&samu.perspective(view.clone(), None).unwrap()),
+        [(None, vec!["gießen", "jäten", "mähen"])]
+    );
+    samu.sync().unwrap();
+    assert_eq!(
+        stored(&other, &view)["arrange"],
+        json!({"group": "none", "sort": "title"})
+    );
+    assert!(
+        samu.set_arrange(format!("perspective:{}", samu_api::Id::new()), default)
+            .is_err()
+    );
+}

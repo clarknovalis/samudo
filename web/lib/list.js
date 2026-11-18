@@ -22,7 +22,7 @@ import { asksForClosed, asksForWaiting, chipText, minutes, rangeOf, wantsAppoint
 import { rowDrop } from "./reorder.js";
 import { baseFilter, captureFrom, current as perspective, filterOf, holds, orderOf, perspectives, searchOf } from "./perspectives.js";
 import { forecastDay, inView, reviewProjects, startPerspectiveDraft, stuckProjects, VIEWS } from "./sidebar.js";
-import { byId, chooseOrder, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
+import { byId, chooseOrder, chooseScope, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
 import { addDays, detailsText, dueText, pathOf, placeOf, reasonText, shortDay, tagPath, today } from "./words.js";
 import { locale, tr } from "./i18n.js";
 
@@ -968,7 +968,30 @@ function drawList() {
   }
   const sections = groups(statuses, chosen.group).map(([key, heading, list, subtitle]) => section(heading, list, compare, subtitle, key));
   const drawn = sections.filter(Boolean);
-  replace($("list"), drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") }));
+  replace($("list"), elsewhereHint(), drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") }));
+}
+
+// A search's hits that another own scope alone shows: how many, by scope,
+// and a click there; the hits themselves stay unshown (ADR 0124 §3).
+function elsewhereHint() {
+  if (shown().kind !== "search") return null;
+  const counts = new Map();
+  for (const s of state.elsewhere) {
+    if (inView(s) && (!filtered() || matches(s))) counts.set(s.elsewhere, (counts.get(s.elsewhere) ?? 0) + 1);
+  }
+  if (!counts.size) return null;
+  return el(
+    "p",
+    { class: "elsewhere-hint" },
+    [...counts].map(([scope, n]) =>
+      el("button", {
+        type: "button",
+        class: "link",
+        text: tr("{n} Treffer nur im Scope {scope} →", { n, scope: byId(state.scopes, scope)?.title ?? "?" }),
+        onclick: () => chooseScope(scope),
+      }),
+    ),
+  );
 }
 
 // --- Block perspectives (ADR 0116 §5) ----------------------------------

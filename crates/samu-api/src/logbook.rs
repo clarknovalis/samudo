@@ -55,11 +55,32 @@ pub enum LogKind {
     Created,
     /// A field of an appointment changed by a client.
     Changed,
-    /// An appointment deleted by a client.
+    /// Deleted by a client: an appointment (ADR 0068 §3), and any other
+    /// object since ADR 0123 §1. After `POST /objects/{id}/delete`
+    /// `new_value` holds what came with it: `{"deleted", "moved",
+    /// "untagged"}` (§2).
     Deleted,
+    /// Moved by a client (ADR 0123 §3): `field` is `project`, `parent` or
+    /// `folder`; `old_value` and `new_value` the ids before and after,
+    /// none for the inbox or the top.
+    Moved,
     /// An iCalendar file imported into a calendar (ADR 0100 §4); `note`
     /// says the file and what came of it.
     Imported,
     #[serde(other)]
     Unknown,
+}
+
+/// A logbook entry as `GET /logbook` lists it (ADR 0123 §4): with what the
+/// object is and its title, also of one deleted since.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AccountLogEntry {
+    #[serde(flatten)]
+    pub entry: LogEntry,
+    pub object_kind: crate::ObjectKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The object is deleted now.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub deleted: bool,
 }

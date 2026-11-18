@@ -141,6 +141,34 @@ impl<'a> Lens<'a> {
         open && matches!(state.due, DueState::Overdue | DueState::Soon) && !self.task(task, state)
     }
 
+    /// The own scope that alone shows this task, when it is not the one
+    /// looked through (ADR 0124 §1); of several, the smallest id.
+    #[must_use]
+    pub fn elsewhere_task(&self, task: &Task) -> Option<Id> {
+        let mut hit = HashSet::new();
+        self.tags_own(&task.tags, &mut hit);
+        if let Some(project) = crate::availability::home(task, &self.projects) {
+            self.project_own(project, &mut hit);
+        }
+        self.other_own(&hit)
+    }
+
+    /// The own scope that alone shows this project, when it is not the
+    /// one looked through (ADR 0124 §1).
+    #[must_use]
+    pub fn elsewhere_project(&self, project: &Project) -> Option<Id> {
+        let mut hit = HashSet::new();
+        self.project_own(project.id, &mut hit);
+        self.other_own(&hit)
+    }
+
+    fn other_own(&self, hit: &HashSet<Id>) -> Option<Id> {
+        if self.current.is_some_and(|c| hit.contains(&c)) {
+            return None;
+        }
+        hit.iter().min().copied()
+    }
+
     /// Whether the views show this project.
     #[must_use]
     pub fn project(&self, project: &Project) -> bool {

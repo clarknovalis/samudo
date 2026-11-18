@@ -136,6 +136,7 @@ samu projects --review         # review due
 samu forecast                  # overdue, today, flagged, next days, later
 samu show 4f2a91c3             # one object, all fields
 samu log 4f2a91c3              # its logbook
+samu logbook --since 1h --kind deleted,moved   # the account's
 samu prop 4f2a91c3             # its properties, inherited ones too
 samu blockers 4f2a91c3         # the tasks it waits for
 ```
@@ -223,9 +224,14 @@ samu clock status
 samu clock out
 samu clock add 4f2a91c3 "yesterday 2h"
 samu clock list 4f2a91c3
+samu clock set 7c01 --start 2026-11-09T08:30 --note "call"
 samu report --days 7 --by project
 samu report --q "#Bathroom" --part time
 ```
+
+`clock set` changes a clock's start, end or note; `--running` lets a
+stopped one run again. In the web, click a clock in the inspector's
+“Time” section.
 
 The report counts your own work; `--q "author:agent"` shows the agents'
 work, `author:all` everyone's (the German `autor:agent`, `autor:alle`

@@ -59,6 +59,25 @@ pub(crate) enum ClockCommand {
         #[arg(long)]
         note: Option<String>,
     },
+    /// Change a clock: when it began, when it ended, its note. The server
+    /// refuses an end before the start; overlapping other clocks is allowed.
+    Set {
+        /// The clock, as `samu clock list` shows it.
+        id: String,
+        /// When it began: RFC 3339, or a local date and time in this
+        /// computer's zone.
+        #[arg(long)]
+        start: Option<String>,
+        #[arg(long, conflicts_with = "running")]
+        end: Option<String>,
+        /// The note; an empty one removes it.
+        #[arg(long)]
+        note: Option<String>,
+        /// Take the end away so it runs again; refused while another clock
+        /// runs (ADR 0046 §2).
+        #[arg(long)]
+        running: bool,
+    },
     /// Time clocked over days (GET /clocks/report), in the account's zone.
     Report {
         /// By task, project, folder, tag or day.
@@ -316,6 +335,53 @@ pub(crate) fn run(config: &Config, format: Format, command: ClockCommand) -> Res
             let titles = clocks(&client)?.titles;
             emit(format, &[record(&clock, titles.get(&owner), now)], COLUMNS)
         }
+        ClockCommand::Set {
+            id,
+            start,
+            end,
+            note,
+            running,
+        } => {
+            let id = resolve(&client, &id)?;
+            let all = clocks(&client)?;
+            let Some(clock) = all.clocks.iter().find(|c| c.id == id) else {
+                return Err(Failure::NotFound(format!("no clock {id}")).into());
+            };
+            if start.is_none() && end.is_none() && note.is_none() && !running {
+                bail!("nothing to change: --start, --end, --note or --running");
+            }
+            let mut after = clock.clone();
+            if let Some(start) = &start {
+                after.start = crate::remind::instant(start)?;
+            }
+            if let Some(end) = &end {
+                after.end = Some(crate::remind::instant(end)?);
+            }
+            if running {
+                if let Some(other) = running_of(&all.clocks).filter(|c| c.id != id) {
+                    bail!(
+                        "another clock runs ({}); stop it first",
+                        all.titles.get(&other.owner).map_or("?", String::as_str)
+                    );
+                }
+                after.end = None;
+            }
+            if let Some(note) = &note {
+                after.note = (!note.is_empty()).then(|| note.clone());
+            }
+            if after.end.is_some_and(|end| end < after.start) {
+                bail!("the end is before the start");
+            }
+            let changes = edit_changes(clock, &after);
+            if !changes.is_empty() {
+                write(&client, &changes)?;
+            }
+            emit(
+                format,
+                &[record(&after, all.titles.get(&after.owner), now)],
+                COLUMNS,
+            )
+        }
         ClockCommand::Report {
             by,
             from,
@@ -345,6 +411,39 @@ pub(crate) fn run(config: &Config, format: Format, command: ClockCommand) -> Res
             )
         }
     }
+}
+
+/// The field changes from `before` to `after`, in an order the server takes
+/// one by one: a start moved past the old end goes after the new end, so no
+/// step in between ends before it starts.
+fn edit_changes(before: &Clock, after: &Clock) -> Vec<Change> {
+    let set = |field: &str, value: Value| Change::Set {
+        object: before.id,
+        field: field.into(),
+        value,
+        note: None,
+        hlc: placeholder(),
+    };
+    let start = (after.start != before.start).then(|| set("start", json!(after.start.to_string())));
+    let end = (after.end != before.end).then(|| {
+        set(
+            "end",
+            after.end.map_or(Value::Null, |e| json!(e.to_string())),
+        )
+    });
+    let start_last = before.end.is_some_and(|old_end| after.start > old_end);
+    let mut changes: Vec<Change> = if start_last {
+        [end, start].into_iter().flatten().collect()
+    } else {
+        [start, end].into_iter().flatten().collect()
+    };
+    if after.note != before.note {
+        changes.push(set(
+            "note",
+            after.note.as_ref().map_or(Value::Null, |n| json!(n)),
+        ));
+    }
+    changes
 }
 
 /// The running clock the server keeps (ADR 0046 §2): the latest start, the
@@ -416,6 +515,46 @@ mod tests {
         assert_eq!(length(3_900), "1:05");
         assert_eq!(length(36_000), "10:00");
         assert_eq!(length(-5), "0:00");
+    }
+
+    #[test]
+    fn a_start_moved_past_the_old_end_goes_last() {
+        let at = |s: &str| s.parse::<jiff::Timestamp>().unwrap();
+        let before = Clock {
+            id: Id::new(),
+            created: at("2026-11-09T08:00:00Z"),
+            modified: at("2026-11-09T08:00:00Z"),
+            owner: Id::new(),
+            start: at("2026-11-09T08:00:00Z"),
+            end: Some(at("2026-11-09T09:00:00Z")),
+            note: None,
+        };
+        let fields = |changes: Vec<Change>| -> Vec<String> {
+            changes
+                .into_iter()
+                .map(|c| match c {
+                    Change::Set { field, .. } => field,
+                    _ => String::new(),
+                })
+                .collect()
+        };
+        let later = Clock {
+            start: at("2026-11-09T10:00:00Z"),
+            end: Some(at("2026-11-09T11:00:00Z")),
+            note: Some("Telefon".into()),
+            ..before.clone()
+        };
+        assert_eq!(
+            fields(edit_changes(&before, &later)),
+            ["end", "start", "note"]
+        );
+        let earlier = Clock {
+            start: at("2026-11-09T07:00:00Z"),
+            end: Some(at("2026-11-09T07:30:00Z")),
+            ..before.clone()
+        };
+        assert_eq!(fields(edit_changes(&before, &earlier)), ["start", "end"]);
+        assert!(edit_changes(&before, &before).is_empty());
     }
 
     #[test]

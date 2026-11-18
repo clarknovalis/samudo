@@ -92,6 +92,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/clockedit.js",
+        include_str!("../../../web/lib/clockedit.js"),
+        JS,
+    ),
+    (
+        "lib/logbook.js",
+        include_str!("../../../web/lib/logbook.js"),
+        JS,
+    ),
+    (
         "lib/author.js",
         include_str!("../../../web/lib/author.js"),
         JS,

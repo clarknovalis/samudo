@@ -21,7 +21,7 @@ use jiff::Timestamp;
 use samu_store::core::api::{
     AnyObject, ApiError, Author, AuthorKind, BareStatus, CaptureRequest, CaptureResponse, Change,
     ChangeNotice, ChangeOutcome, ChangesPage, DeleteRequest, DeleteResponse, ErrorCode, Export,
-    Folder, Hlc, Id, LogEntry, Login, PairCode, PairCodeRequest, PairRequest, Period,
+    Folder, Hlc, Id, LogEntry, LogKind, Login, PairCode, PairCodeRequest, PairRequest, Period,
     ProjectAvailability, RenderRequest, RenderResponse, ResetNotice, SessionInfo,
 };
 use samu_store::core::availability::Settings;
@@ -1223,7 +1223,13 @@ async fn delete_object(
             restamp(change, stamp)
         })
         .collect();
-    match store.apply_all(&changes, &session.author(), now)? {
+    // One logbook entry for all of it (ADR 0123 §2).
+    let counts = serde_json::json!({
+        "deleted": answer.deleted,
+        "moved": answer.moved,
+        "untagged": answer.untagged,
+    });
+    match store.apply_delete(&changes, &session.author(), now, id, &counts)? {
         Ok(outcomes) => {
             answer.seq = outcomes.iter().rev().find_map(|outcome| match outcome {
                 ChangeOutcome::Applied { seq } => Some(*seq),
@@ -1261,6 +1267,66 @@ async fn get_logbook(
 }
 
 #[derive(Debug, Deserialize)]
+struct LogbookQuery {
+    since: Option<Timestamp>,
+    until: Option<Timestamp>,
+    /// Comma-separated kinds, like `deleted,moved`.
+    kind: Option<String>,
+    device: Option<String>,
+    limit: Option<usize>,
+}
+
+/// `GET /logbook`: the account's logbook, newest first (ADR 0123 §4); the
+/// last 7 days and 200 entries unless asked otherwise. A session with a
+/// grant sees the entries of what it reaches.
+async fn get_account_logbook(
+    State(state): State<Arc<AppState>>,
+    Extension(session): Extension<Session>,
+    Query(query): Query<LogbookQuery>,
+) -> Result<Json<Vec<samu_store::core::api::AccountLogEntry>>, Failure> {
+    let until = query.until.unwrap_or_else(Timestamp::now);
+    let since = query.since.unwrap_or_else(|| {
+        until
+            .checked_sub(jiff::SignedDuration::from_hours(7 * 24))
+            .unwrap_or(until)
+    });
+    let mut kinds = Vec::new();
+    for name in query
+        .kind
+        .iter()
+        .flat_map(|k| k.split(','))
+        .filter(|k| !k.is_empty())
+    {
+        match serde_json::from_value::<LogKind>(serde_json::Value::String(name.trim().into())) {
+            Ok(LogKind::Unknown) | Err(_) => {
+                return Err(Failure::bad_request(format!("{name:?} is no logbook kind")));
+            }
+            Ok(kind) => kinds.push(kind),
+        }
+    }
+    let filter = samu_store::LogFilter {
+        since,
+        until,
+        kinds,
+        device: query.device,
+        limit: query.limit.unwrap_or(200).clamp(1, 1000),
+    };
+    let store = state.account(&session.account)?;
+    let store = lock(&store)?;
+    let mut entries = store.logbook_all(&filter)?;
+    if let Some(reach) = session_reach(&session, &store)? {
+        let mut seen = Vec::with_capacity(entries.len());
+        for entry in entries {
+            if crate::grant::sees_stored(&reach, &store, entry.entry.object)? {
+                seen.push(entry);
+            }
+        }
+        entries = seen;
+    }
+    Ok(Json(entries))
+}
+
+#[derive(Debug, Deserialize)]
 struct AvailableQuery {
     /// Only available tasks.
     #[serde(default)]
@@ -1278,6 +1344,9 @@ struct AvailableQuery {
     scope: Option<Id>,
     /// Only what this perspective shows, inside the scope (ADR 0090 §2).
     perspective: Option<Id>,
+    /// Also what another own scope hides, marked (ADR 0124 §2).
+    #[serde(default)]
+    elsewhere: bool,
     /// Without the tasks themselves: `BareStatus`, for a client that has
     /// them from `GET /changes` (ADR 0065).
     #[serde(default)]
@@ -1342,6 +1411,7 @@ async fn available(
         all: query.all,
         scope: query.scope,
         perspective: query.perspective,
+        elsewhere: query.elsewhere,
     };
     let statuses = views::available(&objects, &settings, Timestamp::now(), &filter)?;
     if query.bare {
@@ -1840,6 +1910,9 @@ struct ProjectsQuery {
     all: bool,
     /// Only the projects this scope shows (ADR 0035 §5).
     scope: Option<Id>,
+    /// Also what another own scope hides, marked (ADR 0124 §2).
+    #[serde(default)]
+    elsewhere: bool,
 }
 
 /// `GET /available/projects`: projects with their computed status, from
@@ -1855,6 +1928,7 @@ async fn available_projects(
         review: query.review,
         all: query.all,
         scope: query.scope,
+        elsewhere: query.elsewhere,
     };
     Ok(Json(views::projects(
         &objects,
@@ -2030,6 +2104,7 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route("/changes", post(post_changes).get(get_changes))
         .route("/objects/{id}", get(get_object))
         .route("/objects/{id}/logbook", get(get_logbook))
+        .route("/logbook", get(get_account_logbook))
         .route("/objects/{id}/delete", post(delete_object))
         .route("/available", get(available))
         .route("/blocks", get(blocks))

@@ -1,0 +1,1 @@
+Arrange in the app as on the web: ⇅ in the head of every list opens grouping (project, folder, tag, state, priority, date), sorting and a second sort key, each with its direction. A perspective keeps its arrangement on every device; the other lists are remembered by the phone.

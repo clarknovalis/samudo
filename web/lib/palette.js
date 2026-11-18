@@ -14,7 +14,7 @@
 import { api, change } from "./api.js";
 import { $, el, replace, uuidv7 } from "./dom.js";
 import { byPosition, movePlace, subtree } from "./placeops.js";
-import { byId, isOpen, state, statusOf, update } from "./state.js";
+import { byId, chooseScope, elsewhereOf, isOpen, state, statusOf, update } from "./state.js";
 import { placeOf } from "./words.js";
 import { tr } from "./i18n.js";
 
@@ -36,12 +36,51 @@ export async function moveMany(tasks, project, parent) {
     update({ message: tr("Eine Aufgabe kann nicht unter sich selbst oder darunter.") });
     return;
   }
+  const from = tasks.map((t) => ({ id: t.id, project: t.project ?? null, parent: t.parent ?? null }));
   try {
     await api.write(changes);
-    update({ message: null });
+    update({ message: movedAway(project, from) });
   } catch (error) {
     update({ message: error.message });
   }
+}
+
+// `title · nur im Scope Exit` for a project another own scope alone shows
+// (ADR 0124 §4).
+export function withScope(title, project) {
+  const scope = elsewhereOf(project);
+  return scope ? `${title} · ${tr("nur im Scope {scope}", { scope: byId(state.scopes, scope)?.title ?? "?" })}` : title;
+}
+
+// Moved where this scope does not look: said so, with the way there and
+// back (ADR 0124 §5); otherwise no message.
+function movedAway(project, from) {
+  const scope = elsewhereOf(project);
+  if (!scope) return null;
+  const title = byId(state.projects, project)?.title ?? "?";
+  const back = async () => {
+    const changes = [];
+    for (const { id, project: p, parent } of from) {
+      const task = byId(state.tasks, id);
+      if (task) changes.push(...(moveChanges([task], p, parent) ?? []));
+    }
+    try {
+      await api.write(changes);
+      update({ message: null });
+    } catch (error) {
+      update({ message: error.message });
+    }
+  };
+  return {
+    text: tr("Verschoben nach {project}, nur im Scope {scope} sichtbar.", { project: title, scope: byId(state.scopes, scope)?.title ?? "?" }),
+    actions: [
+      [tr("Dorthin"), () => {
+        chooseScope(scope);
+        update({ view: { kind: "project", project }, message: null });
+      }],
+      [tr("Rückgängig"), back],
+    ],
+  };
 }
 
 // The changes of such a move, unwritten; null when a task would go under
@@ -180,7 +219,7 @@ function targets(taskIds) {
   const projects = state.projects
     .filter((p) => p.status !== "dropped" && p.status !== "completed")
     .sort((a, b) => a.position - b.position)
-    .map((p) => ({ kind: "project", project: p.id, parent: null, title: p.title }));
+    .map((p) => ({ kind: "project", project: p.id, parent: null, title: withScope(p.title, p.id) }));
   const groups = state.statuses
     .filter((s) => s.group && isOpen(s.task) && !own.has(s.task.id))
     .map((s) => {

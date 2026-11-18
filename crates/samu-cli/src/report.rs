@@ -127,7 +127,7 @@ fn query(args: &ReportArgs, today: Date, scope: Option<samu_api::Id>) -> Result<
 }
 
 /// Percent-encodes a query value; what is not unreserved goes as `%XX`.
-fn urlencoding(text: &str) -> String {
+pub(crate) fn urlencoding(text: &str) -> String {
     let mut out = String::new();
     for byte in text.bytes() {
         if byte.is_ascii_alphanumeric() || b"-_.~".contains(&byte) {

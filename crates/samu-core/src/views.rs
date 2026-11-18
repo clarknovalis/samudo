@@ -74,6 +74,9 @@ pub struct AvailableFilter {
     pub scope: Option<Id>,
     /// Only what this perspective shows, inside the scope (ADR 0090 §2).
     pub perspective: Option<Id>,
+    /// Also what an own scope other than this one hides, marked
+    /// `elsewhere` (ADR 0124 §2).
+    pub elsewhere: bool,
 }
 
 /// How far back a history may reach: ten years.
@@ -240,14 +243,16 @@ pub fn available(
             continue;
         }
         // Without a scope, too, what is scope_only stays out and counts
-        // for the hint when due (ADR 0069 §4, §7).
-        let outside = if lens.task(task, computed) {
-            false
-        } else if lens.due_outside(task, computed) {
-            true
-        } else {
+        // for the hint when due (ADR 0069 §4, §7); asked for, what another
+        // own scope shows is marked with it (ADR 0124 §2).
+        let shown = lens.task(task, computed);
+        let outside = !shown && lens.due_outside(task, computed);
+        let elsewhere = (!shown && filter.elsewhere)
+            .then(|| lens.elsewhere_task(task))
+            .flatten();
+        if !shown && !outside && elsewhere.is_none() {
             continue;
-        };
+        }
         let open = task.completed_at.is_none() && task.dropped_at.is_none();
         if (!open && !all)
             || (only_available && !computed.available)
@@ -262,7 +267,7 @@ pub fn available(
             &inheritance,
             task,
             computed,
-            outside,
+            (outside, elsewhere),
             (now, settings),
         ));
     }
@@ -340,7 +345,7 @@ fn status_of(
     inheritance: &Inheritance<'_>,
     task: &Task,
     computed: &TaskState,
-    outside: bool,
+    (outside, elsewhere): (bool, Option<Id>),
     // Now and the account's zone, for the next date of a repetition.
     (now, settings): (Timestamp, &Settings),
 ) -> TaskStatus {
@@ -359,6 +364,7 @@ fn status_of(
         next_state: placed.next,
         group: group_summary(&objects.tasks, evaluation, task),
         outside,
+        elsewhere,
         inbox: computed.inbox,
         inherited: inheritance.of(task),
         next_repeat: crate::repeat::preview(&objects.tasks, task, now, &settings.zone),
@@ -442,7 +448,7 @@ pub fn forecast(
                             &inheritance,
                             row.task,
                             computed,
-                            false,
+                            (false, None),
                             (now, settings),
                         ),
                     })
@@ -755,6 +761,9 @@ pub struct ProjectsFilter {
     pub all: bool,
     /// Only the projects this scope shows (ADR 0035 §5).
     pub scope: Option<Id>,
+    /// Also those an own scope other than this one shows, marked
+    /// `elsewhere` (ADR 0124 §2).
+    pub elsewhere: bool,
 }
 
 /// `GET /available/projects`: projects with their computed status, from the
@@ -775,7 +784,10 @@ pub fn projects(
     );
     let mut out = Vec::new();
     for project in &objects.projects {
-        if !lens.project(project) {
+        let elsewhere = (filter.elsewhere && !lens.project(project))
+            .then(|| lens.elsewhere_project(project))
+            .flatten();
+        if !lens.project(project) && elsewhere.is_none() {
             continue;
         }
         let Some(computed) = evaluation.projects.get(&project.id) else {
@@ -793,6 +805,7 @@ pub fn projects(
         }
         out.push(ProjectAvailability {
             project: project.clone(),
+            elsewhere,
             available: computed.available,
             reasons: computed.reasons.iter().map(Into::into).collect(),
             stuck: computed.stuck,
@@ -1450,6 +1463,69 @@ mod tests {
         objects.scopes.push(scope);
         objects.perspectives.push(p);
         assert_eq!(shown_in(&objects, &filter), ["Angebot drinnen"]);
+    }
+
+    /// ADR 0124 §1-2: asked for, what another own scope alone shows comes
+    /// along marked with that scope; in that scope it is shown as usual, and
+    /// without asking nothing changes.
+    #[test]
+    fn what_another_own_scope_hides_is_marked_with_it() {
+        let mut objects = Objects::default();
+        let exit: Scope = serde_json::from_value(serde_json::json!({
+            "id": Id::new(), "title": "Exit", "mode": "except", "members": [],
+            "created": now(), "modified": now(),
+        }))
+        .unwrap();
+        let project: Project = serde_json::from_value(serde_json::json!({
+            "id": Id::new(), "title": "Steuer", "kind": "parallel", "status": "active",
+            "own_scope": exit.id, "created": now(), "modified": now(),
+        }))
+        .unwrap();
+        let mut hidden = task("Belege", 0);
+        hidden.project = Some(project.id);
+        let plain = task("Einkaufen", 1);
+        objects.projects.push(project.clone());
+        objects.tasks = vec![hidden, plain];
+        objects.scopes.push(exit.clone());
+
+        let marked = |scope: Option<Id>, elsewhere: bool| -> Vec<(String, Option<Id>)> {
+            let filter = AvailableFilter {
+                scope,
+                elsewhere,
+                ..AvailableFilter::default()
+            };
+            let mut seen: Vec<(String, Option<Id>)> =
+                available(&objects, &settings(), now(), &filter)
+                    .unwrap()
+                    .into_iter()
+                    .map(|s| (s.task.title, s.elsewhere))
+                    .collect();
+            seen.sort();
+            seen
+        };
+        // Without a scope, not asked: hidden as before.
+        assert_eq!(marked(None, false), [("Einkaufen".into(), None)]);
+        // Asked: along, with the scope that shows it.
+        assert_eq!(
+            marked(None, true),
+            [("Belege".into(), Some(exit.id)), ("Einkaufen".into(), None)]
+        );
+        // In that scope it is simply shown.
+        assert!(marked(Some(exit.id), true).contains(&("Belege".into(), None)));
+
+        let projects = |elsewhere: bool| {
+            let filter = ProjectsFilter {
+                elsewhere,
+                ..ProjectsFilter::default()
+            };
+            projects(&objects, &settings(), now(), &filter)
+                .unwrap()
+                .into_iter()
+                .map(|p| (p.project.title, p.elsewhere))
+                .collect::<Vec<_>>()
+        };
+        assert!(projects(false).is_empty());
+        assert_eq!(projects(true), [("Steuer".into(), Some(exit.id))]);
     }
 
     /// ADR 0116 §3-4: a block perspective shows its blocks one below the

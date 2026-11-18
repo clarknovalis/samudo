@@ -15,6 +15,7 @@
 //! does (ADR 0027 §4). All calls block; the app makes them off the main
 //! thread.
 
+mod arrange;
 mod bar;
 mod bulk;
 mod clocking;
@@ -27,6 +28,7 @@ mod remind;
 mod search;
 mod views;
 
+pub use arrange::Arrange;
 pub use bar::{BarEntry, BarItem};
 pub use clocking::{ClockRow, RunningClock};
 pub use edit::{RepeatEdit, TagOption, TaskEdit};
@@ -1500,26 +1502,33 @@ impl Samu {
     /// Open tasks in the inbox, orphans among them (ADR 0036 §6). `tag` (an id) narrows every list to
     /// that tag and the tags below it.
     pub fn inbox(&self, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
-        Ok(self
-            .rows(tag.as_deref(), |t, s| s.inbox && is_open(t))?
-            .into_iter()
-            .filter(|s| s.project_id.is_none())
-            .collect())
+        self.listed(
+            "inbox",
+            tag.as_deref(),
+            |t, s| s.inbox && is_open(t),
+            |home| home.is_none(),
+        )
     }
 
     /// Open and available tasks, by project (ADR 0020 §1).
     pub fn available(&self, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
-        self.rows(tag.as_deref(), |t, s| is_open(t) && s.available)
+        self.listed(
+            "available",
+            tag.as_deref(),
+            |t, s| is_open(t) && s.available,
+            |_| true,
+        )
     }
 
     /// Every open task of one project, available or not.
     pub fn project(&self, id: String, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
         let id = parse_id(&id)?;
-        Ok(self
-            .rows(tag.as_deref(), |t, _| t.project == Some(id) && is_open(t))?
-            .into_iter()
-            .filter(|s| s.project_id.as_deref() == Some(id.to_string().as_str()))
-            .collect())
+        self.listed(
+            &format!("project:{id}"),
+            tag.as_deref(),
+            |t, _| t.project == Some(id) && is_open(t),
+            |home| home == Some(id),
+        )
     }
 
     /// Open tasks with every word of `text` in title or note, any case, as
@@ -1541,11 +1550,16 @@ impl Samu {
         let filter =
             samu_core::query::Filter::new(&chips, &snapshot, Timestamp::now(), &settings.zone);
         let closed = samu_core::query::asks_for_closed(&chips);
-        self.rows(tag.as_deref(), |t, s| {
-            (closed || is_open(t))
-                && filter.matches(t, s)
-                && samu_core::query::text_matches(&free, t)
-        })
+        self.listed(
+            "search",
+            tag.as_deref(),
+            |t, s| {
+                (closed || is_open(t))
+                    && filter.matches(t, s)
+                    && samu_core::query::text_matches(&free, t)
+            },
+            |_| true,
+        )
     }
 
     /// Forecast as samu-core computes it (ADR 0045), with the account's
