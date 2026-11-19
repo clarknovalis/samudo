@@ -95,7 +95,7 @@ fn folder_path(folders: &[Folder], id: Id) -> String {
 
 /// One folder or project: by id or `samu:` URI; a folder by its path
 /// (`tec/ai`), a project by its folder's path and title (`tec/ai/samudo`);
-/// then either by its title alone, then by the end of its id. Any case;
+/// then either by its title alone, then by the start or end of its id. Any case;
 /// more than one match is an error.
 fn find(folders: &[Folder], projects: &[Project], reference: &str) -> Result<Id> {
     if let Some(id) = as_id(reference) {
@@ -131,12 +131,12 @@ fn find(folders: &[Folder], projects: &[Project], reference: &str) -> Result<Id>
             .collect(),
         folders
             .iter()
-            .filter(|f| f.id.to_string().ends_with(&wanted))
+            .filter(|f| crate::id_matches(&f.id, &wanted))
             .map(|f| (f.id, folder_path(folders, f.id)))
             .chain(
                 projects
                     .iter()
-                    .filter(|p| p.id.to_string().ends_with(&wanted))
+                    .filter(|p| crate::id_matches(&p.id, &wanted))
                     .map(|p| (p.id, project_path(p))),
             )
             .collect(),
@@ -146,7 +146,7 @@ fn find(folders: &[Folder], projects: &[Project], reference: &str) -> Result<Id>
             [] => continue,
             [(id, _)] => return Ok(*id),
             many => bail!(
-                "{reference:?} names {} folders and projects; use the path or the end of an id: {}",
+                "{reference:?} names {} folders and projects; use the path or the start or end of an id: {}",
                 many.len(),
                 many.iter()
                     .map(|(id, path)| format!("{path} ({})", short(id)))

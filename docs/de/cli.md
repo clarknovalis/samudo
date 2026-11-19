@@ -6,8 +6,10 @@ und das [Desktop-Widget](desktop-widget.md) rufen `samu` mit
 `--format json` auf.
 
 `samu help` und `samu <kommando> --help` listen alles; diese Seite zeigt
-die Kommandos nach Aufgabe. IDs lassen sich ganz angeben oder mit ihren
-letzten acht Zeichen, wie `samu list` sie ausgibt.
+die Kommandos nach Aufgabe. IDs lassen sich ganz angeben, mit ihren
+letzten acht Zeichen, wie `samu list` sie ausgibt, oder mit ihrem Anfang.
+Was in derselben Minute entstand, hat denselben Anfang; dann nennt das
+Kommando die passenden IDs und verlangt eine längere.
 
 ## Einrichten
 

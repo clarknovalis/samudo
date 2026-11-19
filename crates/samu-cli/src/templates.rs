@@ -114,7 +114,7 @@ fn templates(client: &Client) -> Result<Vec<Template>> {
     Ok(found)
 }
 
-/// A template by its name (any case, a leading `/` allowed) or the end of
+/// A template by its name (any case, a leading `/` allowed) or the start or end of
 /// its id.
 fn find<'a>(templates: &'a [Template], name: &str) -> Result<&'a Template> {
     let name = name.trim_start_matches('/');
@@ -124,7 +124,7 @@ fn find<'a>(templates: &'a [Template], name: &str) -> Result<&'a Template> {
     }
     let by_id: Vec<&Template> = templates
         .iter()
-        .filter(|t| t.id.to_string().ends_with(&lower))
+        .filter(|t| crate::id_matches(&t.id, &lower))
         .collect();
     match by_id.as_slice() {
         [one] => Ok(one),

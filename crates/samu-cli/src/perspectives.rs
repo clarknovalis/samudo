@@ -151,7 +151,7 @@ pub(crate) enum PerspectiveCommand {
     Delete { name: String },
 }
 
-/// A perspective by its name (any case) or the end of its id.
+/// A perspective by its name (any case) or the start or end of its id.
 pub(crate) fn find<'a>(perspectives: &'a [Perspective], name: &str) -> Result<&'a Perspective> {
     let lower = name.to_lowercase();
     if let Some(p) = perspectives
@@ -162,7 +162,7 @@ pub(crate) fn find<'a>(perspectives: &'a [Perspective], name: &str) -> Result<&'
     }
     let by_id: Vec<&Perspective> = perspectives
         .iter()
-        .filter(|p| p.id.to_string().ends_with(&lower))
+        .filter(|p| crate::id_matches(&p.id, &lower))
         .collect();
     match by_id.as_slice() {
         [one] => Ok(one),

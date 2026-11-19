@@ -24,7 +24,7 @@ pub(crate) enum ProjectCommand {
     /// Make a project, last at its level.
     Add {
         title: String,
-        /// The folder it goes in, by title or the end of its id; the top
+        /// The folder it goes in, by title or the start or end of its id; the top
         /// without one.
         #[arg(long)]
         folder: Option<String>,
@@ -42,7 +42,7 @@ pub(crate) enum ProjectCommand {
     Move {
         #[arg(add = ArgValueCompleter::new(crate::complete::project))]
         project: String,
-        /// The folder, by title or the end of its id.
+        /// The folder, by title or the start or end of its id.
         #[arg(long, required_unless_present = "top", conflicts_with = "top")]
         folder: Option<String>,
         #[arg(long)]
@@ -54,7 +54,7 @@ pub(crate) enum ProjectCommand {
     FromTask {
         #[arg(add = ArgValueCompleter::new(crate::complete::task))]
         task: String,
-        /// The folder, by title or the end of its id; else the folder of
+        /// The folder, by title or the start or end of its id; else the folder of
         /// the task's project.
         #[arg(long)]
         folder: Option<String>,
@@ -77,7 +77,7 @@ pub(crate) enum ProjectCommand {
         kind: Option<Kind>,
         #[arg(long, value_enum)]
         status: Option<Status>,
-        /// An exclusive tag group by title or the end of its id; `none` for
+        /// An exclusive tag group by title or the start or end of its id; `none` for
         /// the default.
         #[arg(long)]
         workflow: Option<String>,
@@ -139,7 +139,7 @@ pub(crate) enum FolderCommand {
     /// Make a folder, last at its level.
     Add {
         title: String,
-        /// The folder above, by title or the end of its id.
+        /// The folder above, by title or the start or end of its id.
         #[arg(long)]
         parent: Option<String>,
     },
@@ -158,7 +158,7 @@ pub(crate) enum FolderCommand {
     /// Never below itself (ADR 0037 §2).
     Move {
         folder: String,
-        /// The folder above, by title or the end of its id.
+        /// The folder above, by title or the start or end of its id.
         #[arg(long, required_unless_present = "top", conflicts_with = "top")]
         parent: Option<String>,
         #[arg(long)]
@@ -201,7 +201,7 @@ fn places(client: &Client) -> Result<Places> {
     Ok(places)
 }
 
-/// A folder by its title (any case) or the end of its id.
+/// A folder by its title (any case) or the start or end of its id.
 fn find_folder<'a>(folders: &'a [Folder], name: &str) -> Result<&'a Folder> {
     let by_title: Vec<&Folder> = folders
         .iter()
@@ -211,7 +211,7 @@ fn find_folder<'a>(folders: &'a [Folder], name: &str) -> Result<&'a Folder> {
         let wanted = name.to_ascii_lowercase();
         folders
             .iter()
-            .filter(|f| f.id.to_string().ends_with(&wanted))
+            .filter(|f| crate::id_matches(&f.id, &wanted))
             .collect()
     } else {
         by_title
@@ -220,7 +220,7 @@ fn find_folder<'a>(folders: &'a [Folder], name: &str) -> Result<&'a Folder> {
         [folder] => Ok(folder),
         [] => Err(Failure::NotFound(format!("no folder {name:?}")).into()),
         many => bail!(
-            "{name:?} names {} folders; use the end of an id: {}",
+            "{name:?} names {} folders; use the start or end of an id: {}",
             many.len(),
             many.iter()
                 .map(|f| short(&f.id))

@@ -193,7 +193,7 @@ enum Command {
         /// The text; several words are joined.
         #[arg(required = true, add = ArgValueCompleter::new(complete::capture))]
         title: Vec<String>,
-        /// The project when the text names none, by title, id or the end of
+        /// The project when the text names none, by title, id or the start or end of
         /// one.
         #[arg(long, add = ArgValueCompleter::new(complete::project))]
         project: Option<String>,
@@ -492,7 +492,7 @@ enum Command {
         /// Without a scope, whatever is chosen here.
         #[arg(long)]
         no_scope: bool,
-        /// What this perspective shows, by name or the end of its id, inside
+        /// What this perspective shows, by name or the start or end of its id, inside
         /// the scope (ADR 0090 §2).
         #[arg(long)]
         perspective: Option<String>,
@@ -872,8 +872,16 @@ fn short(id: &Id) -> String {
     full[full.len().saturating_sub(8)..].to_string()
 }
 
-/// An id from a full id, a `samu:` URI, or the end of one, like git's short
-/// hashes.
+/// Whether a lowercase reference names `id` by its start or its end. Lists
+/// show the end ([`short`]), but people copy the start as often, like git's
+/// short hashes. A start shared by objects made in the same minute is
+/// ambiguous, and callers say so.
+pub(crate) fn id_matches(id: &Id, wanted: &str) -> bool {
+    let full = id.to_string();
+    !wanted.is_empty() && (full.ends_with(wanted) || full.starts_with(wanted))
+}
+
+/// An id from a full id, a `samu:` URI, or the start or end of one.
 fn resolve(client: &Client, reference: &str) -> Result<Id> {
     if let Ok(id) = reference.parse::<Id>() {
         return Ok(id);
@@ -888,7 +896,7 @@ fn resolve(client: &Client, reference: &str) -> Result<Id> {
         .objects
         .iter()
         .filter_map(AnyObject::id)
-        .filter(|id| id.to_string().ends_with(&wanted))
+        .filter(|id| id_matches(id, &wanted))
         .collect();
     match matches.as_slice() {
         [id] => Ok(*id),
@@ -1285,7 +1293,7 @@ fn next_repeat_text(status: &TaskStatus) -> String {
 }
 
 /// A project by id, `samu:` URI, title (exact, else a unique start, any
-/// case) or the end of its id; open projects first for titles.
+/// case) or the start or end of its id; open projects first for titles.
 fn resolve_project(client: &Client, reference: &str) -> Result<Id> {
     if let Ok(id) = reference.parse::<Id>() {
         return Ok(id);
@@ -1933,7 +1941,7 @@ fn run(args: Args) -> Result<()> {
             let client = signed_in(&config)?;
             let id = resolve_or_project(&client, &id)?;
             let value = if field == "own_scope" {
-                // By title or the end of an id, like everywhere (ADR 0094 §8).
+                // By title or the start or end of an id, like everywhere (ADR 0094 §8).
                 json!(scopes::scope_named(&client, &value)?)
             } else {
                 serde_json::from_str(&value).unwrap_or(Value::String(value))
@@ -2760,6 +2768,17 @@ fn logbook_record(entry: &samu_api::AccountLogEntry) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_id_matches_by_its_start_or_its_end() -> Result<()> {
+        let id: Id = "01a1e549-1234-7abc-8def-0123c326572a".parse()?;
+        assert!(id_matches(&id, "c326572a"));
+        assert!(id_matches(&id, "01a1e549"));
+        assert!(id_matches(&id, "01a1e549-1234"));
+        assert!(!id_matches(&id, "1234-7abc"));
+        assert!(!id_matches(&id, ""));
+        Ok(())
+    }
 
     /// Every route has a command, and every listed command is real
     /// (ADR 0019 §7).

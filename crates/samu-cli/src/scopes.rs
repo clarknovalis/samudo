@@ -37,7 +37,7 @@ pub(crate) enum ScopeCommand {
         /// hidden with `--except`.
         #[arg(long)]
         inbox: bool,
-        /// Folders, projects and tags by title or the end of an id; prefix
+        /// Folders, projects and tags by title or the start or end of an id; prefix
         /// `folder:`, `project:` or `tag:` where a title names more than one.
         members: Vec<String>,
     },
@@ -218,7 +218,7 @@ fn one<T: Copy>(name: &str, what: &str, found: &[(T, Id)]) -> Result<T> {
         [(item, _)] => Ok(*item),
         [] => Err(Failure::NotFound(format!("no {what} {name:?}")).into()),
         many => bail!(
-            "{name:?} names {} {what}s; use the end of an id or a prefix: {}",
+            "{name:?} names {} {what}s; use the start or end of an id or a prefix: {}",
             many.len(),
             many.iter()
                 .map(|(_, id)| short(id))
@@ -228,7 +228,7 @@ fn one<T: Copy>(name: &str, what: &str, found: &[(T, Id)]) -> Result<T> {
     }
 }
 
-/// Title (any case) first, then the end of an id.
+/// Title (any case) first, then the start or end of an id.
 fn by_name<'a, T>(items: &'a [T], name: &str, of: impl Fn(&T) -> (&str, Id)) -> Vec<&'a T> {
     let by_title: Vec<&T> = items
         .iter()
@@ -240,7 +240,7 @@ fn by_name<'a, T>(items: &'a [T], name: &str, of: impl Fn(&T) -> (&str, Id)) -> 
     let wanted = name.to_ascii_lowercase();
     items
         .iter()
-        .filter(|item| of(item).1.to_string().ends_with(&wanted))
+        .filter(|item| crate::id_matches(&of(item).1, &wanted))
         .collect()
 }
 
@@ -252,7 +252,7 @@ fn find_scope<'a>(scopes: &'a [Scope], name: &str) -> Result<&'a Scope> {
     one(name, "scope", &found)
 }
 
-/// A scope by title or the end of its id, for `samu set <id> own_scope`
+/// A scope by title or the start or end of its id, for `samu set <id> own_scope`
 /// (ADR 0094 §8).
 pub(crate) fn scope_named(client: &Client, name: &str) -> Result<Id> {
     Ok(find_scope(&snapshot(client)?.scopes, name)?.id)
@@ -856,7 +856,7 @@ pub(crate) fn run(config: &Config, format: Format, command: ScopeCommand) -> Res
                         .members
                         .iter()
                         .copied()
-                        .find(|m| m.to_string().ends_with(&name.to_ascii_lowercase()))
+                        .find(|m| crate::id_matches(m, &name.to_ascii_lowercase()))
                         .ok_or_else(|| Failure::NotFound(format!("no member {name:?}")))?,
                     Err(e) => return Err(e),
                 };

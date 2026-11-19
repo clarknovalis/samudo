@@ -72,7 +72,7 @@ pub(crate) enum BulkCommand {
     },
     /// Put tags on the tasks or take them off; not the states of a workflow.
     Tag {
-        /// A tag to put on, by title or the end of its id; repeatable.
+        /// A tag to put on, by title or the start or end of its id; repeatable.
         #[arg(long, add = ArgValueCompleter::new(complete::tag_title))]
         add: Vec<String>,
         /// A tag to take off; repeatable.
@@ -120,7 +120,7 @@ pub(crate) enum BulkCommand {
 
 #[derive(Debug, Args)]
 pub(crate) struct Tasks {
-    /// Tasks by id, the end of one or URI; `-` reads them from stdin, the
+    /// Tasks by id, the start or end of one, or URI; `-` reads them from stdin, the
     /// first word of each line.
     #[arg(required = true, add = ArgValueCompleter::new(complete::task))]
     ids: Vec<String>,
@@ -457,7 +457,7 @@ fn pick<'a>(snapshot: &'a Snapshot, tasks: &Tasks) -> Result<Vec<&'a Task>> {
     Ok(out)
 }
 
-/// A task by its id, URI or the end of its id.
+/// A task by its id, URI or the start or end of its id.
 fn find_task<'a>(snapshot: &'a Snapshot, reference: &str) -> Result<&'a Task> {
     let exact = reference
         .parse::<Id>()
@@ -469,7 +469,7 @@ fn find_task<'a>(snapshot: &'a Snapshot, reference: &str) -> Result<&'a Task> {
         .iter()
         .filter(|t| match exact {
             Some(id) => t.id == id,
-            None => t.id.to_string().ends_with(&wanted),
+            None => crate::id_matches(&t.id, &wanted),
         })
         .collect();
     match found.as_slice() {
@@ -558,7 +558,7 @@ fn move_tasks(
     changes
 }
 
-/// Tags by title or the end of their id; a state of a workflow (or the
+/// Tags by title or the start or end of their id; a state of a workflow (or the
 /// workflow itself) is refused, it goes through `bulk state`.
 fn plain_tags(tags: &[Tag], names: &[String]) -> Result<Vec<Id>> {
     names

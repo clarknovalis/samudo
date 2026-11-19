@@ -5,8 +5,10 @@ route has a command. Other clients build on it too: [Emacs](emacs.md) and
 the [desktop widget](desktop-widget.md) call `samu` with `--format json`.
 
 `samu help` and `samu <command> --help` list everything; this page shows
-the commands by task. Ids can be given in full or by their last eight
-characters, as `samu list` prints them.
+the commands by task. Ids can be given in full, by their last eight
+characters as `samu list` prints them, or by their start. Objects made in
+the same minute share a start; then the command lists the ids it matches
+and asks for a longer one.
 
 ## Setup
 

@@ -145,7 +145,7 @@ pub(crate) fn calendars(client: &Client) -> Result<Vec<Calendar>> {
     Ok(out)
 }
 
-/// A calendar by id, the end of one, or its title.
+/// A calendar by id, the start or end of one, or its title.
 fn resolve(client: &Client, reference: &str) -> Result<Calendar> {
     let all = calendars(client)?;
     let wanted = reference.to_lowercase();
@@ -155,7 +155,7 @@ fn resolve(client: &Client, reference: &str) -> Result<Calendar> {
         .collect();
     let found: Vec<&Calendar> = if by_title.is_empty() {
         all.iter()
-            .filter(|c| c.id.to_string().ends_with(&wanted))
+            .filter(|c| crate::id_matches(&c.id, &wanted))
             .collect()
     } else {
         by_title

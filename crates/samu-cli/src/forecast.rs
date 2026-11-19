@@ -325,7 +325,7 @@ pub(crate) fn settings(
                 _ => bail!("{value:?} names more than one tag; give the path"),
             }
         }
-        // ADR 0068 §10: by title, id or the end of one.
+        // ADR 0068 §10: by title, id or the start or end of one.
         "default-calendar" if value == "none" || value.is_empty() => {
             ("default_calendar", Value::Null)
         }
@@ -338,7 +338,7 @@ pub(crate) fn settings(
                 .iter()
                 .filter_map(|o| match o {
                     AnyObject::Calendar(c)
-                        if c.title.to_lowercase() == want || c.id.to_string().ends_with(&want) =>
+                        if c.title.to_lowercase() == want || crate::id_matches(&c.id, &want) =>
                     {
                         Some(c.id)
                     }

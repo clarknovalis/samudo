@@ -25,7 +25,7 @@ pub(crate) enum TagCommand {
     /// `Ort/Büro` makes Büro under Ort (ADR 0027 §3).
     Add {
         title: String,
-        /// The tag above, by path, title or the end of its id.
+        /// The tag above, by path, title or the start or end of its id.
         #[arg(long)]
         parent: Option<String>,
         /// Its children exclude each other: a workflow (ADR 0024 §1).
@@ -56,7 +56,7 @@ pub(crate) enum TagCommand {
     Move {
         #[arg(add = ArgValueCompleter::new(crate::complete::tag_title))]
         tag: String,
-        /// The new tag above, by title or the end of its id.
+        /// The new tag above, by title or the start or end of its id.
         #[arg(long, required_unless_present = "top", conflicts_with = "top")]
         parent: Option<String>,
         #[arg(long)]
@@ -129,7 +129,7 @@ pub(crate) fn find_tag<'a>(tags: &'a [Tag], name: &str) -> Result<&'a Tag> {
     let found: Vec<&Tag> = if by_title.is_empty() {
         let wanted = name.to_ascii_lowercase();
         tags.iter()
-            .filter(|t| t.id.to_string().ends_with(&wanted))
+            .filter(|t| crate::id_matches(&t.id, &wanted))
             .collect()
     } else {
         by_title
@@ -138,7 +138,7 @@ pub(crate) fn find_tag<'a>(tags: &'a [Tag], name: &str) -> Result<&'a Tag> {
         [tag] => Ok(tag),
         [] => Err(Failure::NotFound(format!("no tag {name:?}")).into()),
         many => bail!(
-            "{name:?} names {} tags; use the end of an id: {}",
+            "{name:?} names {} tags; use the start or end of an id: {}",
             many.len(),
             many.iter()
                 .map(|t| short(&t.id))
@@ -193,7 +193,9 @@ fn placed(tags: &[Tag], title: &str, parent: Option<Id>) -> Result<(Option<Id>, 
                     Failure::NotFound(format!("no tag {step:?}{under}; make it first")).into(),
                 );
             }
-            _ => bail!("{step:?} names more than one tag; use --parent with the end of an id"),
+            _ => bail!(
+                "{step:?} names more than one tag; use --parent with the start or end of an id"
+            ),
         };
     }
     if let Some(same) = tags

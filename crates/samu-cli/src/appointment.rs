@@ -134,13 +134,13 @@ fn everything(client: &Client) -> Result<Vec<AnyObject>> {
     Ok(page.objects)
 }
 
-/// An appointment by its id or the end of one.
+/// An appointment by its id or the start or end of one.
 fn find(objects: &[AnyObject], reference: &str) -> Result<Appointment> {
     let wanted = reference.to_lowercase();
     let found: Vec<&Appointment> = objects
         .iter()
         .filter_map(|o| match o {
-            AnyObject::Appointment(a) if a.id.to_string().ends_with(&wanted) => Some(a),
+            AnyObject::Appointment(a) if crate::id_matches(&a.id, &wanted) => Some(a),
             _ => None,
         })
         .collect();
@@ -154,7 +154,7 @@ fn find(objects: &[AnyObject], reference: &str) -> Result<Appointment> {
     }
 }
 
-/// A calendar by title, id or the end of one; without a name the account's
+/// A calendar by title, id or the start or end of one; without a name the account's
 /// default_calendar.
 fn calendar_of(objects: &[AnyObject], reference: Option<&str>) -> Result<Id> {
     let calendars = objects.iter().filter_map(|o| match o {
@@ -172,7 +172,7 @@ fn calendar_of(objects: &[AnyObject], reference: Option<&str>) -> Result<Id> {
     };
     let wanted = reference.to_lowercase();
     let found: Vec<Id> = calendars
-        .filter(|c| c.title.to_lowercase() == wanted || c.id.to_string().ends_with(&wanted))
+        .filter(|c| c.title.to_lowercase() == wanted || crate::id_matches(&c.id, &wanted))
         .map(|c| c.id)
         .collect();
     match found.as_slice() {
