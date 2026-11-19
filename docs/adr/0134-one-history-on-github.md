@@ -1,0 +1,64 @@
+---
+number: 0134
+title: One repository with its real history on GitHub
+status: accepted
+date: 2026-11-19
+replaces: ["0108 §3, §6", "0113"]
+---
+
+# 0134 – One history on GitHub
+
+## Context
+
+The code was developed in a private repository and published as
+snapshots: one commit per publication, with a message written for it
+(0113). The reasons were private words in commit messages, which cannot
+be taken back once pushed, and the fear of soiling the public repository.
+
+Three things changed. Since the first publication no commit message has
+carried a private word. The reviews miss the reasons for the design, and
+a good part of those is in the commit messages, where measurements are
+recorded. And the snapshot adds a step after every rollout.
+
+## Decision
+
+1. **GitHub is the only remote of the code**, with the real history,
+   starting from the last snapshot. The history before it is not
+   published; the old repository stays as a private archive.
+2. **Two hooks guard what goes out**: `commit-msg` checks the message
+   against the list of private words, `pre-push` runs the same check over
+   the tree and gitleaks. The list itself is not published.
+3. **The maintainer's operations stay in a private repository** of their
+   own, as before.
+4. **A private mirror pulls from GitHub**, as a backup. Nothing is pushed
+   from the mirror.
+5. **Agents may push**, within three limits:
+   - with a token of their own that may write contents and nothing else,
+     so that the maintainer and an agent can be told apart;
+   - only `main`, never forced, and no tags: a release stays the
+     maintainer's;
+   - only at a handover, after the full check has passed, not after every
+     commit.
+6. **The repository is private during the changeover** and becomes
+   public again when three things hold: the hooks have run on the real
+   history for some days, the findings of the review that touch data
+   integrity and the server's defaults are fixed and rolled out, and the
+   40 most cited decision records are here (0133 §5).
+7. **Before it becomes public again, §5 is decided anew**, from what the
+   hooks stopped and what slipped past them while a push could still be
+   corrected.
+
+## Consequences
+
+- Every commit is public with its time and its message. Messages are
+  written for readers outside.
+- A fix for a weakness can be read before it is rolled out. Where that
+  matters, it is rolled out first and pushed after.
+- The snapshot script and the `published/…` tags are no longer needed.
+- Pull requests can be merged in the usual way.
+- Whether the hosting plan enforces the limits of §5 on a private
+  repository has to be checked before they are relied on.
+
+## Changes
+
+None yet.

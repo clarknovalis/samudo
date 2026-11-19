@@ -1,9 +1,10 @@
 # Architecture
 
-For contributors: how the pieces fit, and why. The maintainer keeps a
-design record for every decision outside this repository; a comment that
-cites `ADR NNNN` points to one. What matters for a change is said here, in
-the code, or in the commit message.
+For contributors: how the pieces fit, and why. Every decision has a
+record in [`adr/`](adr/README.md); a comment that cites `ADR NNNN` points
+to one. The records before 0133 are still being translated into this
+repository; until then, what matters for a change is said here, in the
+code, or in the commit message.
 
 ## Principles
 

@@ -1,9 +1,10 @@
 # Architektur
 
 Für alle, die mitbauen: wie die Teile zusammenpassen, und warum. Zu jeder
-Entscheidung führt der Maintainer außerhalb dieses Repositorys einen
-Design Record; ein Kommentar mit `ADR NNNN` verweist darauf. Was für eine
-Änderung zählt, steht hier, im Code oder in der Commit-Message.
+Entscheidung gibt es einen Decision Record unter `docs/adr/` (englisch);
+ein Kommentar mit `ADR NNNN` verweist darauf. Die Records vor 0133 werden
+noch ins Repository übersetzt; bis dahin steht, was für eine Änderung
+zählt, hier, im Code oder in der Commit-Message.
 
 ## Grundsätze
 

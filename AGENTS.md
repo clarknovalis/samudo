@@ -82,5 +82,8 @@ plus the web UI's and the Emacs package's tests.
 - Code, identifiers, comments, commit messages, error messages and the
   documentation are in English (`docs/de/` is the German translation).
 - Small, self-contained commits whose message says what changed and why.
-- Comments that cite `ADR NNNN` point to the maintainer's design records;
-  the reasons that matter for a change belong in the code or the commit.
+- Comments that cite `ADR NNNN` point to the decision records in
+  [`docs/adr/`](docs/adr/README.md). A decision that shapes the design
+  gets a record there, in English; a changed decision changes its record,
+  with a dated entry under "Changes". The records before 0133 are still
+  being translated into the repository.

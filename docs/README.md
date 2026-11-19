@@ -42,6 +42,8 @@ it looks like is on <https://samudo.de>, and it can be tried in the
 - Building the app: [`android/README.md`](../android/README.md); the web
   UI's internals: [`web/README.md`](../web/README.md) (both German).
 
+- [Decision records](adr/README.md): why the design is as it is.
+
 ## Project
 
 - [Roadmap](roadmap.md): what is being worked on and what may come
