@@ -18,6 +18,7 @@ its citations in the code have no target.
 
 | ADR | Status | Decision |
 |---|---|---|
+| [0004](0004-sync-server-is-the-truth.md) | accepted | The server is the truth; offline clients keep a mirror and an outbox stamped with an HLC; last-writer-wins per field |
 | [0015](0015-unknown-values-and-hlc-on-the-wire.md) | accepted | Unknown enum values are read as `unknown` and never written; the HLC is an object `{wall, counter, device}` on the wire |
 | [0017](0017-availability-edge-cases.md) | accepted | Availability edge cases: dates from midnight in the account's zone, overdue from the next day, due soon P2D, `unknown` as not active, cycles without a crash |
 | [0024](0024-workflows.md) | accepted | Workflows are exclusive tag groups: an LWW register per object, a workflow per project with a default, keys and cycling, a logbook |
@@ -36,16 +37,20 @@ its citations in the code have no target.
 | [0068](0068-writing-appointments.md) | accepted | Appointments written back over CalDAV, offline through the outbox; series edits in `samu-core`; collisions per field |
 | [0072](0072-scope-as-workspace.md) | accepted | A scope carries a layout on the server, first for the inspector; parts not shown are folded and named when they have a value |
 | [0073](0073-capture-templates.md) | accepted | Capture templates: a quick-capture line as defaults plus reminders, invoked with `/name`; line before template before scope |
+| [0074](0074-export-and-restore.md) | accepted | Export as a directory of stable JSON and files, readable without samu; restore only into an empty account; Org as an output only |
+| [0078](0078-edit-dialog.md) | accepted | The "Edit" dialog changes an existing task in quick-capture syntax, its values as removable chips; `CaptureRequest.task` |
 | [0080](0080-report.md) | accepted | Report of done, worked on and time over a period, filtered with the search language, `GET /report`; by default only the person's own work |
 | [0081](0081-report-replaces-time.md) | accepted | "Report" replaces "Time"; booking time afterwards with `z:` (and `x:` for completed) in capture and edit |
 | [0090](0090-perspectives.md) | accepted | Perspectives: saved search, filter, arrangement and display as a server object, evaluated in `samu-core`, in the sidebar |
 | [0091](0091-habits.md) | accepted | Habits: a task with the field `habit`, every tap an entry `habit_entry`, streak and rate in `samu-core` |
 | [0094](0094-only-in-scope.md) | accepted | A folder, project or tag names its own scope (`own_scope`) and appears only there, whatever the scope's mode |
 | [0095](0095-restricted-session.md) | accepted | A session can be restricted at login to granted folders and projects, read-write or read-only; every route has a rule |
+| [0097](0097-hardening-a-public-instance.md) | accepted | A public instance: a login brake, limits on attachment size and per account, allowed calendar hosts |
 | [0099](0099-registration-and-demo-content.md) | accepted | Registration off, demo-only or open; demo accounts expire; demo content built in the server |
 | [0100](0100-managing-and-viewing-calendars.md) | accepted | More calendars from a configured server, importing ICS files, month and list views, a repetition editor for appointments |
 | [0101](0101-appointment-reminders.md) | accepted | Reminders for appointments from VALARM, computed in `samu_core::reminders`, `GET /alarms`, a switch per device |
 | [0102](0102-bar-and-perspectives-in-the-app.md) | accepted | The app's bottom bar is a configurable list per device; perspectives as lists; a slimmer header; long press opens a context menu |
+| [0115](0115-table-view.md) | accepted | A table as the third display beside list and board, with choosable columns including properties and sums of estimate and actual time |
 | [0116](0116-block-perspectives.md) | accepted | Block perspectives: several perspectives and fixed views in one view, evaluated in `samu-core`, `GET /blocks` |
 | [0128](0128-closing-with-open-children.md) | accepted | Completing or dropping with open children asks: close them along, lift them out, or cancel; `POST /objects/{id}/close` |
 | [0133](0133-decision-records-in-the-repository.md) | accepted | Decision records live in this repository, in English, as living documents |
