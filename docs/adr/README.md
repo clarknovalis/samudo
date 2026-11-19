@@ -22,10 +22,12 @@ its citations in the code have no target.
 | [0015](0015-unknown-values-and-hlc-on-the-wire.md) | accepted | Unknown enum values are read as `unknown` and never written; the HLC is an object `{wall, counter, device}` on the wire |
 | [0017](0017-availability-edge-cases.md) | accepted | Availability edge cases: dates from midnight in the account's zone, overdue from the next day, due soon P2D, `unknown` as not active, cycles without a crash |
 | [0024](0024-workflows.md) | accepted | Workflows are exclusive tag groups: an LWW register per object, a workflow per project with a default, keys and cycling, a logbook |
+| [0027](0027-route-capture.md) | accepted | Quick capture over `POST /capture` with a preview; unknown tags created on the way, never projects; suggestions while typing |
 | [0028](0028-android-app.md) | accepted | Android app in Kotlin/Compose over `samu-mobile` (uniffi); mirror plus outbox, sync in Rust, overlay in `samu-core` |
 | [0030](0030-reminders.md) | accepted | Reminders as the object `reminder`, due tasks remind by themselves, computed in `samu-core`, one alarm on the phone |
 | [0035](0035-scopes.md) | accepted | Scopes: one lens over all views, rule in `samu-core`, chosen per device, due tasks outside counted in the header |
 | [0036](0036-managing-objects.md) | accepted | Deleting through `POST /objects/{id}/delete`, planned in `samu-core` and written in one transaction; orphaned tasks count as inbox |
+| [0037](0037-settings-second-round.md) | accepted | Moving projects, folders and tags as ordinary changes without cycles; project properties; visible folders from `samu-core`; navigation, tree and inspector |
 | [0039](0039-comments-attachments-author.md) | accepted | Comments and attachments as objects; blobs by SHA-256 in samu; the server sets the author `{device, kind}` from the session |
 | [0043](0043-scopes-second-round.md) | accepted | Scopes: inbox as a checkbox, filter in the search language, capture defaults, schedule windows, choice over Tasker |
 | [0045](0045-forecast-second-round.md) | accepted | Forecast computed in `samu-core` with `GET /forecast`: flagged section, forecast tag, deferred tasks, a day strip; account settings as the object `settings` |
@@ -41,6 +43,7 @@ its citations in the code have no target.
 | [0078](0078-edit-dialog.md) | accepted | The "Edit" dialog changes an existing task in quick-capture syntax, its values as removable chips; `CaptureRequest.task` |
 | [0080](0080-report.md) | accepted | Report of done, worked on and time over a period, filtered with the search language, `GET /report`; by default only the person's own work |
 | [0081](0081-report-replaces-time.md) | accepted | "Report" replaces "Time"; booking time afterwards with `z:` (and `x:` for completed) in capture and edit |
+| [0088](0088-review.md) | accepted | Review: due date computed in `samu-core`, "reviewed" as an ordinary change, a review view in the web |
 | [0090](0090-perspectives.md) | accepted | Perspectives: saved search, filter, arrangement and display as a server object, evaluated in `samu-core`, in the sidebar |
 | [0091](0091-habits.md) | accepted | Habits: a task with the field `habit`, every tap an entry `habit_entry`, streak and rate in `samu-core` |
 | [0094](0094-only-in-scope.md) | accepted | A folder, project or tag names its own scope (`own_scope`) and appears only there, whatever the scope's mode |
@@ -50,9 +53,11 @@ its citations in the code have no target.
 | [0100](0100-managing-and-viewing-calendars.md) | accepted | More calendars from a configured server, importing ICS files, month and list views, a repetition editor for appointments |
 | [0101](0101-appointment-reminders.md) | accepted | Reminders for appointments from VALARM, computed in `samu_core::reminders`, `GET /alarms`, a switch per device |
 | [0102](0102-bar-and-perspectives-in-the-app.md) | accepted | The app's bottom bar is a configurable list per device; perspectives as lists; a slimmer header; long press opens a context menu |
+| [0105](0105-interface-language.md) | accepted | English beside German in web and app, chosen per device; the search language understands both and stores German |
 | [0115](0115-table-view.md) | accepted | A table as the third display beside list and board, with choosable columns including properties and sums of estimate and actual time |
 | [0116](0116-block-perspectives.md) | accepted | Block perspectives: several perspectives and fixed views in one view, evaluated in `samu-core`, `GET /blocks` |
 | [0128](0128-closing-with-open-children.md) | accepted | Completing or dropping with open children asks: close them along, lift them out, or cancel; `POST /objects/{id}/close` |
+| [0129](0129-capturing-several-lines.md) | accepted | Capturing several lines: each line a task, indentation makes subtasks, `POST /capture/lines` all or nothing |
 | [0133](0133-decision-records-in-the-repository.md) | accepted | Decision records live in this repository, in English, as living documents |
 | [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; agents push with a token of their own |
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
