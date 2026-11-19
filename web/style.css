@@ -264,6 +264,7 @@ html body[data-board-full="on"] #detail, html body[data-board-full="on"] #status
 .insp-row input, .insp-row select { width: 100%; min-width: 0; }
 .insp-row .scope-only { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
 .insp-row .scope-only input { width: auto; flex: none; margin-top: 2px; }
+.insp-row input.tag-key { width: 4em; text-align: center; }
 .inspector .quiet { margin: 0; }
 .segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .segmented button { flex: 1; border: 0; border-radius: 0; padding: 6px 4px; font-size: 13px; background: var(--pane); }

@@ -17,6 +17,7 @@ import { byPosition, createPlace, movePlace, subtree } from "./placeops.js";
 import { propertyBlock } from "./props.js";
 import { byId, isOpen, onlyIn, state, update } from "./state.js";
 import { locale, tr } from "./i18n.js";
+import { tagChanges, tagRole } from "./tagfields.js";
 
 const fields = new Map();
 // The delete being asked about: { id, kind, fate, target, preview, error }.
@@ -383,6 +384,109 @@ function treeOptions(list, prefix, skip = new Set()) {
   return out;
 }
 
+const TAG_STATUS = [
+  ["active", tr("Aktiv")],
+  ["on_hold", tr("Ruht")],
+  ["dropped", tr("Verworfen")],
+];
+
+const TAG_REFUSED = {
+  in_use: () => tr("Ein Projekt nutzt diesen Ablauf; gib ihm zuerst einen anderen."),
+  no_workflow: () => tr("Nur ein Ablauf kann der Standard-Ablauf sein."),
+  not_a_state: () => tr("Taste und Notiz gibt es nur bei Zuständen eines Ablaufs."),
+  key_length: () => tr("Eine Taste ist ein Zeichen."),
+  key_taken: () => tr("Diese Taste hat schon ein anderer Zustand dieses Ablaufs."),
+};
+
+// Writes what samu-core's rules make of `fields` (web/lib/tagfields.js),
+// or says why not.
+function setTag(tag, fields) {
+  const answer = tagChanges(state.tags, state.projects, tag.id, fields);
+  if (answer.error) {
+    update({ message: TAG_REFUSED[answer.error]?.() ?? answer.error });
+    return false;
+  }
+  if (answer.changes.length) write(answer.changes.map(([id, field, value]) => change.set(id, field, value)));
+  return true;
+}
+
+function check(text, checked, onchange, disabled = false) {
+  return el("label", { class: "scope-only" }, [
+    el("input", { type: "checkbox", checked, disabled, onchange: (event) => onchange(event.target.checked) }),
+    el("span", { text }),
+  ]);
+}
+
+const keyFields = new Map();
+
+function keyField(tag) {
+  let field = keyFields.get(tag.id);
+  if (!field) {
+    field = el("input", {
+      id: `tag-key-${tag.id}`,
+      autocomplete: "off",
+      maxlength: "1",
+      class: "tag-key",
+      onchange: (event) => {
+        const current = byId(state.tags, tag.id);
+        const key = event.target.value.trim() || null;
+        if (!current || key === (current.key ?? null)) return;
+        if (!setTag(current, { key })) event.target.value = current.key ?? "";
+      },
+      onkeydown: (event) => {
+        if (event.key === "Enter") event.target.blur();
+      },
+    });
+    keyFields.set(tag.id, field);
+  }
+  if (document.activeElement !== field) field.value = tag.key ?? "";
+  return field;
+}
+
+// What a tag is in its workflow, and the fields that belong to that
+// (e076022f): a workflow and its states have the same fields, so the
+// inspector says which one this is and shows only what fits.
+function tagFields(tag) {
+  const role = tagRole(state.tags, tag);
+  const children = state.tags.filter((t) => t.parent === tag.id && t.status !== "dropped").length;
+  const using = state.projects.filter((p) => p.workflow === tag.id).length;
+  const group = byId(state.tags, tag.parent);
+  const what =
+    role === "workflow"
+      ? children === 1
+        ? tr("Ein Ablauf mit 1 Zustand.")
+        : tr("Ein Ablauf mit {n} Zuständen.", { n: children })
+      : role === "state"
+        ? tr("Ein Zustand des Ablaufs „{group}“.", { group: group.title })
+        : tr("Ein Tag.");
+  const rows = [
+    el("p", { class: "quiet tag-role", text: what }),
+    row("Status", select(TAG_STATUS, tag.status, (v) => setTag(tag, { status: v }), "Status")),
+  ];
+  if (role !== "state") {
+    rows.push(
+      row(
+        tr("Ablauf"),
+        el("div", {}, [
+          check(tr("Die Kinder schließen sich aus: ein Ablauf"), Boolean(tag.exclusive), (on) => setTag(tag, { exclusive: on }), Boolean(tag.exclusive) && using > 0),
+          tag.exclusive
+            ? check(tr("Standard-Ablauf für Projekte ohne eigenen"), Boolean(tag.default_workflow), (on) => setTag(tag, { default_workflow: on }))
+            : null,
+          using > 0
+            ? el("p", { class: "quiet", text: using === 1 ? tr("1 Projekt nutzt diesen Ablauf.") : tr("{n} Projekte nutzen diesen Ablauf.", { n: using }) })
+            : null,
+        ]),
+      ),
+    );
+  } else {
+    rows.push(
+      row(tr("Taste"), keyField(tag), `tag-key-${tag.id}`),
+      row(tr("Notiz"), check(tr("Beim Wechsel in diesen Zustand nach einer Notiz fragen"), Boolean(tag.ask_note), (on) => setTag(tag, { ask_note: on }))),
+    );
+  }
+  return rows;
+}
+
 // Done and dropped carry their moment; back to open clears both
 // (ADR 0037 §3).
 function setStatus(project, status) {
@@ -471,6 +575,7 @@ function inspector(id) {
     row(tr("Nur im Scope"), ownScopePicker(object, kind)),
     kind === "project" ? propertyBlock(object.id, object.properties ?? {}) : null,
     ...(kind === "project" ? projectFields(object) : []),
+    ...(kind === "tag" ? tagFields(object) : []),
     asking
       ? deletePanel()
       : el("div", { class: "insp-actions" }, el("button", {

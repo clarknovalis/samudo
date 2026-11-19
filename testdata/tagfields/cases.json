@@ -1,0 +1,45 @@
+{
+  "about": "Changing a tag's workflow fields afterwards (e076022f): samu-cli tags.rs, samu-core tagfields.rs and web/lib/tagfields.js give the same answers. A case gives either the changes, as [tag, field, value], or the error.",
+  "tags": [
+    { "id": "status", "title": "Status", "exclusive": true, "default_workflow": true, "position": 0 },
+    { "id": "waiting", "title": "Wartet", "parent": "status", "key": "w", "position": 0 },
+    { "id": "later", "title": "Später", "parent": "status", "position": 1 },
+    { "id": "dev", "title": "Entwicklung", "exclusive": true, "position": 1 },
+    { "id": "plain", "title": "Büro", "position": 2 }
+  ],
+  "projects": [{ "id": "p1", "workflow": "dev" }],
+  "cases": [
+    { "what": "nothing asked", "tag": "plain", "fields": {}, "error": "nothing" },
+    {
+      "what": "a new default takes over from the old",
+      "tag": "dev",
+      "fields": { "default_workflow": true },
+      "changes": [["dev", "default_workflow", true], ["status", "default_workflow", false]]
+    },
+    { "what": "a default must be a workflow", "tag": "plain", "fields": { "default_workflow": true }, "error": "no_workflow" },
+    {
+      "what": "made a workflow and the default in one go",
+      "tag": "plain",
+      "fields": { "exclusive": true, "default_workflow": true },
+      "changes": [["plain", "exclusive", true], ["plain", "default_workflow", true], ["status", "default_workflow", false]]
+    },
+    { "what": "a workflow a project uses stays one", "tag": "dev", "fields": { "exclusive": false }, "error": "in_use" },
+    {
+      "what": "the default stops being one with its workflow",
+      "tag": "status",
+      "fields": { "exclusive": false },
+      "changes": [["status", "exclusive", false], ["status", "default_workflow", false]]
+    },
+    { "what": "the same value writes nothing", "tag": "status", "fields": { "exclusive": true }, "changes": [] },
+    { "what": "a state on hold", "tag": "waiting", "fields": { "status": "on_hold" }, "changes": [["waiting", "status", "on_hold"]] },
+    { "what": "a workflow on hold", "tag": "status", "fields": { "status": "on_hold" }, "changes": [["status", "status", "on_hold"]] },
+    { "what": "a key for a state", "tag": "later", "fields": { "key": "s" }, "changes": [["later", "key", "s"]] },
+    { "what": "a key taken off", "tag": "waiting", "fields": { "key": null }, "changes": [["waiting", "key", null]] },
+    { "what": "a key another state has", "tag": "later", "fields": { "key": "w" }, "error": "key_taken" },
+    { "what": "a key of two characters", "tag": "later", "fields": { "key": "sp" }, "error": "key_length" },
+    { "what": "no key on a workflow", "tag": "status", "fields": { "key": "s" }, "error": "not_a_state" },
+    { "what": "no key on a plain tag", "tag": "plain", "fields": { "key": "b" }, "error": "not_a_state" },
+    { "what": "a state asks for a note", "tag": "waiting", "fields": { "ask_note": true }, "changes": [["waiting", "ask_note", true]] },
+    { "what": "no note on a plain tag", "tag": "plain", "fields": { "ask_note": true }, "error": "not_a_state" }
+  ]
+}

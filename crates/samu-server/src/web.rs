@@ -290,6 +290,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/tagfields.js",
+        include_str!("../../../web/lib/tagfields.js"),
+        JS,
+    ),
+    (
         "lib/tabledata.js",
         include_str!("../../../web/lib/tabledata.js"),
         JS,
