@@ -1173,6 +1173,68 @@ fn a_later_change_wins_and_an_earlier_one_is_superseded() {
     assert_eq!(task_of(&store, id).title, "Hafermilch");
 }
 
+/// A device whose clock is a year ahead hands in a change: its stamp is
+/// capped at the drift, so a change made later by a right clock wins, and
+/// the highest stamp seen stays near now. Uncapped, the stamp would hold
+/// the field for a year and pull every stamp of the server along.
+#[test]
+fn a_stamp_a_year_ahead_does_not_hold_the_field() {
+    use samu_store::core::clock::MAX_DRIFT_MS;
+
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let task = new_task("Milch");
+    let id = id_of(&task);
+    let at = now().as_millisecond();
+    create(&mut store, ObjectKind::Task, task, stamp(at, "laptop"));
+
+    let year = 365 * 24 * 3600 * 1000;
+    let title = |title: &str, hlc: Hlc| Change::Set {
+        object: id,
+        field: "title".into(),
+        value: json!(title),
+        note: None,
+        hlc,
+    };
+    let broken = store
+        .apply(
+            &title("Hafermilch", Hlc::new(at + year, 7, "pixel")),
+            &person(),
+            now(),
+        )
+        .unwrap();
+    assert!(is_applied(&broken), "capped, not refused: {broken:?}");
+    let limit = at + MAX_DRIFT_MS;
+    assert_eq!(store.observed().unwrap().map(|hlc| hlc.wall), Some(limit));
+
+    // The same clock again, in the same millisecond of the server and with
+    // a lower counter: still the later change.
+    let again = store
+        .apply(
+            &title("Sojamilch", Hlc::new(at + year + 60_000, 0, "pixel")),
+            &person(),
+            now(),
+        )
+        .unwrap();
+    assert!(is_applied(&again), "{again:?}");
+    assert_eq!(task_of(&store, id).title, "Sojamilch");
+
+    // Two hours later, a right clock.
+    let later = now() + jiff::SignedDuration::from_hours(2);
+    let right = store
+        .apply(
+            &title("Mandelmilch", stamp(later.as_millisecond(), "laptop")),
+            &person(),
+            later,
+        )
+        .unwrap();
+    assert!(is_applied(&right), "the future stamp held: {right:?}");
+    assert_eq!(task_of(&store, id).title, "Mandelmilch");
+    assert_eq!(
+        store.observed().unwrap().map(|hlc| hlc.wall),
+        Some(later.as_millisecond())
+    );
+}
+
 #[test]
 fn the_same_change_twice_is_answered_the_same() {
     let mut store = AccountStore::open_in_memory().unwrap();
@@ -2796,6 +2858,18 @@ fn property_links_live_at_the_settings_key_by_key() {
     // The settings carry the stamp of their making, at the real time.
     let base = Timestamp::now().as_millisecond() + 60_000;
     let at = |ms: i64, device: &str| stamp(base + ms, device);
+    // And so the changes arrive at the real time too: against the fixed
+    // `now()` their stamps would be from the future and capped below it.
+    let set = |store: &mut AccountStore, id: Id, field: &str, value: Value, hlc: Hlc| {
+        let change = Change::Set {
+            object: id,
+            field: field.into(),
+            value,
+            note: None,
+            hlc,
+        };
+        store.apply(&change, &person(), Timestamp::now()).unwrap()
+    };
     assert!(is_applied(&set(
         &mut store,
         settings,

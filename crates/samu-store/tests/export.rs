@@ -63,7 +63,10 @@ impl Writer {
             kind,
         };
         let change = change(Hlc::new(BASE + self.wall, 0, device));
-        let outcome = store.apply(&change, &author, now()).unwrap();
+        // Arriving when the clock says `BASE`: against `now()` the stamp
+        // would be from the future and capped.
+        let arrival = Timestamp::from_millisecond(BASE).unwrap();
+        let outcome = store.apply(&change, &author, arrival).unwrap();
         assert!(
             matches!(outcome, ChangeOutcome::Applied { .. }),
             "{change:?}: {outcome:?}"

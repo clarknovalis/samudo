@@ -58,6 +58,32 @@ pub fn next_stamp(device: &str, own: Option<&Hlc>, seen: Option<&Hlc>, now: Time
     Hlc::new(highest, counter, device)
 }
 
+/// A stamp a client handed in, as the server takes it: `None` if it is
+/// within [`MAX_DRIFT_MS`] of `now`, else the stamp with its wall part
+/// capped there.
+///
+/// Capped, not refused: a refusal would leave the change in the outbox of
+/// a device whose clock is wrong, and everything behind it. Without the
+/// cap, a stamp a year ahead would hold its field against every later
+/// change for a year.
+///
+/// Several capped stamps may land on the same millisecond, where only the
+/// counter keeps the order the device gave them, and a later stamp may
+/// carry a lower counter than an earlier one. So at the limit the counter
+/// goes past `seen`, the highest stamp taken so far.
+#[must_use]
+pub fn capped(stamp: &Hlc, seen: Option<&Hlc>, now: Timestamp) -> Option<Hlc> {
+    let limit = now.as_millisecond().saturating_add(MAX_DRIFT_MS);
+    if stamp.wall <= limit {
+        return None;
+    }
+    let counter = match seen {
+        Some(seen) if seen.wall == limit => stamp.counter.max(seen.counter.saturating_add(1)),
+        _ => stamp.counter,
+    };
+    Some(Hlc::new(limit, counter, stamp.device.clone()))
+}
+
 /// Whether a change stamped `incoming` replaces what holds now (ADR 0016 §4).
 ///
 /// `current` is the stamp of the last change to the same field or set
@@ -201,6 +227,31 @@ mod tests {
             "followed a year ahead: {}",
             next.wall
         );
+    }
+
+    #[test]
+    fn a_stamp_within_the_drift_is_taken_as_it_is() {
+        let ahead = Hlc::new(1000 + MAX_DRIFT_MS, 4, "phone");
+        assert_eq!(capped(&ahead, None, at(1000)), None);
+    }
+
+    #[test]
+    fn a_stamp_from_the_future_is_capped_at_the_drift() {
+        let far_future = Hlc::new(1000 + 400 * 24 * 3600 * 1000, 4, "phone");
+        assert_eq!(
+            capped(&far_future, None, at(1000)),
+            Some(Hlc::new(1000 + MAX_DRIFT_MS, 4, "phone"))
+        );
+    }
+
+    /// Two changes a broken clock stamped in different milliseconds, taken
+    /// in the same one: the second had the lower counter and is still later.
+    #[test]
+    fn capped_stamps_keep_the_order_they_came_in() {
+        let year = 400 * 24 * 3600 * 1000;
+        let first = capped(&Hlc::new(year, 5, "phone"), None, at(1000)).unwrap();
+        let second = capped(&Hlc::new(year + 1, 0, "phone"), Some(&first), at(1000)).unwrap();
+        assert!(second > first, "{second} after {first}");
     }
 
     #[test]

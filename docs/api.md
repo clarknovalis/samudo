@@ -77,7 +77,9 @@ completion may carry a `note` for the logbook.
 
 `hlc` is a hybrid logical clock stamp, `{"wall": <ms>, "counter": n,
 "device": "laptop"}`. The server decides **per field**: the later stamp
-wins. Each change gets an outcome:
+wins. A stamp more than an hour ahead of the server's clock is taken as an
+hour ahead, so a device with a wrong clock cannot hold a field against
+later changes. Each change gets an outcome:
 
 ```json
 {"outcome": "applied", "seq": 185}

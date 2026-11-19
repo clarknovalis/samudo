@@ -47,6 +47,17 @@ fn apply(store: &mut AccountStore, change: &Change) -> ChangeOutcome {
     store.apply(change, &person(), now()).unwrap()
 }
 
+/// Where the stamps begin that must win over the settings' own, which
+/// carry the real time of their making.
+const AHEAD: i64 = 4_000_000_000_000;
+
+/// `apply` when the clock says [`AHEAD`]: against `now()` such a stamp
+/// would be from the future and capped.
+fn apply_ahead(store: &mut AccountStore, change: &Change) -> ChangeOutcome {
+    let at = Timestamp::from_millisecond(AHEAD).unwrap();
+    store.apply(change, &person(), at).unwrap()
+}
+
 fn applied(outcome: &ChangeOutcome) -> bool {
     matches!(outcome, ChangeOutcome::Applied { .. })
 }
@@ -491,10 +502,10 @@ fn forecast_events_is_on_and_set_like_any_setting() {
         value,
         note: None,
         // After the stamp the server made the settings with.
-        hlc: hlc(4_000_000_000_000),
+        hlc: hlc(AHEAD),
     };
-    assert!(rejected(&apply(&mut store, &set(json!("bald")))));
-    assert!(applied(&apply(&mut store, &set(json!(false)))));
+    assert!(rejected(&apply_ahead(&mut store, &set(json!("bald")))));
+    assert!(applied(&apply_ahead(&mut store, &set(json!(false)))));
     assert!(
         !store
             .snapshot()
@@ -525,15 +536,15 @@ fn keys_are_set_as_a_whole_and_read_back() {
         field: "keys".into(),
         value,
         note: None,
-        hlc: hlc(4_000_000_000_000 + ms),
+        hlc: hlc(AHEAD + ms),
     };
-    assert!(rejected(&apply(
+    assert!(rejected(&apply_ahead(
         &mut store,
         &set(json!({"complete": 5}), 0)
     )));
-    assert!(rejected(&apply(&mut store, &set(json!("y"), 0))));
+    assert!(rejected(&apply_ahead(&mut store, &set(json!("y"), 0))));
     let keys = json!({"complete": "y", "delete": null, "go.inbox": "g i"});
-    assert!(applied(&apply(&mut store, &set(keys.clone(), 1))));
+    assert!(applied(&apply_ahead(&mut store, &set(keys.clone(), 1))));
     let back = store.snapshot().unwrap().settings.clone().unwrap().keys;
     assert_eq!(serde_json::to_value(&back).unwrap(), keys);
     assert_eq!(
@@ -544,8 +555,8 @@ fn keys_are_set_as_a_whole_and_read_back() {
         1
     );
     // Back to the defaults: an empty map, not null.
-    assert!(rejected(&apply(&mut store, &set(Value::Null, 2))));
-    assert!(applied(&apply(&mut store, &set(json!({}), 3))));
+    assert!(rejected(&apply_ahead(&mut store, &set(Value::Null, 2))));
+    assert!(applied(&apply_ahead(&mut store, &set(json!({}), 3))));
     assert!(
         store
             .snapshot()
@@ -570,10 +581,10 @@ fn report_worked_is_a_setting() {
         field: "report_worked".into(),
         value,
         note: None,
-        hlc: hlc(4_000_000_000_000 + ms),
+        hlc: hlc(AHEAD + ms),
     };
-    assert!(rejected(&apply(&mut store, &set(json!("später"), 0))));
-    assert!(applied(&apply(&mut store, &set(json!("fields"), 1))));
+    assert!(rejected(&apply_ahead(&mut store, &set(json!("später"), 0))));
+    assert!(applied(&apply_ahead(&mut store, &set(json!("fields"), 1))));
     assert_eq!(
         store
             .snapshot()
@@ -591,7 +602,7 @@ fn report_worked_is_a_setting() {
         ),
         1
     );
-    assert!(applied(&apply(&mut store, &set(Value::Null, 2))));
+    assert!(applied(&apply_ahead(&mut store, &set(Value::Null, 2))));
     assert_eq!(
         store
             .snapshot()

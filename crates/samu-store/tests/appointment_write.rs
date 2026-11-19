@@ -57,8 +57,14 @@ fn hlc(after_ms: i64) -> Hlc {
     Hlc::new(BASE + after_ms, 0, "laptop")
 }
 
+/// When the clients' changes arrive: at [`BASE`], since a stamp further
+/// ahead of the clock than the drift is capped.
+fn arrival() -> Timestamp {
+    Timestamp::from_millisecond(BASE).unwrap()
+}
+
 fn apply(store: &mut AccountStore, change: &Change) -> ChangeOutcome {
-    store.apply(change, &person(), now()).unwrap()
+    store.apply(change, &person(), arrival()).unwrap()
 }
 
 fn applied(outcome: &ChangeOutcome) -> bool {
@@ -322,7 +328,7 @@ fn a_new_appointment_is_queued_and_the_writer_finishes_it() {
     );
     assert!(applied(&outcome), "{outcome:?}");
     assert_eq!(
-        store.due_writes(now()).unwrap(),
+        store.due_writes(arrival()).unwrap(),
         vec![(calendar, new.uid.clone())]
     );
     let job = store

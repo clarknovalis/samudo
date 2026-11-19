@@ -1532,6 +1532,14 @@ fn apply_in(
     if author_kind_name(author.kind).is_none() {
         return Ok(rejected("an author kind this server does not know"));
     }
+    // Every change comes through here, so no stamp from a clock far ahead
+    // reaches a field or `observe` (ADR 0016 §1): capped, not refused.
+    let capped = match change.hlc() {
+        Some(hlc) => crate::core::clock::capped(hlc, observed_in(tx)?.as_ref(), now)
+            .map(|stamp| crate::core::clock::restamp(change.clone(), stamp)),
+        None => None,
+    };
+    let change = capped.as_ref().unwrap_or(change);
     let outcome = match change {
         Change::Create {
             object,
