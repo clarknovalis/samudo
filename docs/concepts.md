@@ -120,6 +120,15 @@ key (for the `t` key in the web), can ask for a note when entered, and the
 board view uses states as columns. A project names the workflow its tasks
 use; otherwise the account's default applies.
 
+All of this can be changed afterwards, in Settings › Tags in the web and
+the app or with `samu tag set`. The tag's page says whether it is a
+workflow, a state of one or a plain tag, and shows only what fits: a
+workflow or a plain tag has "a workflow" and "default workflow", a state
+its key and "ask for a note", every tag its status. Only one workflow is
+the default; marking another moves it there. A workflow that a project
+uses stays one until the project gets another. A key is one character,
+unique among the states of its workflow.
+
 ## Views
 
 | View | Shows |

@@ -131,6 +131,16 @@ beim Betreten eine Notiz verlangen, und die Board-Ansicht nimmt die
 Zustände als Spalten. Ein Projekt nennt den Ablauf seiner Aufgaben; sonst
 gilt der des Kontos.
 
+Das alles lässt sich nachträglich ändern, unter Einstellungen › Tags im
+Web und in der App oder mit `samu tag set`. Die Seite des Tags sagt, ob er
+ein Ablauf ist, ein Zustand eines Ablaufs oder ein einfacher Tag, und
+zeigt nur, was dazu passt: Ablauf und einfacher Tag haben „ein Ablauf“
+und „Standard-Ablauf“, ein Zustand seine Taste und „nach einer Notiz
+fragen“, jeder Tag seinen Status. Standard-Ablauf ist immer nur einer;
+wer einen anderen markiert, verschiebt ihn dorthin. Ein Ablauf, den ein
+Projekt nutzt, bleibt einer, bis das Projekt einen anderen bekommt. Eine
+Taste ist ein Zeichen und unter den Zuständen ihres Ablaufs eindeutig.
+
 ## Ansichten
 
 | Ansicht | Zeigt |

@@ -208,7 +208,8 @@ Text stehen und unverändert, bis man sie ersetzt.
 „Einstellungen“ (`g s`) hat diese Abschnitte:
 
 - **Scopes**; **„Projekte und Ordner“** (Symbole, „Nur im Scope“);
-  **Tags** (Abläufe, Zustände, Tasten); **Forecast** (mit der Uhrzeit,
+  **Tags** (Status; Ablauf und Standard-Ablauf; Taste und Notiz eines
+  Zustands, siehe [Abläufe](concepts.md#abläufe-und-zustände)); **Forecast** (mit der Uhrzeit,
   zu der sich Erinnerungen an Daten ohne Uhrzeit melden).
 - **„Kalender“**: Quellen, Farben, der Standardkalender für neue Termine.
   Der Editor eines CalDAV-Kalenders bietet „Weitere Kalender von *Host*“:

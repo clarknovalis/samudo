@@ -195,7 +195,8 @@ stays as text and unchanged until you replace it.
 "Settings" (`g s`) has these sections:
 
 - **Scopes**; **"Projects and folders"** (icons, "Only in scope");
-  **Tags** (workflows, states, keys); **Forecast** (with the hour at
+  **Tags** (status; workflow and default workflow; a state's key and
+  note, see [workflows](concepts.md#workflows-and-states)); **Forecast** (with the hour at
   which reminders on dates without a time go off).
 - **"Calendar"**: sources, colours, the default calendar for new
   appointments. The editor of a CalDAV calendar offers "More calendars
