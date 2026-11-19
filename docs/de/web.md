@@ -278,6 +278,7 @@ nicht übersetzt, und Fehlermeldungen des Servers bleiben englisch.
 | ← → Enter | in der Tabelle: Zelle wählen, bearbeiten (Esc bricht ab) |
 | `[` | Seitenleiste: voll, schmal, weg |
 | `]` | Aufgabe über die ganze Breite |
+| `o` | springen: unscharfe Suche über Ansichten, Perspektiven und die Projekte, Ordner und Tags, die der Scope zeigt (Projekte und Ordner mit Pfad); Enter öffnet |
 | `g i`, `g f`, `g m`, `g p`, `g r`, `g z`, `g k`, `g s` | zu Inbox, Forecast, Markiert, Projekte, Review, Bericht, Kalender, Einstellungen |
 | Escape | zurück |
 

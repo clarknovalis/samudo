@@ -75,6 +75,7 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         include_str!("../../../web/lib/palette.js"),
         JS,
     ),
+    ("lib/jump.js", include_str!("../../../web/lib/jump.js"), JS),
     (
         "lib/capture.js",
         include_str!("../../../web/lib/capture.js"),

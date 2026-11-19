@@ -109,6 +109,13 @@ export const ACTIONS = [
   { id: "sidebar", title: tr("Seitenleiste: voll, schmal, weg"), key: "[", place: "any" },
   { id: "full", title: tr("Aufgabe in voller Breite / zurück"), key: "]", place: "task" },
   { id: "help", title: tr("diese Hilfe"), key: "?", place: "any" },
+  {
+    id: "go.open",
+    title: tr("springen zu …"),
+    key: "o",
+    place: "any",
+    hint: tr("Ansicht, Perspektive, Projekt, Ordner oder Tag: tippen, ↵"),
+  },
   { id: "go.inbox", title: tr("zur Inbox"), key: "g i", place: "go", view: "inbox" },
   { id: "go.forecast", title: tr("zu Forecast"), key: "g f", place: "go", view: "forecast" },
   { id: "go.flagged", title: tr("zu Markiert"), key: "g m", place: "go", view: "flagged" },

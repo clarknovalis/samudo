@@ -34,7 +34,7 @@ import { ACTIONS, action, conflicts, effective, inEffect, normalize, pretty } fr
 import { foldHeadings, order, setDone } from "./list.js";
 import { copyLink, menuKey, menuOpen, openMenuHere } from "./menu.js";
 import { shiftTask } from "./reorder.js";
-import { indent, openBlockPalette, openPalette, outdent } from "./palette.js";
+import { indent, openBlockPalette, openGoPalette, openPalette, outdent } from "./palette.js";
 import { tableKey } from "./table.js";
 import { closeSettings, openSettings } from "./settings.js";
 import { chooseView, cycleSidebar } from "./sidebar.js";
@@ -139,6 +139,7 @@ const RUN = {
   sidebar: () => cycleSidebar(),
   full: (s) => s && update(state.full ? { full: false } : { full: true, pane: "detail" }),
   help: () => update({ help: !state.help }),
+  "go.open": () => openGoPalette(),
   "go.inbox": go("inbox"),
   "go.forecast": go("forecast"),
   "go.flagged": go("flagged"),

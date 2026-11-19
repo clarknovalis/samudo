@@ -10,6 +10,8 @@
 // then the targets are the folders and the top (ADR 0041 §5).
 // "Blockiert durch…" opens it over the open tasks (ae5a3206): ↵ makes the
 // one chosen a blocker of the task.
+// `o` opens it to jump to a view, project, folder, tag or perspective
+// (db3fe005).
 
 import { api, change } from "./api.js";
 import { $, el, replace, uuidv7 } from "./dom.js";
@@ -17,6 +19,11 @@ import { byPosition, movePlace, subtree } from "./placeops.js";
 import { byId, chooseScope, elsewhereOf, isOpen, state, statusOf, update } from "./state.js";
 import { placeOf } from "./words.js";
 import { tr } from "./i18n.js";
+import { jumpTargets, rank } from "./jump.js";
+import { openObject } from "./address.js";
+import { reportTab } from "./report.js";
+import { openSettings } from "./settings.js";
+import { chooseView, VIEWS } from "./sidebar.js";
 
 const INBOX = { kind: "inbox", project: null, parent: null, title: "Inbox" };
 
@@ -273,39 +280,54 @@ export async function addBlocker(owner, target) {
   }
 }
 
-// A score when every character of `query` occurs in `text` in order, else
-// null; lower is better. A hit at a word start counts more than one inside.
-export function fuzzy(query, text) {
-  const q = query.toLowerCase();
-  const t = text.toLowerCase();
-  let score = 0;
-  let at = 0;
-  for (const ch of q) {
-    if (ch === " ") continue;
-    const found = t.indexOf(ch, at);
-    if (found < 0) return null;
-    const start = found === 0 || /[\s›·\-_/]/.test(t[found - 1]);
-    score += (found - at) + (start ? 0 : 2);
-    at = found + 1;
-  }
-  return score;
-}
-
 function matches() {
   const p = state.palette;
   if (!p) return [];
-  const all = p.mode === "place" ? placeTargets(p.id, p.kind) : p.mode === "block" ? blockTargets(p.tasks[0]) : targets(p.tasks);
-  if (!p.query.trim()) return all;
-  return all
-    .map((target) => ({ target, score: fuzzy(p.query, target.title) }))
-    .filter((m) => m.score !== null)
-    .sort((a, b) => a.score - b.score)
-    .map((m) => m.target);
+  const all =
+    p.mode === "go"
+      ? goTargets()
+      : p.mode === "place"
+        ? placeTargets(p.id, p.kind)
+        : p.mode === "block"
+          ? blockTargets(p.tasks[0])
+          : targets(p.tasks);
+  return rank(p.query, all);
+}
+
+// What `o` jumps to (db3fe005): views, perspectives, projects, folders,
+// tags, the settings.
+function goTargets() {
+  return jumpTargets({
+    views: VIEWS,
+    perspectives: state.perspectives,
+    projects: state.projectStatuses.map((s) => s.project),
+    folders: state.folders,
+    shownFolders: state.shownFolders,
+    tags: state.tags,
+    settings: tr("Einstellungen"),
+    note: (title, project) => withScope(title, project.id),
+  });
+}
+
+function jump(target) {
+  if (target.kind === "view") {
+    if (target.view === "time") reportTab("time");
+    chooseView({ kind: target.view, project: null });
+  } else if (target.kind === "settings") openSettings();
+  else openObject(target.id);
 }
 
 // For one task, or with `statuses` for many (ADR 0052 §4).
 export function openPalette(status, statuses = [status]) {
   update({ palette: { mode: "task", tasks: statuses.map((s) => s.task.id), query: "", index: 0 } });
+  const input = $("palette-input");
+  input.value = "";
+  input.focus();
+}
+
+// For jumping to a view, project, folder, tag or perspective (db3fe005).
+export function openGoPalette() {
+  update({ palette: { mode: "go", query: "", index: 0 } });
   const input = $("palette-input");
   input.value = "";
   input.focus();
@@ -335,6 +357,11 @@ function close() {
 function choose(asChild) {
   const p = state.palette;
   const target = matches()[p.index];
+  if (p.mode === "go") {
+    close();
+    if (target) jump(target);
+    return;
+  }
   if (p.mode === "place") {
     const object = placeObject(p);
     close();
@@ -396,17 +423,40 @@ export function wirePalette() {
   });
 }
 
+const KINDS = () => ({
+  group: tr("Gruppe"),
+  project: tr("Projekt"),
+  folder: tr("Ordner"),
+  task: tr("Aufgabe"),
+  view: tr("Ansicht"),
+  perspective: tr("Perspektive"),
+  tag: "Tag",
+  settings: "",
+});
+
 export function renderPalette() {
   const p = state.palette;
   $("palette").hidden = !p;
   if (!p) return;
+  const go = p.mode === "go";
   const place = p.mode === "place";
   const block = p.mode === "block";
-  const subject = place ? placeObject(p) : p.tasks.length === 1 ? statusOf(p.tasks[0])?.task : null;
-  const what = subject ? tr("„{title}“", { title: subject.title }) : place ? "" : tr("{n} Aufgaben", { n: p.tasks.length });
-  const verb = place ? tr("verschieben") : block ? tr("wartet auf …") : tr("umhängen");
-  replace($("palette-task"), what ? `${what} ${verb}` : "");
-  $("palette-input").placeholder = place ? tr("Ordner") : block ? tr("Aufgabe") : tr("Projekt oder Gruppe");
+  if (go) {
+    replace($("palette-task"), tr("Springen zu …"));
+  } else {
+    const subject = place ? placeObject(p) : p.tasks.length === 1 ? statusOf(p.tasks[0])?.task : null;
+    const what = subject ? tr("„{title}“", { title: subject.title }) : place ? "" : tr("{n} Aufgaben", { n: p.tasks.length });
+    const verb = place ? tr("verschieben") : block ? tr("wartet auf …") : tr("umhängen");
+    replace($("palette-task"), what ? `${what} ${verb}` : "");
+  }
+  replace($("palette-hint"), go ? tr("↵ öffnen · Esc abbrechen") : tr("↵ verschieben · ⇥ als Kind · Esc abbrechen"));
+  $("palette-input").placeholder = go
+    ? tr("Ansicht, Projekt, Ordner, Tag")
+    : place
+      ? tr("Ordner")
+      : block
+        ? tr("Aufgabe")
+        : tr("Projekt oder Gruppe");
   const found = matches();
   replace(
     $("palette-list"),
@@ -424,11 +474,11 @@ export function renderPalette() {
             },
             [
               el("span", { text: target.title }),
-              el("span", { class: "count", text: { group: tr("Gruppe"), project: tr("Projekt"), folder: tr("Ordner"), task: tr("Aufgabe") }[target.kind] ?? "" }),
+              el("span", { class: "count", text: KINDS()[target.kind] ?? "" }),
             ],
           ),
         )
-      : el("li", { class: "empty", text: block ? tr("Keine Aufgabe, die blockieren könnte.") : tr("Kein Ziel.") }),
+      : el("li", { class: "empty", text: go ? tr("Nichts gefunden.") : block ? tr("Keine Aufgabe, die blockieren könnte.") : tr("Kein Ziel.") }),
   );
   $("palette-list").querySelector(".current")?.scrollIntoView({ block: "nearest" });
 }

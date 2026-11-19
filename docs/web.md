@@ -263,6 +263,7 @@ server stay English.
 | ← → Enter | in the table: choose a cell, edit it (Escape cancels) |
 | `[` | sidebar: full, narrow, hidden |
 | `]` | task across the full width |
+| `o` | jump: fuzzy search over the views, perspectives, projects, folders and tags the scope shows (projects and folders with their path); Enter opens |
 | `g i`, `g f`, `g m`, `g p`, `g r`, `g z`, `g k`, `g s` | go to inbox, forecast, flagged, projects, review, report, calendar, settings |
 | Escape | back |
 
