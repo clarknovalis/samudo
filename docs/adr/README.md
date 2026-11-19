@@ -19,15 +19,20 @@ its citations in the code have no target.
 | ADR | Status | Decision |
 |---|---|---|
 | [0015](0015-unknown-values-and-hlc-on-the-wire.md) | accepted | Unknown enum values are read as `unknown` and never written; the HLC is an object `{wall, counter, device}` on the wire |
+| [0024](0024-workflows.md) | accepted | Workflows are exclusive tag groups: an LWW register per object, a workflow per project with a default, keys and cycling, a logbook |
 | [0035](0035-scopes.md) | accepted | Scopes: one lens over all views, rule in `samu-core`, chosen per device, due tasks outside counted in the header |
+| [0036](0036-managing-objects.md) | accepted | Deleting through `POST /objects/{id}/delete`, planned in `samu-core` and written in one transaction; orphaned tasks count as inbox |
 | [0039](0039-comments-attachments-author.md) | accepted | Comments and attachments as objects; blobs by SHA-256 in samu; the server sets the author `{device, kind}` from the session |
 | [0043](0043-scopes-second-round.md) | accepted | Scopes: inbox as a checkbox, filter in the search language, capture defaults, schedule windows, choice over Tasker |
 | [0047](0047-calendars.md) | accepted | Calendars over ICS and CalDAV fetched by the server, sources encrypted; appointments expanded in `samu-core`, in forecast and calendar view |
 | [0068](0068-writing-appointments.md) | accepted | Appointments written back over CalDAV, offline through the outbox; series edits in `samu-core`; collisions per field |
+| [0073](0073-capture-templates.md) | accepted | Capture templates: a quick-capture line as defaults plus reminders, invoked with `/name`; line before template before scope |
+| [0090](0090-perspectives.md) | accepted | Perspectives: saved search, filter, arrangement and display as a server object, evaluated in `samu-core`, in the sidebar |
 | [0091](0091-habits.md) | accepted | Habits: a task with the field `habit`, every tap an entry `habit_entry`, streak and rate in `samu-core` |
 | [0094](0094-only-in-scope.md) | accepted | A folder, project or tag names its own scope (`own_scope`) and appears only there, whatever the scope's mode |
 | [0095](0095-restricted-session.md) | accepted | A session can be restricted at login to granted folders and projects, read-write or read-only; every route has a rule |
 | [0099](0099-registration-and-demo-content.md) | accepted | Registration off, demo-only or open; demo accounts expire; demo content built in the server |
+| [0101](0101-appointment-reminders.md) | accepted | Reminders for appointments from VALARM, computed in `samu_core::reminders`, `GET /alarms`, a switch per device |
 | [0133](0133-decision-records-in-the-repository.md) | accepted | Decision records live in this repository, in English, as living documents |
 | [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; agents push with a token of their own |
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
