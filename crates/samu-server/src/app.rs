@@ -2428,8 +2428,10 @@ impl tower_http::compression::Predicate for Text {
             || kind.starts_with("image/svg+xml")
             || (kind.starts_with("text/") && !kind.starts_with("text/event-stream"));
         // A blob of such a type is still a file someone put there; every
-        // blob is answered with its own policy.
-        let blob = header(axum::http::header::CONTENT_SECURITY_POLICY).is_some();
+        // blob is answered with its own policy. The web UI has a policy
+        // too, another one, and is text to compress.
+        let blob =
+            header(axum::http::header::CONTENT_SECURITY_POLICY) == Some(crate::blobs::BLOB_POLICY);
         // What is still coming in pieces has no size yet and is taken.
         let long = response
             .body()

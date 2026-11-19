@@ -13,8 +13,11 @@
 use std::sync::Arc;
 
 use axum::extract::{Path as UrlPath, State};
-use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
-use axum::http::{HeaderValue, StatusCode};
+use axum::http::header::{
+    CACHE_CONTROL, CONTENT_SECURITY_POLICY, CONTENT_TYPE, REFERRER_POLICY, X_CONTENT_TYPE_OPTIONS,
+    X_FRAME_OPTIONS,
+};
+use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 
 /// Every file of the UI: its path under the root, its content and type.
@@ -311,6 +314,33 @@ const CSS: &str = "text/css; charset=utf-8";
 const JS: &str = "text/javascript; charset=utf-8";
 const SVG: &str = "image/svg+xml";
 
+/// What the page and its files may load and do (CSP level 3).
+///
+/// Everything comes from the server itself: one module script and its
+/// imports, one stylesheet, attachments from `/blobs`, the API and
+/// `/events`. Nothing inline: no `'unsafe-inline'`, no `data:` and no
+/// `blob:`. The scripts set styles through the CSSOM (`el` in
+/// `web/lib/dom.js`), which a policy does not count as inline, and the
+/// pairing code is drawn on a canvas. `frame-ancestors 'none'`: no other
+/// page may show this one in a frame and lay something over its buttons.
+pub(crate) const CONTENT_SECURITY: &str = "default-src 'none'; script-src 'self'; \
+     style-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; \
+     base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+
+/// The headers every file of the UI goes out with: the policy above, the
+/// type as declared and nothing guessed, no address of this instance in a
+/// `Referer` to the links people keep in their tasks, and for browsers
+/// that do not read `frame-ancestors` the older header saying the same.
+fn security_headers(headers: &mut HeaderMap) {
+    headers.insert(
+        CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static(CONTENT_SECURITY),
+    );
+    headers.insert(X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
+    headers.insert(REFERRER_POLICY, HeaderValue::from_static("no-referrer"));
+    headers.insert(X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
+}
+
 fn serve(path: &str) -> Response {
     let Some((_, body, kind)) = FILES.iter().find(|(name, _, _)| *name == path) else {
         return StatusCode::NOT_FOUND.into_response();
@@ -321,6 +351,7 @@ fn serve(path: &str) -> Response {
     // "Ask me first", not "do not store": after an update the browser must
     // not mix a new index.html with an old app.js (as catastr found).
     headers.insert(CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    security_headers(headers);
     response
 }
 
@@ -338,6 +369,7 @@ fn page(state: &crate::app::AppState) -> Response {
     let headers = response.headers_mut();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static(kind));
     headers.insert(CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    security_headers(headers);
     response
 }
 
@@ -448,6 +480,58 @@ mod tests {
         assert!(
             checked > 20,
             "only {checked} ids found: the probe is broken"
+        );
+    }
+
+    /// The policy allows nothing inline (`super::CONTENT_SECURITY`), and a
+    /// browser only says so in its console. So the files themselves must
+    /// not need it: no style attribute and no inline script or style in
+    /// the page, and no script that writes a style attribute or HTML.
+    #[test]
+    fn nothing_in_the_ui_needs_an_inline_style_or_script() {
+        assert!(!super::CONTENT_SECURITY.contains("unsafe-inline"));
+        let page = index();
+        for inline in [" style=", "<style", " onclick=", " onload=", "javascript:"] {
+            assert!(!page.contains(inline), "index.html has `{inline}`");
+        }
+        let scripts_in_page = between(page, "<script", '>');
+        assert_eq!(scripts_in_page.len(), 1, "one module script");
+        assert!(scripts_in_page[0].contains("src=\"/app.js\""));
+
+        let mut checked = 0;
+        for (name, body) in scripts() {
+            // Third-party, and only its matrix is used (lib/pair.js draws
+            // it on a canvas); its HTML builders are never called.
+            if name.starts_with("lib/qrcode-generator") {
+                continue;
+            }
+            // Code only: a comment may well say what a script avoids.
+            let body: String = body
+                .lines()
+                .filter(|line| !line.trim_start().starts_with("//"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            for written in [
+                "setAttribute(\"style\"",
+                "setAttribute('style'",
+                "innerHTML",
+                "outerHTML",
+                "insertAdjacentHTML",
+                "document.write",
+                "eval(",
+                "new Function(",
+                "createObjectURL",
+            ] {
+                assert!(!body.contains(written), "{name} uses {written}");
+            }
+            checked += 1;
+        }
+        assert!(checked > 20, "only {checked} scripts: the probe is broken");
+        // `el` is how the scripts set a style: through the CSSOM.
+        let dom = FILES.iter().find(|(name, _, _)| *name == "lib/dom.js");
+        assert!(
+            dom.is_some_and(|(_, body, _)| body.contains("node.style.cssText = value")),
+            "el() in lib/dom.js no longer sets styles through the CSSOM"
         );
     }
 

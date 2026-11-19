@@ -251,6 +251,10 @@ pub(crate) async fn get(
     Ok(response)
 }
 
+/// The policy every blob is answered with; the compression knows a blob
+/// by it (`app::Text`).
+pub(crate) const BLOB_POLICY: &str = "default-src 'none'; media-src 'self'; sandbox";
+
 /// The headers of a file answer: its type and size, cached for good, and
 /// kept from running in samu's origin.
 pub(crate) fn file_headers(headers: &mut HeaderMap, media_type: &str, size: u64) {
@@ -267,7 +271,7 @@ pub(crate) fn file_headers(headers: &mut HeaderMap, media_type: &str, size: u64)
     headers.insert(X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
     headers.insert(
         CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static("default-src 'none'; media-src 'self'; sandbox"),
+        HeaderValue::from_static(BLOB_POLICY),
     );
     if !shown_inline(media_type) {
         headers.insert(CONTENT_DISPOSITION, HeaderValue::from_static("attachment"));

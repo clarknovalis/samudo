@@ -225,6 +225,19 @@ fn upstream_dir() -> TempDir {
     dir
 }
 
+/// The replica serves the same web UI, with the same security headers.
+#[tokio::test]
+async fn the_replica_serves_the_web_ui_with_its_security_headers() {
+    let up_dir = upstream_dir();
+    let (up, _upstream) = upstream(&up_dir.0, None).await;
+    let dir = TempDir::new();
+    let address = replica(up, &dir.0).await;
+    for path in ["/", "/app.js", "/style.css", "/lib/dom.js"] {
+        let answer = call(address, "GET", path, None, None).await;
+        super::assert_ui_headers(path, &answer);
+    }
+}
+
 /// ADR 0066 §5: every route has its place, and a new one without fails.
 #[test]
 fn every_route_has_a_place_on_the_replica() {

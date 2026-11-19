@@ -98,6 +98,15 @@ input:not([type="checkbox"]), select, textarea { border: 1px solid var(--border)
 .quiet, .empty { color: var(--muted); font-size: 13px; }
 .count { color: var(--muted); font-size: 13px; }
 
+/* The logo's symbols in index.html: out of the flow, and coloured here
+   rather than by style attributes, which the page's Content-Security-Policy
+   (style-src 'self') refuses. */
+.sprite { position: absolute; }
+.logo-broom { stroke: var(--logo-broom); }
+.logo-trail { stroke: var(--logo-trail); }
+.logo-ink { fill: var(--logo-ink); }
+.logo-enso { fill: var(--logo-enso); }
+
 /* Sign in */
 #gate { display: grid; place-items: center; min-height: 100vh; }
 #gate form { display: grid; gap: 12px; width: min(22rem, 90vw); background: var(--pane); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }

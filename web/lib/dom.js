@@ -14,6 +14,9 @@ export function el(tag, attrs = {}, children = []) {
     if (value === null || value === undefined || value === false) continue;
     if (key === "class") node.className = value;
     else if (key === "text") node.textContent = value;
+    // Through the CSSOM: the page's Content-Security-Policy (style-src
+    // 'self') refuses a style attribute, also one set by a script.
+    else if (key === "style") node.style.cssText = value;
     else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
     else if (value === true) node.setAttribute(key, "");
     else node.setAttribute(key, value);

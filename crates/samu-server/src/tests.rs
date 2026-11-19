@@ -2588,6 +2588,60 @@ async fn a_page_as_a_blob_is_a_download_in_a_sandbox() {
     assert!(head.contains("sandbox"), "{head}");
 }
 
+/// What every file of the web UI must go out with.
+pub(crate) fn assert_ui_headers(path: &str, answer: &Answer) {
+    assert_eq!(answer.status, 200, "{path}");
+    let head = answer.headers.to_lowercase();
+    let policy = head
+        .lines()
+        .find_map(|line| line.strip_prefix("content-security-policy: "))
+        .unwrap_or_else(|| panic!("{path} has no policy: {head}"));
+    for part in [
+        "default-src 'none'",
+        "script-src 'self'",
+        "style-src 'self'",
+        "frame-ancestors 'none'",
+    ] {
+        assert!(
+            policy.split("; ").any(|p| p == part),
+            "{path}: {part} is missing in {policy}"
+        );
+    }
+    for open in ["unsafe-inline", "unsafe-eval", "data:", "blob:", "*"] {
+        assert!(!policy.contains(open), "{path}: {open} in {policy}");
+    }
+    for header in [
+        "x-content-type-options: nosniff",
+        "referrer-policy: no-referrer",
+        "x-frame-options: deny",
+    ] {
+        assert!(head.contains(header), "{path}: no {header} in {head}");
+    }
+}
+
+/// The page and its files carry a strict policy, also without a session:
+/// the sign-in is part of the page.
+#[tokio::test]
+async fn the_web_ui_is_served_with_its_security_headers() {
+    let (address, _dir) = start(true).await;
+    let object = format!("/o/{}", samu_store::core::api::Id::new());
+    for path in [
+        "/",
+        object.as_str(),
+        "/app.js",
+        "/style.css",
+        "/favicon.svg",
+        "/lib/dom.js",
+    ] {
+        assert_ui_headers(path, &call(address, "GET", path, None, None).await);
+    }
+    // A demo's page is put together on the way out: the same headers.
+    let (demo, _dir) = start_with(true, |state| state.with_demo_reset(Some(60))).await;
+    let page = call(demo, "GET", "/", None, None).await;
+    assert!(page.body.contains("samu-demo"), "not the demo's page");
+    assert_ui_headers("/ (demo)", &page);
+}
+
 /// ADR 0046 §2, §5: a second running clock ends the first; the report
 /// splits at midnight in the account's zone (Berlin) and refuses a span
 /// backwards.
