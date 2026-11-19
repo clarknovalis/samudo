@@ -991,4 +991,81 @@ mod tests {
         let (changes, _) = tag_changes(&s, plain.id, &on).unwrap();
         assert_eq!(changes.len(), 3, "exclusive, default, the old default off");
     }
+
+    /// The cases samu-core and the web must give as well; the command
+    /// line says its refusals in words, so only whether it refuses counts.
+    #[test]
+    fn the_shared_cases_hold() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../testdata/tagfields/cases.json"
+        );
+        let doc: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut names = std::collections::HashMap::new();
+        let mut tags = Vec::new();
+        for t in doc["tags"].as_array().unwrap() {
+            let parent = t["parent"].as_str().map(|p| names[p]);
+            let mut made = tag(
+                t["title"].as_str().unwrap(),
+                parent,
+                t["position"].as_i64().unwrap(),
+            );
+            made.exclusive = t["exclusive"].as_bool().unwrap_or(false);
+            made.default_workflow = t["default_workflow"].as_bool().unwrap_or(false);
+            made.key = t["key"].as_str().map(str::to_owned);
+            names.insert(t["id"].as_str().unwrap().to_owned(), made.id);
+            tags.push(made);
+        }
+        let projects = doc["projects"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| {
+                serde_json::from_value(json!({
+                    "id": Id::new(),
+                    "created": "2026-11-19T08:00:00Z",
+                    "modified": "2026-11-19T08:00:00Z",
+                    "title": "p",
+                    "kind": "parallel",
+                    "status": "active",
+                    "workflow": names[p["workflow"].as_str().unwrap()],
+                }))
+                .unwrap()
+            })
+            .collect();
+        let s = snap(tags, projects);
+        for case in doc["cases"].as_array().unwrap() {
+            let what = &case["what"];
+            let f = &case["fields"];
+            let fields = TagFields {
+                exclusive: f["exclusive"].as_bool(),
+                default_workflow: f["default_workflow"].as_bool(),
+                status: f["status"].as_str().map(|s| match s {
+                    "active" => SetStatus::Active,
+                    "on_hold" => SetStatus::OnHold,
+                    _ => SetStatus::Dropped,
+                }),
+                key: f.get("key").map(|k| k.as_str().map(str::to_owned)),
+                ask_note: f["ask_note"].as_bool(),
+            };
+            let got = tag_changes(&s, names[case["tag"].as_str().unwrap()], &fields);
+            if case["error"].is_string() {
+                assert!(got.is_err(), "{what}");
+                continue;
+            }
+            let want: Vec<(Id, String, Value)> = case["changes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|c| {
+                    (
+                        names[c[0].as_str().unwrap()],
+                        c[1].as_str().unwrap().to_owned(),
+                        c[2].clone(),
+                    )
+                })
+                .collect();
+            assert_eq!(changed(&got.unwrap().0), want, "{what}");
+        }
+    }
 }
