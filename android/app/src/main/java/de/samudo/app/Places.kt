@@ -62,6 +62,7 @@ private fun kindWord(kind: String) = when (kind) {
 
 private val PROJECT_KIND get() = listOf("parallel" to tr("Parallel"), "sequential" to tr("Sequenziell"), "single_actions" to tr("Einzelaufgaben"))
 private val STATUS get() = listOf("active" to tr("Aktiv"), "on_hold" to tr("Ruht"), "completed" to tr("Erledigt"), "dropped" to tr("Verworfen"))
+private val TAG_STATUS get() = listOf("active" to tr("Aktiv"), "on_hold" to tr("Ruht"), "dropped" to tr("Verworfen"))
 private val REVIEW get() = listOf<Pair<String?, String>>(
     null to tr("Keine"), "P1W" to tr("Jede Woche"), "P2W" to tr("Alle 2 Wochen"), "P1M" to tr("Jeden Monat"), "P3M" to tr("Alle 3 Monate"),
 )
@@ -222,6 +223,7 @@ private fun PlaceScreen(id: String, tick: Int, changed: () -> Unit, back: () -> 
     var workflows by remember { mutableStateOf<List<PlaceRow>>(emptyList()) }
     var scopes by remember { mutableStateOf<List<ScopeRow>>(emptyList()) }
     var name by remember(id) { mutableStateOf<String?>(null) }
+    var key by remember(id) { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var deleting by remember(id) { mutableStateOf(false) }
     LaunchedEffect(tick, id) {
@@ -238,7 +240,7 @@ private fun PlaceScreen(id: String, tick: Int, changed: () -> Unit, back: () -> 
     val d = detail ?: return
     fun act(action: Samu.() -> Unit) {
         scope.launch {
-            error = withContext(Dispatchers.IO) { runCatching { Store.get(context).action() }.exceptionOrNull()?.message }
+            error = withContext(Dispatchers.IO) { runCatching { Store.get(context).action() }.exceptionOrNull()?.let { said(it) } }
             changed()
         }
     }
@@ -329,6 +331,7 @@ private fun PlaceScreen(id: String, tick: Int, changed: () -> Unit, back: () -> 
                     color = t.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp),
                 )
             }
+            if (d.kind == "tag") TagFields(d, key, { key = it }) { action -> act(action) }
             error?.let { Text(it, color = t.overdue, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)) }
             if (deleting) {
                 DeletePanel(d, changed, { deleting = false }, back)
@@ -339,6 +342,72 @@ private fun PlaceScreen(id: String, tick: Int, changed: () -> Unit, back: () -> 
             }
         }
         item { Spacer(Modifier.heightIn(min = 96.dp)) }
+    }
+}
+
+/** A box with its text, the whole line tappable. */
+@Composable
+private fun Check(text: String, checked: Boolean, enabled: Boolean = true, change: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = enabled) { change(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = change, enabled = enabled)
+        Text(text, fontSize = 14.sp, color = if (enabled) LocalTokens.current.fg else LocalTokens.current.muted)
+    }
+}
+
+/**
+ * A tag's workflow fields (e076022f): what it is, since a workflow and its
+ * states have the same fields, its status, and only what fits it — for a
+ * workflow or a plain tag whether it is one and the default, for a state
+ * its key and the note. samu-core refuses the rest.
+ */
+@Composable
+private fun TagFields(d: PlaceDetail, key: String?, typed: (String) -> Unit, act: (Samu.() -> Unit) -> Unit) {
+    val t = LocalTokens.current
+    val id = d.id
+    Text(
+        when (d.tagRole) {
+            "workflow" -> if (d.states == 1u) tr("Ein Ablauf mit 1 Zustand.") else tr("Ein Ablauf mit {n} Zuständen.", "n" to d.states)
+            "state" -> tr("Ein Zustand des Ablaufs „{group}“.", "group" to d.placeTitle)
+            else -> tr("Ein Tag.")
+        },
+        color = t.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp),
+    )
+    Field("Status") {
+        Choice(TAG_STATUS.firstOrNull { it.first == d.status }?.second ?: "?", TAG_STATUS) { s ->
+            act { setTagFields(id, null, null, s, null) }
+        }
+    }
+    if (d.tagRole == "state") {
+        Field(tr("Taste")) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(key ?: d.key.orEmpty(), { typed(it.take(1)) }, singleLine = true, modifier = Modifier.weight(1f))
+                val now = key?.trim()
+                if (now != null && now != d.key.orEmpty()) {
+                    TextButton(onClick = { act { setTagKey(id, now.ifEmpty { null }) } }) { Text(tr("Sichern")) }
+                }
+            }
+        }
+        Field(tr("Notiz")) {
+            Check(tr("Beim Wechsel in diesen Zustand nach einer Notiz fragen"), d.askNote) { on -> act { setTagFields(id, null, null, null, on) } }
+        }
+    } else {
+        Field(tr("Ablauf")) {
+            Check(tr("Die Kinder schließen sich aus: ein Ablauf"), d.exclusive, enabled = !(d.exclusive && d.usedBy > 0u)) { on ->
+                act { setTagFields(id, on, null, null, null) }
+            }
+            if (d.exclusive) {
+                Check(tr("Standard-Ablauf für Projekte ohne eigenen"), d.defaultWorkflow) { on -> act { setTagFields(id, null, on, null, null) } }
+            }
+            if (d.usedBy > 0u) {
+                Text(
+                    if (d.usedBy == 1u) tr("1 Projekt nutzt diesen Ablauf.") else tr("{n} Projekte nutzen diesen Ablauf.", "n" to d.usedBy),
+                    color = t.muted, fontSize = 12.sp,
+                )
+            }
+        }
     }
 }
 

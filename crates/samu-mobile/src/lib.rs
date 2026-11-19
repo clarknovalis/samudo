@@ -69,6 +69,7 @@ use samu_core::overlay::{self, Objects};
 use samu_core::pairing::PairingUri;
 use samu_core::scope::Lens;
 use samu_core::share::shared;
+use samu_core::tagfields;
 use samu_core::workflow::placement;
 use serde_json::{Value, json};
 
@@ -518,7 +519,8 @@ pub struct PlaceDetail {
     pub place_title: Option<String>,
     /// Only for a project: `parallel`, `sequential`, `single_actions`.
     pub project_kind: Option<String>,
-    /// Only for a project: `active`, `on_hold`, `completed`, `dropped`.
+    /// A project's `active`, `on_hold`, `completed`, `dropped`; a tag's
+    /// `active`, `on_hold`, `dropped`.
     pub status: Option<String>,
     /// Only for a project: its exclusive tag group; none is the default.
     pub workflow: Option<String>,
@@ -534,6 +536,22 @@ pub struct PlaceDetail {
     pub own_scope: Option<String>,
     /// Its title; none also when the scope does not exist (§5).
     pub own_scope_title: Option<String>,
+    /// Only for a tag: `workflow`, `state` (a child of one) or `tag`,
+    /// since a workflow and its states have the same fields (e076022f).
+    pub tag_role: Option<String>,
+    /// Only for a tag: its children exclude each other.
+    pub exclusive: bool,
+    /// Only for a workflow: the one of projects that name none.
+    pub default_workflow: bool,
+    /// Only for a state: the character to pick it by.
+    pub key: Option<String>,
+    /// Only for a state: ask for a note on entering it.
+    pub ask_note: bool,
+    /// Only for a tag: its children that are not dropped, the states of a
+    /// workflow.
+    pub states: u32,
+    /// Only for a tag: the projects that follow it as their workflow.
+    pub used_by: u32,
 }
 
 /// A scope's inspector layout (ADR 0072 §2) for its settings: the parts
@@ -1069,6 +1087,25 @@ impl Samu {
                 .into_iter()
                 .map(|(field, value)| Change::Set {
                     object: id,
+                    field: field.into(),
+                    value,
+                    note: None,
+                    hlc: stamp(),
+                })
+                .collect())
+        })
+    }
+
+    /// The fields samu-core makes of `fields`, through the outbox.
+    fn tag_sets(&self, id: &str, fields: tagfields::Fields) -> Result<(), MobileError> {
+        let id = parse_id(id)?;
+        self.queue(|objects, stamp| {
+            let sets = tagfields::changes(&objects.tags, &objects.projects, id, &fields)
+                .map_err(|e| input(e.to_string()))?;
+            Ok(sets
+                .into_iter()
+                .map(|(object, field, value)| Change::Set {
+                    object,
                     field: field.into(),
                     value,
                     note: None,
@@ -3374,6 +3411,13 @@ impl Samu {
             scope_only: is_scope_only(&objects, id),
             own_scope: own_scope(&objects, id).map(|s| s.to_string()),
             own_scope_title: own_scope_title(&objects, id),
+            tag_role: None,
+            exclusive: false,
+            default_workflow: false,
+            key: None,
+            ask_note: false,
+            states: 0,
+            used_by: 0,
         };
         if let Some(p) = objects.projects.iter().find(|p| p.id == id) {
             let wire = |v: Value| v.as_str().map(str::to_owned);
@@ -3409,6 +3453,36 @@ impl Samu {
                 .parent
                 .and_then(|p| objects.tags.iter().find(|x| x.id == p))
                 .map(|t| t.title.clone());
+            detail.status = serde_json::to_value(t.status)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_owned));
+            detail.tag_role = Some(
+                match tagfields::role(&objects.tags, t) {
+                    tagfields::Role::Workflow => "workflow",
+                    tagfields::Role::State => "state",
+                    tagfields::Role::Tag => "tag",
+                }
+                .into(),
+            );
+            detail.exclusive = t.exclusive;
+            detail.default_workflow = t.default_workflow;
+            detail.key = t.key.clone();
+            detail.ask_note = t.ask_note;
+            let count = |n: usize| u32::try_from(n).unwrap_or(u32::MAX);
+            detail.states = count(
+                objects
+                    .tags
+                    .iter()
+                    .filter(|x| x.parent == Some(id) && x.status != TagStatus::Dropped)
+                    .count(),
+            );
+            detail.used_by = count(
+                objects
+                    .projects
+                    .iter()
+                    .filter(|p| p.workflow == Some(id))
+                    .count(),
+            );
         } else {
             return Err(input(format!("no folder, project or tag {id}")));
         }
@@ -3560,6 +3634,50 @@ impl Samu {
         self.project_sets(
             &id,
             vec![("workflow", workflow.map_or(Value::Null, |w| json!(w)))],
+        )
+    }
+
+    /// A tag's workflow fields, each none to leave it (e076022f): whether
+    /// it is a workflow, the default workflow (taking over from the one
+    /// before), `active`, `on_hold` or `dropped`, and for a state whether
+    /// it asks for a note. Refused as samu-core's `tagfields` refuses.
+    pub fn set_tag_fields(
+        &self,
+        id: String,
+        exclusive: Option<bool>,
+        default_workflow: Option<bool>,
+        status: Option<String>,
+        ask_note: Option<bool>,
+    ) -> Result<(), MobileError> {
+        let status = status
+            .map(|s| match s.as_str() {
+                "active" => Ok(TagStatus::Active),
+                "on_hold" => Ok(TagStatus::OnHold),
+                "dropped" => Ok(TagStatus::Dropped),
+                other => Err(input(format!("no status {other:?}"))),
+            })
+            .transpose()?;
+        self.tag_sets(
+            &id,
+            tagfields::Fields {
+                exclusive,
+                default_workflow,
+                status,
+                key: None,
+                ask_note,
+            },
+        )
+    }
+
+    /// A state's key, one character, or none to take it off.
+    pub fn set_tag_key(&self, id: String, key: Option<String>) -> Result<(), MobileError> {
+        let key = key.map(|k| k.trim().to_owned()).filter(|k| !k.is_empty());
+        self.tag_sets(
+            &id,
+            tagfields::Fields {
+                key: Some(key),
+                ..tagfields::Fields::default()
+            },
         )
     }
 

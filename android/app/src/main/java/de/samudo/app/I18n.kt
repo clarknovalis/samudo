@@ -132,4 +132,9 @@ private val MESSAGES: List<Pair<Said, String>> = listOf(
     "{days} days is no warning" to "{days} Tage sind keine Vorwarnung.",
     "{key} is no property key: lower-case letters, digits, _ and -, a letter first" to
         "„{key}“ ist kein Schlüssel: Kleinbuchstaben, Ziffern, _ und -, vorn ein Buchstabe.",
+    "only a workflow can be the default workflow" to "Nur ein Ablauf kann der Standard-Ablauf sein.",
+    "a project uses this workflow; give it another one first" to "Ein Projekt nutzt diesen Ablauf; gib ihm zuerst einen anderen.",
+    "only the states of a workflow have a key and a note" to "Taste und Notiz gibt es nur bei Zuständen eines Ablaufs.",
+    "a key is one character" to "Eine Taste ist ein Zeichen.",
+    "another state of this workflow has this key already" to "Diese Taste hat schon ein anderer Zustand dieses Ablaufs.",
 ).map { (english, german) -> Said(english) to german }

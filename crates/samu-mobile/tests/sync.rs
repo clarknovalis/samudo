@@ -4871,3 +4871,65 @@ fn a_picked_group_closes_after_its_picked_children() {
         assert!(stored(&other, id)["completed_at"].is_string());
     }
 }
+
+/// A tag's workflow fields from the phone (e076022f): the detail says
+/// what the tag is, the changes reach the server, and samu-core's
+/// refusals leave nothing in the outbox.
+#[test]
+fn tag_settings_from_the_phone() {
+    let server = Server::start();
+    let other = server.other_client();
+    let group = make_tag(&other, "Entwicklung", None);
+    let state = make_tag(&other, "Wunsch", Some(&group));
+    let plain = make_tag(&other, "Büro", None);
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let detail = samu.place_detail(group.clone()).unwrap();
+    assert_eq!(detail.tag_role.as_deref(), Some("tag"), "no workflow yet");
+    assert_eq!(detail.states, 1);
+    samu.set_tag_fields(group.clone(), Some(true), Some(true), None, None)
+        .unwrap();
+    assert_eq!(
+        samu.place_detail(state.clone())
+            .unwrap()
+            .tag_role
+            .as_deref(),
+        Some("state")
+    );
+    samu.set_tag_key(state.clone(), Some("w".into())).unwrap();
+    samu.set_tag_fields(
+        state.clone(),
+        None,
+        None,
+        Some("on_hold".into()),
+        Some(true),
+    )
+    .unwrap();
+    // Refused: a key on a plain tag, a default that is no workflow.
+    assert!(samu.set_tag_key(plain.clone(), Some("b".into())).is_err());
+    assert!(
+        samu.set_tag_fields(plain.clone(), None, Some(true), None, None)
+            .is_err()
+    );
+    samu.sync().unwrap();
+
+    let g = stored(&other, &group);
+    assert_eq!(
+        (g["exclusive"].clone(), g["default_workflow"].clone()),
+        (json!(true), json!(true))
+    );
+    let s = stored(&other, &state);
+    assert_eq!(s["key"], "w");
+    assert_eq!(s["status"], "on_hold");
+    assert_eq!(s["ask_note"], true);
+    let p = stored(&other, &plain);
+    assert!(p.get("key").is_none_or(Value::is_null), "{p}");
+    assert_ne!(p["default_workflow"], true);
+    let detail = samu.place_detail(group.clone()).unwrap();
+    assert_eq!(detail.tag_role.as_deref(), Some("workflow"));
+    assert!(detail.default_workflow);
+    samu.set_tag_key(state.clone(), None).unwrap();
+    samu.sync().unwrap();
+    assert!(stored(&other, &state).get("key").is_none_or(Value::is_null));
+}
