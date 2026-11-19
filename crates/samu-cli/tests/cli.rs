@@ -1095,6 +1095,83 @@ fn tag_add_takes_a_path() {
 /// task ids carry their title; without a server there are no candidates
 /// and no error.
 #[test]
+fn tag_set_changes_a_workflow_afterwards() {
+    let server = signed_in_server();
+    for args in [
+        &["tag", "add", "Status", "--exclusive", "--default-workflow"][..],
+        &["tag", "add", "Wartet", "--parent", "Status"][..],
+        &["tag", "add", "Entwicklung"][..],
+        &["tag", "add", "Wunsch", "--parent", "Entwicklung"][..],
+    ] {
+        assert_eq!(code(&server.samu(args, None)), 0, "{args:?}");
+    }
+    let row = |path: &str| -> serde_json::Value {
+        json_out(&server.samu(&["tag", "list", "--format", "json"], None))
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["path"] == path)
+            .cloned()
+            .unwrap()
+    };
+    // Made a workflow afterwards, and the default instead of Status.
+    let out = server.samu(
+        &[
+            "tag",
+            "set",
+            "Entwicklung",
+            "--exclusive",
+            "true",
+            "--default-workflow",
+            "true",
+        ],
+        None,
+    );
+    assert_eq!(code(&out), 0);
+    let said = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        said.contains("\"Status\" is no longer the default workflow"),
+        "{said}"
+    );
+    assert_eq!(row("Entwicklung")["marks"], "workflow,default");
+    assert_eq!(row("Status")["marks"], "workflow");
+    // A state's key, note and status; the message names it a state.
+    let out = server.samu(
+        &[
+            "tag",
+            "set",
+            "Entwicklung/Wunsch",
+            "--key",
+            "w",
+            "--ask-note",
+            "true",
+            "--status",
+            "on-hold",
+        ],
+        None,
+    );
+    assert_eq!(code(&out), 0);
+    let said = String::from_utf8_lossy(&out.stderr);
+    assert!(said.contains("a state of \"Entwicklung\""), "{said}");
+    let wunsch = row("Entwicklung/Wunsch");
+    assert_eq!(wunsch["key"], "w");
+    assert_eq!(wunsch["status"], "on_hold");
+    assert_eq!(wunsch["marks"], "note");
+    assert_eq!(
+        code(&server.samu(&["tag", "set", "Entwicklung/Wunsch", "--key", "none"], None)),
+        0
+    );
+    assert_eq!(row("Entwicklung/Wunsch")["key"], serde_json::Value::Null);
+    // Refused, nothing written: a key on a group, nothing to set.
+    assert_eq!(
+        code(&server.samu(&["tag", "set", "Status", "--key", "s"], None)),
+        1
+    );
+    assert_eq!(code(&server.samu(&["tag", "set", "Status"], None)), 1);
+    assert_eq!(row("Status")["key"], serde_json::Value::Null);
+}
+
+#[test]
 fn zsh_completion_offers_tags_and_tasks() {
     let server = signed_in_server();
     assert_eq!(code(&server.samu(&["tag", "add", "telefon"], None)), 0);

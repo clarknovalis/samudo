@@ -9,7 +9,7 @@
 //! tests below hold the two to the same answers.
 
 use anyhow::{Result, bail};
-use clap::Subcommand;
+use clap::{Subcommand, ValueEnum};
 use clap_complete::engine::ArgValueCompleter;
 use samu_api::{AnyObject, Change, ChangesPage, Id, ObjectKind, Project, Tag, TagStatus, Task};
 use serde_json::{Value, json};
@@ -44,6 +44,31 @@ pub(crate) enum TagCommand {
         #[arg(long)]
         default_workflow: bool,
     },
+    /// Change what a tag is afterwards: a workflow or not, the default
+    /// workflow, its status, and for a state its key and whether it asks
+    /// for a note. Says on stderr whether it changed a workflow, a state of
+    /// one, or a plain tag, since a group and its states have the same
+    /// fields.
+    Set {
+        #[arg(add = ArgValueCompleter::new(crate::complete::tag_title))]
+        tag: String,
+        /// Its children exclude each other: a workflow (ADR 0024 §1).
+        #[arg(long)]
+        exclusive: Option<bool>,
+        /// The workflow of projects that name none; the one before stops
+        /// being it.
+        #[arg(long)]
+        default_workflow: Option<bool>,
+        /// On hold: what carries it is not available (Someday, Waiting).
+        #[arg(long, value_enum)]
+        status: Option<SetStatus>,
+        /// One character to pick this state by; `none` takes it off.
+        #[arg(long)]
+        key: Option<String>,
+        /// Ask for a note on entering this state.
+        #[arg(long)]
+        ask_note: Option<bool>,
+    },
     /// Every tag as a tree, with status, key and workflow marks.
     List,
     /// Give a tag a new title.
@@ -69,6 +94,156 @@ pub(crate) enum TagCommand {
         #[arg(add = ArgValueCompleter::new(crate::complete::tag_title))]
         tag: String,
     },
+}
+
+/// The status `samu tag set` gives a tag.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum SetStatus {
+    Active,
+    OnHold,
+    Dropped,
+}
+
+/// What `samu tag set` was asked to change.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct TagFields {
+    pub(crate) exclusive: Option<bool>,
+    pub(crate) default_workflow: Option<bool>,
+    pub(crate) status: Option<SetStatus>,
+    /// `Some(None)` takes the key off.
+    pub(crate) key: Option<Option<String>>,
+    pub(crate) ask_note: Option<bool>,
+}
+
+/// What a tag is, in the words of `samu tag set`'s message.
+fn role(tags: &[Tag], tag: &Tag, exclusive: bool) -> String {
+    if exclusive {
+        return "the workflow".into();
+    }
+    match tag.parent.and_then(|p| tags.iter().find(|t| t.id == p)) {
+        Some(group) if group.exclusive => format!("a state of {:?}", tag_path(tags, group.id)),
+        _ => "the tag".into(),
+    }
+}
+
+/// The changes `samu tag set` writes, and the lines it says about them.
+/// Refuses what would leave a workflow half made: a default that is no
+/// workflow, a workflow that projects use taken back, a key or a note on
+/// what is no state.
+pub(crate) fn tag_changes(
+    snapshot: &Snapshot,
+    id: Id,
+    fields: &TagFields,
+) -> Result<(Vec<Change>, Vec<String>)> {
+    let tags = &snapshot.tags;
+    let Some(tag) = tags.iter().find(|t| t.id == id) else {
+        bail!("{id} is not a tag");
+    };
+    let path = tag_path(tags, id);
+    let exclusive = fields.exclusive.unwrap_or(tag.exclusive);
+    let is_state = tag
+        .parent
+        .and_then(|p| tags.iter().find(|t| t.id == p))
+        .is_some_and(|g| g.exclusive);
+    if *fields == TagFields::default() {
+        bail!("nothing to set: --exclusive, --default-workflow, --status, --key or --ask-note");
+    }
+    let mut changes = Vec::new();
+    let mut said = Vec::new();
+    if let Some(on) = fields.exclusive
+        && on != tag.exclusive
+    {
+        if !on {
+            let using = snapshot
+                .projects
+                .iter()
+                .filter(|p| p.workflow == Some(id))
+                .count();
+            if using > 0 {
+                bail!(
+                    "{path:?} is the workflow of {using} project(s); give them another first \
+                     (samu project set <project> --workflow …)"
+                );
+            }
+        }
+        changes.push(set(id, "exclusive", json!(on)));
+        said.push(format!(
+            "{path:?} is {}",
+            if on {
+                "a workflow now, its children the states"
+            } else {
+                "no workflow any more"
+            }
+        ));
+        if !on && tag.default_workflow && fields.default_workflow != Some(true) {
+            changes.push(set(id, "default_workflow", json!(false)));
+            said.push(format!("{path:?} is no longer the default workflow"));
+        }
+    }
+    if let Some(on) = fields.default_workflow {
+        if on && !exclusive {
+            bail!("{path:?} is no workflow; make it one with --exclusive true");
+        }
+        if on != tag.default_workflow {
+            changes.push(set(id, "default_workflow", json!(on)));
+            said.push(format!(
+                "{path:?} is {} the default workflow",
+                if on { "now" } else { "no longer" }
+            ));
+        }
+        if on {
+            for other in tags.iter().filter(|t| t.default_workflow && t.id != id) {
+                changes.push(set(other.id, "default_workflow", json!(false)));
+                said.push(format!(
+                    "{:?} is no longer the default workflow",
+                    tag_path(tags, other.id)
+                ));
+            }
+        }
+    }
+    if let Some(status) = fields.status {
+        let wire = match status {
+            SetStatus::Active => "active",
+            SetStatus::OnHold => "on_hold",
+            SetStatus::Dropped => "dropped",
+        };
+        changes.push(set(id, "status", json!(wire)));
+        said.push(format!(
+            "{}: {path:?} is {wire}",
+            role(tags, tag, exclusive)
+        ));
+    }
+    if (fields.key.is_some() || fields.ask_note.is_some()) && !is_state {
+        bail!("{path:?} is no state: --key and --ask-note are for the children of a workflow");
+    }
+    if let Some(key) = &fields.key {
+        if let Some(k) = key {
+            if k.chars().count() != 1 {
+                bail!("--key is one character");
+            }
+            if let Some(same) = tags.iter().find(|t| {
+                t.id != id && t.parent == tag.parent && t.key.as_deref() == Some(k.as_str())
+            }) {
+                bail!("{k:?} is the key of {:?} already", tag_path(tags, same.id));
+            }
+        }
+        changes.push(set(id, "key", json!(key)));
+        said.push(match key {
+            Some(k) => format!("{path:?} has the key {k:?}"),
+            None => format!("{path:?} has no key"),
+        });
+    }
+    if let Some(on) = fields.ask_note {
+        changes.push(set(id, "ask_note", json!(on)));
+        said.push(format!(
+            "{path:?} {} for a note",
+            if on { "asks" } else { "does not ask" }
+        ));
+    }
+    if changes.is_empty() {
+        said.push(format!("{path:?} is like that already"));
+    }
+    Ok((changes, said))
 }
 
 /// Where `samu state` takes a task.
@@ -366,6 +541,31 @@ pub(crate) fn run(config: &Config, format: Format, command: TagCommand) -> Resul
             )?;
             emit(format, &[json!({"id": id, "short": short(&id)})], &["id"])?;
         }
+        TagCommand::Set {
+            tag,
+            exclusive,
+            default_workflow,
+            status,
+            key,
+            ask_note,
+        } => {
+            let snapshot = snapshot(&client)?;
+            let id = find_tag(&snapshot.tags, &tag)?.id;
+            let fields = TagFields {
+                exclusive,
+                default_workflow,
+                status,
+                key: key.map(|k| (k != "none").then_some(k)),
+                ask_note,
+            };
+            let (changes, said) = tag_changes(&snapshot, id, &fields)?;
+            if !changes.is_empty() {
+                write(&client, &changes)?;
+            }
+            for line in said {
+                eprintln!("{line}");
+            }
+        }
         TagCommand::Rename { tag, title } => {
             if title.contains('/') {
                 bail!(
@@ -614,5 +814,181 @@ mod tests {
         assert!(find_tag(&tags, "Büro").is_err(), "two of that title");
         assert_eq!(find_tag(&tags, &short(&old.id)).unwrap().id, old.id);
         assert_eq!(tag_path(&tags, firma_buero.id), "Firma/Büro");
+    }
+
+    fn changed(changes: &[Change]) -> Vec<(Id, String, Value)> {
+        changes
+            .iter()
+            .map(|c| match c {
+                Change::Set {
+                    object,
+                    field,
+                    value,
+                    ..
+                } => (*object, field.clone(), value.clone()),
+                other => panic!("only sets: {other:?}"),
+            })
+            .collect()
+    }
+
+    fn workflows() -> (Tag, Tag, Tag, Tag) {
+        let mut status = tag("Status", None, 0);
+        status.exclusive = true;
+        status.default_workflow = true;
+        let waiting = tag("Wartet", Some(status.id), 0);
+        let mut dev = tag("Entwicklung", None, 1);
+        dev.exclusive = true;
+        let plain = tag("Büro", None, 2);
+        (status, waiting, dev, plain)
+    }
+
+    fn snap(tags: Vec<Tag>, projects: Vec<Project>) -> Snapshot {
+        Snapshot {
+            tags,
+            tasks: Vec::new(),
+            projects,
+        }
+    }
+
+    #[test]
+    fn a_new_default_workflow_takes_over_from_the_old() {
+        let (status, waiting, dev, plain) = workflows();
+        let s = snap(
+            vec![status.clone(), waiting, dev.clone(), plain],
+            Vec::new(),
+        );
+        let fields = TagFields {
+            default_workflow: Some(true),
+            ..TagFields::default()
+        };
+        let (changes, said) = tag_changes(&s, dev.id, &fields).unwrap();
+        assert_eq!(
+            changed(&changes),
+            vec![
+                (dev.id, "default_workflow".into(), json!(true)),
+                (status.id, "default_workflow".into(), json!(false)),
+            ]
+        );
+        assert_eq!(said.len(), 2);
+    }
+
+    #[test]
+    fn the_message_tells_a_workflow_from_its_state() {
+        let (status, waiting, dev, plain) = workflows();
+        let s = snap(
+            vec![status.clone(), waiting.clone(), dev, plain.clone()],
+            Vec::new(),
+        );
+        let hold = TagFields {
+            status: Some(SetStatus::OnHold),
+            ..TagFields::default()
+        };
+        let (changes, said) = tag_changes(&s, waiting.id, &hold).unwrap();
+        assert_eq!(
+            changed(&changes),
+            vec![(waiting.id, "status".into(), json!("on_hold"))]
+        );
+        assert_eq!(
+            said,
+            vec![r#"a state of "Status": "Status/Wartet" is on_hold"#]
+        );
+        let (_, said) = tag_changes(&s, status.id, &hold).unwrap();
+        assert_eq!(said, vec![r#"the workflow: "Status" is on_hold"#]);
+        let (_, said) = tag_changes(&s, plain.id, &hold).unwrap();
+        assert_eq!(said, vec![r#"the tag: "Büro" is on_hold"#]);
+    }
+
+    #[test]
+    fn a_key_and_a_note_belong_to_states_only() {
+        let (status, mut waiting, dev, plain) = workflows();
+        waiting.key = Some("w".into());
+        let next = tag("Später", Some(status.id), 1);
+        let s = snap(
+            vec![
+                status.clone(),
+                waiting.clone(),
+                next.clone(),
+                dev,
+                plain.clone(),
+            ],
+            Vec::new(),
+        );
+        let key = |k: Option<&str>| TagFields {
+            key: Some(k.map(str::to_owned)),
+            ..TagFields::default()
+        };
+        assert!(tag_changes(&s, plain.id, &key(Some("b"))).is_err());
+        assert!(tag_changes(&s, status.id, &key(Some("s"))).is_err());
+        assert!(
+            tag_changes(&s, next.id, &key(Some("w"))).is_err(),
+            "taken by Wartet"
+        );
+        assert!(tag_changes(&s, next.id, &key(Some("sp"))).is_err());
+        let (changes, _) = tag_changes(&s, next.id, &key(Some("s"))).unwrap();
+        assert_eq!(changed(&changes), vec![(next.id, "key".into(), json!("s"))]);
+        let (changes, _) = tag_changes(&s, waiting.id, &key(None)).unwrap();
+        assert_eq!(
+            changed(&changes),
+            vec![(waiting.id, "key".into(), Value::Null)]
+        );
+        let note = TagFields {
+            ask_note: Some(true),
+            ..TagFields::default()
+        };
+        assert!(tag_changes(&s, plain.id, &note).is_err());
+        let (changes, _) = tag_changes(&s, waiting.id, &note).unwrap();
+        assert_eq!(
+            changed(&changes),
+            vec![(waiting.id, "ask_note".into(), json!(true))]
+        );
+    }
+
+    #[test]
+    fn a_workflow_in_use_stays_one() {
+        let (status, waiting, dev, plain) = workflows();
+        let project: Project = serde_json::from_value(json!({
+            "id": Id::new(),
+            "created": "2026-11-07T08:00:00Z",
+            "modified": "2026-11-07T08:00:00Z",
+            "title": "samudo",
+            "kind": "parallel",
+            "status": "active",
+            "workflow": dev.id,
+        }))
+        .unwrap();
+        let s = snap(
+            vec![status.clone(), waiting, dev.clone(), plain.clone()],
+            vec![project],
+        );
+        let off = TagFields {
+            exclusive: Some(false),
+            ..TagFields::default()
+        };
+        assert!(tag_changes(&s, dev.id, &off).is_err());
+        // The default stops being one with it.
+        let (changes, _) = tag_changes(&s, status.id, &off).unwrap();
+        assert_eq!(
+            changed(&changes),
+            vec![
+                (status.id, "exclusive".into(), json!(false)),
+                (status.id, "default_workflow".into(), json!(false)),
+            ]
+        );
+        let default = TagFields {
+            default_workflow: Some(true),
+            ..TagFields::default()
+        };
+        assert!(tag_changes(&s, plain.id, &default).is_err(), "no workflow");
+        assert!(
+            tag_changes(&s, plain.id, &TagFields::default()).is_err(),
+            "nothing"
+        );
+        let on = TagFields {
+            exclusive: Some(true),
+            default_workflow: Some(true),
+            ..TagFields::default()
+        };
+        let (changes, _) = tag_changes(&s, plain.id, &on).unwrap();
+        assert_eq!(changes.len(), 3, "exclusive, default, the old default off");
     }
 }

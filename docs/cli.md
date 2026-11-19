@@ -209,12 +209,22 @@ samu project from-task 4f2a91c3        # a task with its children becomes a proj
 samu tag add Place/Office              # Office under Place
 samu tag add Status --exclusive --default-workflow  # a workflow; its children are states
 samu tag add Status/Waiting --key w    # --ask-note asks for a note on entry
+samu tag set Status/Waiting --status on-hold --ask-note true
+samu tag set Development --exclusive true --default-workflow true
 samu tag list
 samu review Bathroom                   # mark reviewed
 ```
 
 `rename`, `move` and `delete` work on folders, projects and tags as
 `--help` shows.
+
+`samu tag set` changes a tag afterwards: `--exclusive` makes it a
+workflow or takes that back (refused while a project uses it),
+`--default-workflow` makes it the workflow of projects that name none
+(the one before stops being it), `--status active|on-hold|dropped`, and
+for a state `--key` (`none` takes it off) and `--ask-note`. A workflow
+and its states have the same fields, so the command says on stderr which
+of them it changed.
 
 `samu project from-task` turns a task into a project: the project takes
 its title, note, dates, flag and tags, and its direct children become the

@@ -213,12 +213,22 @@ samu project from-task 4f2a91c3        # eine Aufgabe mit ihren Kindern wird ein
 samu tag add Ort/Büro                  # Büro unter Ort
 samu tag add Status --exclusive --default-workflow  # ein Ablauf; seine Kinder sind Zustände
 samu tag add Status/Wartet --key w     # --ask-note verlangt beim Betreten eine Notiz
+samu tag set Status/Wartet --status on-hold --ask-note true
+samu tag set Entwicklung --exclusive true --default-workflow true
 samu tag list
 samu review Bad                        # als geprüft markieren
 ```
 
 `rename`, `move` und `delete` wirken auf Ordner, Projekte und Tags, wie
 `--help` zeigt.
+
+`samu tag set` ändert einen Tag nachträglich: `--exclusive` macht ihn
+zum Ablauf oder nimmt das zurück (abgelehnt, solange ein Projekt ihn
+nutzt), `--default-workflow` macht ihn zum Ablauf der Projekte, die
+keinen nennen (der bisherige ist es dann nicht mehr), `--status
+active|on-hold|dropped`, und bei einem Zustand `--key` (`none` nimmt
+sie weg) und `--ask-note`. Ein Ablauf und seine Zustände haben dieselben
+Felder; darum sagt das Kommando auf stderr, was es geändert hat.
 
 `samu project from-task` macht aus einer Aufgabe ein Projekt: Das Projekt
 übernimmt Titel, Notiz, Daten, Markierung und Tags, die direkten Kinder
