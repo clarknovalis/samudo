@@ -13,13 +13,13 @@ steps to reproduce, and what an attacker gains.
 
 1. You get an answer within a week, saying whether the problem is
    confirmed.
-2. The fix is made in the maintainer's own repository, like every other
-   change (see [`CONTRIBUTING.md`](CONTRIBUTING.md)), not in a temporary
-   private fork on GitHub. If you want to check it first, you get it as
-   a patch in the advisory's comments.
-3. A release carries the fix, and this repository's next snapshot
-   publishes it.
-4. The advisory is published right after the snapshot, with a CVE if
+2. The fix is made in the maintainer's checkout and is not pushed at
+   once: every commit here is public with its message, so a fix that
+   could be read before it runs is rolled out first and pushed after.
+   If you want to check it first, you get it as a patch in the
+   advisory's comments.
+3. A release carries the fix.
+4. The advisory is published right after the release, with a CVE if
    you like, and with your name if you want to be credited.
 
 ## Supported versions

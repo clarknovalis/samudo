@@ -59,6 +59,6 @@ its citations in the code have no target.
 | [0128](0128-closing-with-open-children.md) | accepted | Completing or dropping with open children asks: close them along, lift them out, or cancel; `POST /objects/{id}/close` |
 | [0129](0129-capturing-several-lines.md) | accepted | Capturing several lines: each line a task, indentation makes subtasks, `POST /capture/lines` all or nothing |
 | [0133](0133-decision-records-in-the-repository.md) | accepted | Decision records live in this repository, in English, as living documents |
-| [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; agents push with a token of their own |
+| [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; agents push with a token of their own, once it is public again |
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
 | [0136](0136-removing-a-feature.md) | accepted | A feature leaves in three stages: deprecated, retired, removed |

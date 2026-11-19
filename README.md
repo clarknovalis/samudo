@@ -48,7 +48,7 @@ far; contributions are welcome.
 
 **How it is made:** samudo is developed by its maintainer together with
 Claude Code, Anthropic's coding agent. Most commits are co-authored by
-Claude, and the snapshots here name it as co-author.
+Claude and say so.
 
 ## Try it
 

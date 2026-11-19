@@ -45,15 +45,14 @@ The short version:
 
 ## Pull requests
 
-Development happens in the maintainer's own repository; this one on
-GitHub receives it as snapshots, one commit per published state. A pull
-request is applied there as a patch with your authorship kept, and its
-change appears here with the next snapshot; the pull request itself is
-then closed rather than merged, with a pointer to that snapshot. That is
-expected, not a rejection.
+Development happens in this repository, with its real history
+([ADR 0134](docs/adr/0134-one-history-on-github.md)); a pull request is
+reviewed and merged here in the usual way. Commit messages are part of
+the documentation: they say why, and carry the measurements a change
+rests on.
 
-Most of the code is written with Claude Code, Anthropic's coding agent; a
-snapshot names Claude as co-author when commits in it were co-authored.
+Most of the code is written with Claude Code, Anthropic's coding agent;
+the commits it co-authored name Claude as co-author.
 
 The desktop widget lives in
 [samudo-dms](https://github.com/clarknovalis/samudo-dms); pull requests

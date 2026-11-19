@@ -61,4 +61,14 @@ recorded. And the snapshot adds a step after every rollout.
 
 ## Changes
 
-None yet.
+- 2026-11-19: The hosting plan enforces neither branch rules nor
+  rulesets on a private repository, so the limits of §5 cannot be held
+  by the server during the changeover. Until the repository is public
+  again, agents do not push; only the maintainer does. The `pre-push`
+  hook of §2 holds the same limits on the maintainer's side: only
+  `main`, only forward, a release tag only on request. The agents'
+  token and the rules on the server come with §7.
+- 2026-11-19: The `pre-push` hook reads the added lines, the messages
+  and the authors of every outgoing commit rather than the last tree,
+  since a word that one commit brings and the next removes would stay
+  in the history. Every refusal of a hook is counted, without the word.
