@@ -57,6 +57,16 @@ Live-Aktualisierungen nutzen Server-Sent Events auf `/events`; der Proxy
 darf sie nicht puffern (Caddy, und nginx mit `proxy_buffering off`, sind
 in Ordnung).
 
+Hinter dem Proxy braucht der Server `SAMU_TRUST_PROXY=true`, wie es die
+Beispieldatei setzt: Nur dann glaubt er `X-Forwarded-Host` und
+`X-Forwarded-Proto`, und der Kopplungscode für die Android-App nennt
+`https://samu.example.org`. Ohne die Option steht im Code `http://` und der
+`Host`-Header, und ein Telefon lässt sich über den Proxy nicht koppeln.
+Caddy setzt beide Header von sich aus; nginx braucht
+`proxy_set_header X-Forwarded-Proto $scheme;` und
+`proxy_set_header Host $host;`. Die Option bleibt aus, wenn der Server
+direkt erreicht wird: Dann könnte jeder diese Header mitschicken.
+
 ## Optionen des Servers
 
 | Option | Umgebung | Vorgabe | |
@@ -64,6 +74,7 @@ in Ordnung).
 | `--data` | `SAMU_DATA` | `/data` | `server.db` (Konten, Sitzungen) und `accounts/<name>.db` |
 | `--listen` | `SAMU_LISTEN` | `0.0.0.0:8490` | Adresse und Port |
 | `--secret-key` | `SAMU_SECRET_KEY` | keiner | versiegelt die Kalenderquellen; siehe unten |
+| `--trust-proxy` | `SAMU_TRUST_PROXY` | aus | glaubt `X-Forwarded-Host` und `X-Forwarded-Proto` für die Adresse im Kopplungscode; nur hinter einem Reverse-Proxy, der sie setzt |
 | `--blob-max-bytes` | `SAMU_BLOB_MAX_BYTES` | 50 MB | größter Anhang; nie mehr als 50 MB |
 | `--blob-quota-bytes` | `SAMU_BLOB_QUOTA_BYTES` | keine | alle Anhänge eines Kontos zusammen |
 | `--calendar-hosts` | `SAMU_CALENDAR_HOSTS` | alle | Hosts, von denen Kalender abgerufen werden, durch Kommas getrennt |

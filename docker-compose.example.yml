@@ -33,6 +33,10 @@ services:
       SAMU_LISTEN: 0.0.0.0:8490
       # Seals the sources of calendars. Lost, every source has to be set again.
       SAMU_SECRET_KEY: ${SAMU_SECRET_KEY:?create it in .env first}
+      # Behind the reverse proxy: believe its X-Forwarded-Host and -Proto,
+      # so a pairing code names the https address. Remove it if the port
+      # is ever reached without the proxy.
+      SAMU_TRUST_PROXY: "true"
     healthcheck:
       test: ["CMD", "samu", "--server", "http://127.0.0.1:8490", "health"]
       interval: 30s

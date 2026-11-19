@@ -54,6 +54,18 @@ enum Command {
         /// like `openssl rand -base64 32`. Without it no calendar is fetched.
         #[arg(long, env = "SAMU_SECRET_KEY", hide_env_values = true)]
         secret_key: Option<String>,
+        /// Believe `X-Forwarded-Host` and `X-Forwarded-Proto`: only behind
+        /// a reverse proxy that sets them itself. Without it the address
+        /// in a pairing code is `http://` and the `Host` header. In the
+        /// environment anything but empty, `0`, `false`, `no` or `off`
+        /// turns it on.
+        #[arg(
+            long,
+            env = "SAMU_TRUST_PROXY",
+            action = clap::ArgAction::SetTrue,
+            value_parser = clap::builder::FalseyValueParser::new()
+        )]
+        trust_proxy: bool,
         #[command(flatten)]
         limits: Limits,
     },
@@ -355,6 +367,8 @@ fn profile(name: &str, command: Option<ProfileCommand>) -> Result<()> {
                 dir,
                 listen,
                 secret_key,
+                // A profile is asked on the loopback, never through a proxy.
+                false,
                 &Limits::default(),
                 Some(Some(host)),
             ))
@@ -369,6 +383,7 @@ async fn serve(
     data: PathBuf,
     listen: SocketAddr,
     secret_key: Option<String>,
+    trust_proxy: bool,
     limits: &Limits,
     loopback: Option<Option<String>>,
 ) -> Result<()> {
@@ -380,6 +395,7 @@ async fn serve(
     let state = Arc::new(
         app::AppState::new(&data)?
             .with_secret_key(key)
+            .with_trust_proxy(trust_proxy)
             .with_blob_limits(limits.blobs())
             .with_calendar_hosts(limits.calendar_hosts())?
             .with_unbraked(&limits.brake_exempt)
@@ -511,9 +527,16 @@ fn main() -> Result<()> {
         Command::Serve {
             listen,
             secret_key,
+            trust_proxy,
             limits,
-        } => tokio::runtime::Runtime::new()?
-            .block_on(serve(args.data, listen, secret_key, &limits, None)),
+        } => tokio::runtime::Runtime::new()?.block_on(serve(
+            args.data,
+            listen,
+            secret_key,
+            trust_proxy,
+            &limits,
+            None,
+        )),
         Command::Replica {
             upstream,
             listen,

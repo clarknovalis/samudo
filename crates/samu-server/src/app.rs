@@ -65,6 +65,9 @@ pub(crate) struct AppState {
     registration: crate::register::Registration,
     /// When `last_active` of an account was last moved on (ADR 0099 §4).
     touched: Mutex<HashMap<String, std::time::Instant>>,
+    /// Whether `X-Forwarded-Host` and `X-Forwarded-Proto` are believed:
+    /// only behind a reverse proxy that sets them itself.
+    trust_proxy: bool,
 }
 
 /// Days a registered demo account lives after its last use, unless
@@ -136,6 +139,7 @@ impl AppState {
             demo_days: DEMO_DAYS,
             registration: crate::register::Registration::default(),
             touched: Mutex::new(HashMap::new()),
+            trust_proxy: false,
         })
     }
 
@@ -191,6 +195,13 @@ impl AppState {
     #[must_use]
     pub(crate) fn with_registration(mut self, registration: crate::register::Registration) -> Self {
         self.registration = registration;
+        self
+    }
+
+    /// Behind a reverse proxy that sets the `X-Forwarded-*` headers itself.
+    #[must_use]
+    pub(crate) const fn with_trust_proxy(mut self, trust: bool) -> Self {
+        self.trust_proxy = trust;
         self
     }
 
@@ -813,7 +824,7 @@ async fn pair_code(
     headers: HeaderMap,
     Json(request): Json<PairCodeRequest>,
 ) -> Result<Json<PairCode>, Failure> {
-    let server = origin(&headers)?;
+    let server = origin(&headers, state.trust_proxy)?;
     let account = session.account.clone();
     let made = tokio::task::spawn_blocking(move || {
         state
@@ -850,16 +861,23 @@ async fn pair_code(
     }))
 }
 
-/// Where the phone finds this server: the address the request came to,
-/// through Caddy with its `X-Forwarded-Proto` (ADR 0031 §4).
-pub(crate) fn origin(headers: &HeaderMap) -> Result<String, Failure> {
+/// Where the phone finds this server: the address the request came to
+/// (ADR 0031 §4).
+///
+/// The server speaks plain HTTP itself, so on its own it is `http://` and
+/// the `Host` header. `X-Forwarded-Host` and `X-Forwarded-Proto` count only
+/// with `trust_proxy`, behind a reverse proxy that sets them: anyone who
+/// reaches the server directly can send them too, and the address ends up
+/// in the pairing code a phone signs in with.
+pub(crate) fn origin(headers: &HeaderMap, trust_proxy: bool) -> Result<String, Failure> {
     let header = |name: &str| {
         headers
             .get(name)
             .and_then(|v| v.to_str().ok())
             .map(str::trim)
     };
-    let host = header("x-forwarded-host")
+    let forwarded = |name: &str| header(name).filter(|_| trust_proxy);
+    let host = forwarded("x-forwarded-host")
         .or_else(|| header("host"))
         .filter(|h| !h.is_empty() && !h.contains(['/', ' ', '@']))
         .ok_or_else(|| {
@@ -869,7 +887,7 @@ pub(crate) fn origin(headers: &HeaderMap) -> Result<String, Failure> {
                 "the request names no host",
             )
         })?;
-    let scheme = if header("x-forwarded-proto") == Some("https") {
+    let scheme = if forwarded("x-forwarded-proto") == Some("https") {
         "https"
     } else {
         "http"

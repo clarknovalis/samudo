@@ -56,6 +56,16 @@ samu.example.org {
 Live updates use server-sent events on `/events`; the proxy must not
 buffer them (Caddy and nginx with `proxy_buffering off` are fine).
 
+Behind the proxy the server needs `SAMU_TRUST_PROXY=true`, as the example
+file sets it: only then does it believe `X-Forwarded-Host` and
+`X-Forwarded-Proto`, and the pairing code for the Android app names
+`https://samu.example.org`. Without it the code says `http://` and the
+`Host` header, and a phone cannot pair through the proxy. Caddy sets both
+headers by itself; nginx needs
+`proxy_set_header X-Forwarded-Proto $scheme;` and
+`proxy_set_header Host $host;`. Leave the option off when the server is
+reached directly: then anyone could send these headers.
+
 ## Server options
 
 | Option | Environment | Default | |
@@ -63,6 +73,7 @@ buffer them (Caddy and nginx with `proxy_buffering off` are fine).
 | `--data` | `SAMU_DATA` | `/data` | `server.db` (accounts, sessions) and `accounts/<name>.db` |
 | `--listen` | `SAMU_LISTEN` | `0.0.0.0:8490` | address and port |
 | `--secret-key` | `SAMU_SECRET_KEY` | none | seals calendar sources; see below |
+| `--trust-proxy` | `SAMU_TRUST_PROXY` | off | believe `X-Forwarded-Host` and `X-Forwarded-Proto` for the address in a pairing code; only behind a reverse proxy that sets them |
 | `--blob-max-bytes` | `SAMU_BLOB_MAX_BYTES` | 50 MB | largest attachment; never more than 50 MB |
 | `--blob-quota-bytes` | `SAMU_BLOB_QUOTA_BYTES` | none | all attachments of one account together |
 | `--calendar-hosts` | `SAMU_CALENDAR_HOSTS` | any | hosts calendars are fetched from, separated by commas |

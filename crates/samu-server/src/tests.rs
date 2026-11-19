@@ -2036,17 +2036,83 @@ fn the_address_in_the_code_is_the_one_the_request_came_to() {
     let mut headers = HeaderMap::new();
     headers.insert("host", "127.0.0.1:8491".parse().unwrap());
     assert_eq!(
-        crate::app::origin(&headers).unwrap(),
+        crate::app::origin(&headers, false).unwrap(),
         "http://127.0.0.1:8491"
     );
     headers.insert("host", "samu.example.org".parse().unwrap());
     headers.insert("x-forwarded-proto", "https".parse().unwrap());
     assert_eq!(
-        crate::app::origin(&headers).unwrap(),
+        crate::app::origin(&headers, true).unwrap(),
         "https://samu.example.org"
     );
+    headers.insert("x-forwarded-host", "tasks.example.org".parse().unwrap());
+    assert_eq!(
+        crate::app::origin(&headers, true).unwrap(),
+        "https://tasks.example.org"
+    );
     headers.insert("host", "evil/path".parse().unwrap());
-    assert!(crate::app::origin(&headers).is_err());
+    headers.remove("x-forwarded-host");
+    assert!(crate::app::origin(&headers, true).is_err());
+}
+
+/// Without `--trust-proxy` the forwarded headers are anybody's word: the
+/// address is the `Host` header over plain HTTP, whatever they say.
+#[test]
+fn forwarded_headers_count_only_behind_a_trusted_proxy() {
+    let mut headers = HeaderMap::new();
+    headers.insert("host", "samu.example.org".parse().unwrap());
+    headers.insert("x-forwarded-host", "evil.example.net".parse().unwrap());
+    headers.insert("x-forwarded-proto", "https".parse().unwrap());
+    assert_eq!(
+        crate::app::origin(&headers, false).unwrap(),
+        "http://samu.example.org"
+    );
+    assert_eq!(
+        crate::app::origin(&headers, true).unwrap(),
+        "https://evil.example.net"
+    );
+}
+
+/// `--trust-proxy` is off unless asked for.
+#[test]
+fn trust_proxy_is_off_by_default() {
+    use clap::Parser;
+    let trust = |args: &[&str]| match crate::Args::try_parse_from(args).unwrap().command {
+        crate::Command::Serve { trust_proxy, .. } => trust_proxy,
+        other => panic!("not serve: {other:?}"),
+    };
+    assert!(!trust(&["samu-server", "serve"]));
+    assert!(trust(&["samu-server", "serve", "--trust-proxy"]));
+}
+
+/// The same through `POST /pair/code`: the address in the code a phone
+/// signs in with follows the forwarded headers only with `--trust-proxy`.
+#[tokio::test]
+async fn a_pairing_code_names_a_forwarded_host_only_behind_a_trusted_proxy() {
+    async fn server_in_code(trust: bool) -> String {
+        let (address, _dir) = start_with(true, |state| state.with_trust_proxy(trust)).await;
+        let token = sign_in(address).await;
+        let body = json!({"device": "pixel", "password": PASSWORD}).to_string();
+        let request = format!(
+            "POST /pair/code HTTP/1.1\r\nHost: samu.example.org\r\nConnection: close\r\n\
+             X-Forwarded-Host: evil.example.net\r\nX-Forwarded-Proto: https\r\n\
+             Authorization: Bearer {token}\r\nContent-Type: application/json\r\n\
+             Content-Length: {}\r\n\r\n{body}",
+            body.len()
+        );
+        let mut stream = tokio::net::TcpStream::connect(address).await.unwrap();
+        stream.write_all(request.as_bytes()).await.unwrap();
+        let mut raw = String::new();
+        stream.read_to_string(&mut raw).await.unwrap();
+        let (head, body) = raw.split_once("\r\n\r\n").unwrap();
+        assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+        let code: samu_store::core::api::PairCode = serde_json::from_str(body).unwrap();
+        samu_store::core::pairing::PairingUri::parse(&code.uri)
+            .unwrap()
+            .server
+    }
+    assert_eq!(server_in_code(false).await, "http://samu.example.org");
+    assert_eq!(server_in_code(true).await, "https://evil.example.net");
 }
 
 /// The hex form SQLite gives a uuid blob.
