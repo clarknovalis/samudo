@@ -38,6 +38,9 @@ env:
 jobs:
   analyze:
     name: ${{ matrix.language }}
+    # Code scanning is free for public repositories only; while this one is
+    # private (ADR 0134 §6) the upload would fail, so the job waits.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
