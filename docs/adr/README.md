@@ -19,17 +19,22 @@ its citations in the code have no target.
 | ADR | Status | Decision |
 |---|---|---|
 | [0015](0015-unknown-values-and-hlc-on-the-wire.md) | accepted | Unknown enum values are read as `unknown` and never written; the HLC is an object `{wall, counter, device}` on the wire |
+| [0017](0017-availability-edge-cases.md) | accepted | Availability edge cases: dates from midnight in the account's zone, overdue from the next day, due soon P2D, `unknown` as not active, cycles without a crash |
 | [0024](0024-workflows.md) | accepted | Workflows are exclusive tag groups: an LWW register per object, a workflow per project with a default, keys and cycling, a logbook |
 | [0028](0028-android-app.md) | accepted | Android app in Kotlin/Compose over `samu-mobile` (uniffi); mirror plus outbox, sync in Rust, overlay in `samu-core` |
+| [0030](0030-reminders.md) | accepted | Reminders as the object `reminder`, due tasks remind by themselves, computed in `samu-core`, one alarm on the phone |
 | [0035](0035-scopes.md) | accepted | Scopes: one lens over all views, rule in `samu-core`, chosen per device, due tasks outside counted in the header |
 | [0036](0036-managing-objects.md) | accepted | Deleting through `POST /objects/{id}/delete`, planned in `samu-core` and written in one transaction; orphaned tasks count as inbox |
 | [0039](0039-comments-attachments-author.md) | accepted | Comments and attachments as objects; blobs by SHA-256 in samu; the server sets the author `{device, kind}` from the session |
 | [0043](0043-scopes-second-round.md) | accepted | Scopes: inbox as a checkbox, filter in the search language, capture defaults, schedule windows, choice over Tasker |
 | [0045](0045-forecast-second-round.md) | accepted | Forecast computed in `samu-core` with `GET /forecast`: flagged section, forecast tag, deferred tasks, a day strip; account settings as the object `settings` |
+| [0046](0046-clocking.md) | accepted | Clocking over `/changes`: one running clock per account, the newer wins, completing stops it; evaluation in `samu-core` |
 | [0047](0047-calendars.md) | accepted | Calendars over ICS and CalDAV fetched by the server, sources encrypted; appointments expanded in `samu-core`, in forecast and calendar view |
 | [0054](0054-properties-in-the-interface.md) | accepted | Properties as foldable frontmatter, link templates per key, local commands through `samu-open:`, inheritance in `samu-core`, chip `prop:` |
+| [0058](0058-rendered-notes-and-comments.md) | accepted | Notes and comments rendered: Org or Markdown detected per text, a document tree in `samu-api`, `POST /render`, safe by construction |
 | [0066](0066-offline-on-the-computer.md) | accepted | A local replica on 127.0.0.1 with mirror and outbox answers the API and serves the web UI; every route is local, online only or relayed |
 | [0068](0068-writing-appointments.md) | accepted | Appointments written back over CalDAV, offline through the outbox; series edits in `samu-core`; collisions per field |
+| [0072](0072-scope-as-workspace.md) | accepted | A scope carries a layout on the server, first for the inspector; parts not shown are folded and named when they have a value |
 | [0073](0073-capture-templates.md) | accepted | Capture templates: a quick-capture line as defaults plus reminders, invoked with `/name`; line before template before scope |
 | [0080](0080-report.md) | accepted | Report of done, worked on and time over a period, filtered with the search language, `GET /report`; by default only the person's own work |
 | [0081](0081-report-replaces-time.md) | accepted | "Report" replaces "Time"; booking time afterwards with `z:` (and `x:` for completed) in capture and edit |
