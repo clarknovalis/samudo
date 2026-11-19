@@ -65,6 +65,17 @@ fn origin(dir: &TempDir, account: &str) -> Option<Registered> {
     server.account_info(account).unwrap().map(|a| a.registered)
 }
 
+/// The first session of a new account is no more named `server` than any
+/// other, and no account is made for the try.
+#[tokio::test]
+async fn registering_as_the_device_server_is_refused() {
+    let (address, dir) = start(RegistrationMode::Demo, None).await;
+    let answer = register(address, &json!({"device": "Server"}), None).await;
+    assert_eq!(answer.status, 400, "{}", answer.body);
+    let server = ServerStore::open(&dir.0.join("server.db")).unwrap();
+    assert_eq!(server.registered_count().unwrap(), 0);
+}
+
 #[tokio::test]
 async fn off_says_so_and_makes_nothing() {
     let (address, dir) = start(RegistrationMode::Off, None).await;

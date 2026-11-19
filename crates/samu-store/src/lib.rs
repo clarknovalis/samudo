@@ -24,8 +24,8 @@ pub use lock::DatabaseLock;
 pub use rows::Object;
 pub use samu_core as core;
 pub use server::{
-    AccountInfo, Ended, HookRow, PairingCode, Registered, SESSION_ID_LEN, ServerStore, SessionRow,
-    new_token, token_digest, valid_account_name,
+    AccountInfo, Ended, HookRow, PairingCode, RESERVED_DEVICE, Registered, SESSION_ID_LEN,
+    ServerStore, SessionRow, is_reserved_device, new_token, token_digest, valid_account_name,
 };
 pub use store::{
     AccountStore, Changed, Delivered, Fetched, KnownResource, LogFilter, OwnedSnapshot, Pending,

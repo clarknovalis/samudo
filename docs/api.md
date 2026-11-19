@@ -79,7 +79,9 @@ completion may carry a `note` for the logbook.
 "device": "laptop"}`. The server decides **per field**: the later stamp
 wins. A stamp more than an hour ahead of the server's clock is taken as an
 hour ahead, so a device with a wrong clock cannot hold a field against
-later changes. Each change gets an outcome:
+later changes. The `device` of a stamp is always the session's: whatever a
+client writes there is replaced, and no session can be named `server`,
+the device of the server's own stamps. Each change gets an outcome:
 
 ```json
 {"outcome": "applied", "seq": 185}

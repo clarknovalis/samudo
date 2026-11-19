@@ -570,6 +570,92 @@ async fn an_outbox_keeps_its_stamps() {
     assert_eq!(object.json()["object"]["title"], "neu");
 }
 
+/// Who made a change is the session's word: a stamp that names another
+/// device, or the server itself, is taken with the session's device, in
+/// the stamp and in the logbook. Its time and counter stay.
+#[tokio::test]
+async fn a_client_stamp_carries_the_device_of_its_session() {
+    let (address, _dir) = start(true).await;
+    let token = sign_in(address).await;
+    let (id, task) = new_task("Rechnung");
+    let now = Timestamp::now().as_millisecond();
+    let stamped = |mut change: Value, wall: i64, device: &str| {
+        change["hlc"] = json!({"wall": wall, "counter": 4, "device": device});
+        change
+    };
+    let done = json!({"op": "set", "object": id, "field": "completed_at",
+                      "value": "2026-11-07T10:00:00Z", "note": "bezahlt"});
+    let title = |title: &str| json!({"op": "set", "object": id, "field": "title", "value": title});
+    let answer = call(
+        address,
+        "POST",
+        "/changes",
+        Some(&token),
+        Some(&json!([
+            stamped(create(&id, &task), now - 3000, "server"),
+            stamped(done, now - 2000, "pixel"),
+            stamped(title("neu"), now - 1000, "server"),
+            stamped(title("alt"), now - 1500, "pixel"),
+        ])),
+    )
+    .await;
+    let outcomes = answer.json();
+    for applied in 0..3 {
+        assert_eq!(outcomes[applied]["outcome"], "applied", "{}", answer.body);
+    }
+    // The stamp that holds the title is the one named `server`.
+    assert_eq!(outcomes[3]["outcome"], "superseded", "{}", answer.body);
+    assert_eq!(
+        outcomes[3]["by"],
+        json!({"wall": now - 1000, "counter": 4, "device": "laptop"})
+    );
+
+    let answer = call(
+        address,
+        "GET",
+        &format!("/objects/{id}/logbook"),
+        Some(&token),
+        None,
+    )
+    .await;
+    let entries: Vec<samu_store::core::api::LogEntry> = serde_json::from_str(&answer.body).unwrap();
+    assert_eq!(entries.len(), 1, "{}", answer.body);
+    assert_eq!(entries[0].device, "laptop");
+}
+
+/// `server` is the device of the server's own stamps: no session gets it,
+/// by sign-in or by pairing, however it is written.
+#[tokio::test]
+async fn no_session_is_named_server() {
+    let (address, _dir) = start(true).await;
+    for device in ["server", " Server ", "SERVER"] {
+        let answer = call(
+            address,
+            "POST",
+            "/login",
+            None,
+            Some(&json!({"account": "privat", "password": PASSWORD, "device": device})),
+        )
+        .await;
+        assert_eq!(answer.status, 400, "{device:?}: {}", answer.body);
+        assert!(answer.body.contains("the server's own"), "{}", answer.body);
+    }
+    let token = sign_in(address).await;
+    let code = json!({"device": "Server", "password": PASSWORD});
+    let answer = call(address, "POST", "/pair/code", Some(&token), Some(&code)).await;
+    assert_eq!(answer.status, 400, "{}", answer.body);
+    // A name that only contains it is an ordinary one.
+    let answer = call(
+        address,
+        "POST",
+        "/login",
+        None,
+        Some(&json!({"account": "privat", "password": PASSWORD, "device": "homeserver"})),
+    )
+    .await;
+    assert_eq!(answer.status, 200, "{}", answer.body);
+}
+
 #[tokio::test]
 async fn changes_after_a_number_lists_objects_and_tombstones() {
     let (address, _dir) = start(true).await;

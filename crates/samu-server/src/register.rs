@@ -131,6 +131,9 @@ fn check(mode: RegistrationMode, request: Register, headers: &HeaderMap) -> Resu
     if device.is_empty() {
         return Err(Failure::bad_request("a session needs a device name"));
     }
+    if samu_store::is_reserved_device(&device) {
+        return Err(Failure::bad_request(samu_store::RESERVED_DEVICE));
+    }
     let name = request
         .name
         .map(|n| n.trim().to_string())

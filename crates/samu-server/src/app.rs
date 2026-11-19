@@ -677,6 +677,21 @@ fn held(wait: std::time::Duration) -> Response {
     response
 }
 
+/// `change` with the device of its stamp set to the session's: who made a
+/// change is the session's word, never the client's (ADR 0039 §1). Set,
+/// not required: a replica passes on what its local clients stamped, and
+/// an outbox outlives a sign-in under another name; refusing those would
+/// drop them. The time and the counter stay as the client gave them.
+fn bound_to(change: Change, device: &str) -> Change {
+    match change.hlc() {
+        Some(hlc) if hlc.device != device => {
+            let stamp = Hlc::new(hlc.wall, hlc.counter, device);
+            restamp(change, stamp)
+        }
+        _ => change,
+    }
+}
+
 async fn login(
     State(state): State<Arc<AppState>>,
     Json(login): Json<Login>,
@@ -689,6 +704,9 @@ async fn login(
             ErrorCode::BadRequest,
             "a session needs a device name",
         ));
+    }
+    if samu_store::is_reserved_device(&device) {
+        return Err(Failure::bad_request(samu_store::RESERVED_DEVICE));
     }
     let kind = login.kind.unwrap_or_default();
     if kind == AuthorKind::Unknown {
@@ -1087,7 +1105,7 @@ async fn post_changes(
                 next_stamp(&session.device, None, seen.as_ref(), now),
             )
         } else {
-            change
+            bound_to(change, &session.device)
         };
         let outcome = store.apply(&change, &session.author(), now)?;
         if let Some(reach) = &mut reach

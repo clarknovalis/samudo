@@ -81,8 +81,10 @@ tragen.
 "counter": n, "device": "laptop"}`. Der Server entscheidet **je Feld**: Der
 spätere Stempel gewinnt. Ein Stempel, der der Uhr des Servers mehr als eine
 Stunde vorausgeht, zählt als eine Stunde voraus; so hält ein Gerät mit
-falscher Uhr kein Feld gegen spätere Änderungen fest. Jede Änderung bekommt
-ein Ergebnis:
+falscher Uhr kein Feld gegen spätere Änderungen fest. Das `device` eines
+Stempels ist immer das der Sitzung: Was ein Client dort einträgt, wird
+ersetzt, und keine Sitzung kann `server` heißen, wie das Gerät der Stempel
+des Servers selbst. Jede Änderung bekommt ein Ergebnis:
 
 ```json
 {"outcome": "applied", "seq": 185}

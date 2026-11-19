@@ -163,6 +163,20 @@ pub struct ServerStore {
     migration: MigrationReport,
 }
 
+/// The device name of the stamps the server makes itself: settings,
+/// fetched appointments, what it does on its own. No session may carry it,
+/// or its changes would pass for the server's (reports leave those out).
+const SERVER_DEVICE: &str = "server";
+
+/// Whether `device` is a name no session may have, however it is written.
+#[must_use]
+pub fn is_reserved_device(device: &str) -> bool {
+    device.trim().eq_ignore_ascii_case(SERVER_DEVICE)
+}
+
+/// What a sign-in under that name is told.
+pub const RESERVED_DEVICE: &str = "the device name `server` is the server's own";
+
 fn unsupported(what: impl Into<String>) -> Error {
     Error::Unsupported { what: what.into() }
 }
@@ -518,6 +532,9 @@ impl ServerStore {
         let Some(kind_name) = author_kind_name(kind) else {
             return Err(unsupported("a session is a person's or an agent's"));
         };
+        if is_reserved_device(device) {
+            return Err(unsupported(RESERVED_DEVICE));
+        }
         let grant_text = grant.map(grant_json).transpose()?;
         let token = hex(&random_bytes::<TOKEN_BYTES>()?);
         let expires = expiry(now)?;
@@ -559,6 +576,9 @@ impl ServerStore {
         let device = device.trim();
         if device.is_empty() || device.chars().count() > 64 {
             return Err(unsupported("a device name has 1 to 64 characters"));
+        }
+        if is_reserved_device(device) {
+            return Err(unsupported(RESERVED_DEVICE));
         }
         let stored: Option<(i64, String)> = self
             .conn
