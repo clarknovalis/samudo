@@ -544,11 +544,20 @@ private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: St
             // Line 1 (ADR 0130 §1, §3): the title takes what it needs, the
             // fields placed there get the rest, right-aligned and cut at
             // their end.
-            val first = rowParts(row, 1, place)
+            val before = rowParts(row, Slot.BEFORE, place)
+            val first = rowParts(row, Slot.AFTER, place)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    // 🚧 when an open task waits for it; the note mark (ADR 0053 §5).
-                    (if (row.blocks) "🚧 " else "") + row.title + (if (row.hasNote) "  ✎" else ""),
+                    // The fields before the title (ADR 0131 §2), in one text
+                    // with it so they are never cut; 🚧 when an open task
+                    // waits for it; the note mark (ADR 0053 §5).
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        if (before.isNotEmpty()) {
+                            append(rowText(before, t.muted, t.overdue, t.soon))
+                            append("  ")
+                        }
+                        append((if (row.blocks) "🚧 " else "") + row.title + (if (row.hasNote) "  ✎" else ""))
+                    },
                     color = if (dim || row.done) t.muted else t.fg,
                     fontWeight = if (row.group) FontWeight.SemiBold else FontWeight.Normal,
                     textDecoration = if (row.done) TextDecoration.LineThrough else null,
@@ -566,7 +575,7 @@ private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: St
             }
             // Line 2: why it stands in Forecast, the fields placed there,
             // and „nicht gesynct“ always; one line, cut with ….
-            val second = listOfNotNull(why?.let { RowPart(it, it) }) + rowParts(row, 2, place) +
+            val second = listOfNotNull(why?.let { RowPart(it, it) }) + rowParts(row, Slot.LINE2, place) +
                 listOfNotNull(if (row.pending) RowPart(tr("nicht gesynct"), tr("nicht gesynct")) else null)
             if (second.isNotEmpty()) {
                 Text(

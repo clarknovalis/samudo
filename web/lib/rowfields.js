@@ -2,17 +2,19 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// What a list row shows besides its title (ADR 0130): every field has a
-// place, line 1, line 2 or off, kept in this browser; the fields stand in
-// one fixed order, which is also the order they are cut in, and each has
-// a long and a short form. Nothing here touches the page.
+// What a list row shows besides its title (ADR 0130, 0131): line 1 is a
+// list of fields with the title as a fixed piece in it, line 2 another
+// list, and what neither names is off; kept in this browser. Order on the
+// screen is order in the list, and what stands last is cut first. Each
+// field has a long and a short form. Nothing here touches the page.
 
 import { byId, state, tagTitle } from "./state.js";
 import { tr } from "./i18n.js";
 import { parseRule, repeatText } from "./repeat.js";
 import { dueText, estimateText, localDay, placeOf, reasonText, shortDay, tagPath } from "./words.js";
 
-// In order (ADR 0130 §2): key, the word in the menu.
+// Every field: key, the word in the menu. The order is ADR 0130's, by
+// which a layout of that ADR is read (ADR 0131 §7).
 export const FIELDS = [
   ["due", tr("Fällig")],
   ["state", tr("Zustand")],
@@ -29,18 +31,38 @@ export const FIELDS = [
 ];
 
 const KEYS = FIELDS.map(([key]) => key);
+export const TITLE = "title";
 
-// A new browser (ADR 0130 §8): the due mark beside the title, where it
-// stood; state, tags, place and reason below it.
+// A new browser (ADR 0131 §6): the state before the title, the due mark
+// beside it; tags, place and reason below.
 export const DEFAULT_LAYOUT = {
-  places: { due: 1, state: 2, tags: 2, place: 2, reason: 2, defer: 0, planned: 0, estimate: 0, repeat: 0, note: 0, created: 0, modified: 0 },
+  line1: ["state", TITLE, "due"],
+  line2: ["tags", "place", "reason"],
   short: false,
 };
 
+const copy = (layout) => ({ line1: [...layout.line1], line2: [...layout.line2], short: layout.short });
+
+// A layout as it counts: known keys only, each once, the title once in
+// line 1 (at its start when it was missing).
+function settled(line1, line2, short) {
+  const seen = new Set();
+  const keep = (list, title) =>
+    (Array.isArray(list) ? list : []).filter((key) => {
+      const ok = (KEYS.includes(key) || (title && key === TITLE)) && !seen.has(key);
+      if (ok) seen.add(key);
+      return ok;
+    });
+  const one = keep(line1, true);
+  if (!one.includes(TITLE)) one.unshift(TITLE);
+  return { line1: one, line2: keep(line2, false), short: Boolean(short) };
+}
+
 // The layout from what this browser kept: `stored` is the JSON of
 // `samu.rowfields`, `legacy` the old switch `samu.details` (ADR 0053),
-// which adds Start, Geplant and the estimate to line 2 once. A field the
-// stored layout does not know yet gets its default.
+// which adds Start, Geplant and the estimate to line 2. A layout of ADR
+// 0130 (`places`, 1 or 2 per field) is read once: its fields in its order,
+// a state that was on before the title (ADR 0131 §7).
 export function layoutOf(stored, legacy = null) {
   let kept = null;
   try {
@@ -48,23 +70,33 @@ export function layoutOf(stored, legacy = null) {
   } catch {
     kept = null;
   }
-  const places = { ...DEFAULT_LAYOUT.places };
+  if (kept && Array.isArray(kept.line1)) return settled(kept.line1, kept.line2, kept.short);
   if (kept && typeof kept.places === "object" && kept.places) {
-    for (const key of KEYS) {
-      const place = kept.places[key];
-      if (place === 0 || place === 1 || place === 2) places[key] = place;
-    }
-    return { places, short: Boolean(kept.short) };
+    const on = (n) => KEYS.filter((key) => kept.places[key] === n && key !== "state");
+    const state = kept.places.state === 1 || kept.places.state === 2 ? ["state"] : [];
+    return settled([...state, TITLE, ...on(1)], on(2), kept.short);
   }
-  if (legacy === "on") {
-    places.defer = 2;
-    places.planned = 2;
-    places.estimate = 2;
-  }
-  return { places, short: DEFAULT_LAYOUT.short };
+  const layout = copy(DEFAULT_LAYOUT);
+  if (legacy === "on") layout.line2.push("defer", "planned", "estimate");
+  return layout;
 }
 
-export const withPlace = (layout, key, place) => ({ ...layout, places: { ...layout.places, [key]: place } });
+// Where a field stands: 1, 2, or 0 when it is off.
+export const lineOf = (layout, key) => (layout.line1.includes(key) ? 1 : layout.line2.includes(key) ? 2 : 0);
+
+// The layout with `key` moved into line `to` (1, 2, or 0 for off) at
+// `index` (the end when it is beyond). The title stays in line 1.
+export function move(layout, key, to, index = Infinity) {
+  if (key === TITLE && to !== 1) return layout;
+  const next = copy(layout);
+  next.line1 = next.line1.filter((k) => k !== key);
+  next.line2 = next.line2.filter((k) => k !== key);
+  if (to === 1 || to === 2) {
+    const list = to === 1 ? next.line1 : next.line2;
+    list.splice(Math.max(0, Math.min(index, list.length)), 0, key);
+  }
+  return next;
+}
 
 // "PT1H30M" → "1h30", "PT45M" → "45m".
 function estimateShort(period) {
@@ -143,11 +175,12 @@ function part(key, status, short, where) {
   }
 }
 
-// The fields of `line` (1 or 2) for one task, in order, without the empty
-// ones. `where` is what the row says of its place (21df91a1): "none"
-// where the heading says it already, "project" or "full".
-export function fieldParts(status, line, layout, where = "full") {
-  return KEYS.filter((key) => layout.places[key] === line)
-    .map((key) => part(key, status, layout.short, where))
-    .filter(Boolean);
+// The fields of one part of a row, in order, without the empty ones:
+// `slot` is "before" or "after" the title in line 1, or 2. `where` is
+// what the row says of its place (21df91a1): "none" where the heading
+// says it already, "project" or "full".
+export function fieldParts(status, slot, layout, where = "full") {
+  const at = layout.line1.indexOf(TITLE);
+  const keys = slot === 2 ? layout.line2 : slot === "before" ? layout.line1.slice(0, at) : layout.line1.slice(at + 1);
+  return keys.map((key) => part(key, status, layout.short, where)).filter(Boolean);
 }

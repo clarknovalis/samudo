@@ -64,10 +64,12 @@ verweisen. Nur Löschen braucht eine Verbindung.
 Eine Zeile: der Titel, der [Scope](concepts.md#scopes) als Chip (Tippen
 wählt einen anderen) und ein Menü (⋮) mit „Zeile …“, „Sync“,
 „Einstellungen“ und, in den Projekten, „Neues Projekt“ oder Ordner.
-„Zeile …“ setzt jedes Feld der Zeile einer Aufgabe in Zeile 1, Zeile 2
-oder nirgends und schaltet die Kurzform mit Symbolen, wie im
-[Web](web.md#liste); das Handy hat seine eigene Wahl und beginnt mit
-Fällig neben dem Titel, Zustand und Tags darunter, kurz.
+„Zeile …“ ordnet die Felder der Zeile einer Aufgabe wie im
+[Web](web.md#liste): Zeile 1 mit dem Titel, Zeile 2 und „Aus“ als
+Reihen von Chips; Tippen auf einen Chip verschiebt ihn nach links,
+rechts oder in eine andere Reihe. Das Handy hat seine eigene Wahl und
+beginnt mit dem Zustand vor dem Titel, Fällig dahinter und Tags
+darunter, kurz.
 **Eine Liste herunterziehen** synct. Die Tag-Chips sind die erste Zeile
 der Liste und scrollen mit ihr weg; jeder filtert nach einem Tag und
 allem darunter.

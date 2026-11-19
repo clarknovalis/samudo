@@ -3381,7 +3381,7 @@ fn a_task_says_where_it_lives_with_the_whole_folder_path() {
     );
 }
 
-/// ADR 0053, 0130: a row carries what its lines need (Start, Geplant, the
+/// ADR 0053, 0130, 0131: a row carries what its lines need (Start, Geplant, the
 /// estimate as written, the note's first line, the repetition, when it
 /// was made and changed); the layout is this phone's own and stays across
 /// opening the cache again.
@@ -3418,22 +3418,18 @@ fn a_row_has_its_fields_and_the_layout_stays_on_the_phone() {
     assert!(milk.estimate.is_none() && !milk.has_note && milk.note_line.is_none());
     assert!(milk.repeat.is_none());
 
-    let place = |fields: &samu_mobile::RowFields, key: &str| {
-        fields.places.iter().find(|p| p.key == key).unwrap().place
-    };
+    // ADR 0131 §6: the state before the title, the due date beside it.
     let start = samu.row_fields().unwrap();
     assert!(start.short);
-    assert_eq!(place(&start, "due"), 1);
-    assert_eq!(place(&start, "tags"), 2);
-    let mut tags_first = start.clone();
-    tags_first
-        .places
-        .iter_mut()
-        .find(|p| p.key == "tags")
-        .unwrap()
-        .place = 1;
-    tags_first.short = false;
-    samu.set_row_fields(tags_first.clone()).unwrap();
+    assert_eq!(start.line1, ["state", "title", "due"]);
+    assert_eq!(start.line2, ["tags"]);
+    assert_eq!(samu.row_fields_default(), start);
+    let tags_first = samu_mobile::RowFields {
+        line1: vec!["tags".into(), "title".into()],
+        line2: vec!["state".into(), "due".into()],
+        short: false,
+    };
+    assert_eq!(samu.set_row_fields(tags_first.clone()).unwrap(), tags_first);
     drop(samu);
     let again = Samu::open(server.dir.join("phone").display().to_string()).unwrap();
     assert_eq!(again.row_fields().unwrap(), tags_first);

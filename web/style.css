@@ -1009,21 +1009,24 @@ table.report tr.openable:hover { background: var(--select); }
 #fold-all { padding: 6px 12px; font-size: 13px; color: var(--muted); background: var(--pane); border: 1px solid var(--border); border-radius: 8px; }
 #row-fields { padding: 6px 12px; font-size: 13px; color: var(--muted); background: var(--pane); border: 1px solid var(--border); border-radius: 8px; }
 .row-fields-box { position: relative; }
-.row-menu ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.row-menu li { display: flex; align-items: center; gap: 8px; }
-.row-menu .row-field { margin-right: auto; }
-.row-menu .row-places { display: inline-flex; }
-.row-menu .row-places button { padding: 1px 8px; font-size: 12px; border: 1px solid var(--line); background: var(--pane); color: var(--muted); border-radius: 0; }
-.row-menu .row-places button + button { border-left: 0; }
-.row-menu .row-places button:first-child { border-radius: 6px 0 0 6px; }
-.row-menu .row-places button:last-child { border-radius: 0 6px 6px 0; }
-.row-menu .row-places button.current { background: var(--select); color: var(--fg); border-color: var(--accent); }
+/* The menu „Zeile …“ (ADR 0131 §1): three rows of chips to drag. */
+.board-menu.row-menu { width: min(30rem, calc(100vw - 32px)); }
+.row-menu .row-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; }
+.row-menu .row-line-name { flex: 0 0 4.5rem; font-size: 12px; color: var(--muted); }
+.row-menu .row-chip { padding: 2px 10px; font-size: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--pane); color: var(--fg); cursor: grab; }
+.row-menu .row-line[data-line="0"] .row-chip { color: var(--muted); }
+.row-menu .row-chip.row-title { background: var(--select); border-color: var(--accent); font-weight: 600; }
+.row-menu .row-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .row .lines { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 /* Line 2: one line, cut with … (ADR 0130 §3); it takes the width of the
    title and adds none of its own (width 0, at least the whole column). */
 .row .details { width: 0; min-width: 100%; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .details > .field + .field::before { content: " · "; }
 .row .details > .badge { padding: 0 6px; }
+/* Before the title (ADR 0131 §2): a plaque, never cut; the state keeps
+   its own colours. */
+.row > .field.before { flex: none; font-size: 12px; white-space: nowrap; }
+.row > .field.before:not(.state):not(.badge) { color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
 .row .chip-tag { display: inline-block; padding: 0 5px; margin-right: 3px; border: 1px solid var(--line); border-radius: 8px; line-height: 1.4; }
 .row .note-mark { margin-left: 6px; font-size: 12px; color: var(--muted); }
 

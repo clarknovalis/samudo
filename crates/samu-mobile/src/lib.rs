@@ -39,7 +39,7 @@ pub use habits::{HabitDayRow, HabitDetail, HabitEntryRow, HabitLine, HabitRow};
 pub use line::{EditChip, EditPreview};
 pub use notes::{AttachmentRow, CommentRow};
 pub use remind::{AlarmRow, Anchor, Notice, ReminderRow};
-pub use rowfields::{RowFields, RowPlace};
+pub use rowfields::RowFields;
 pub use search::{SearchChip, SearchOffer, SearchSplit};
 pub use views::{PerspectiveRow, ProjectView};
 

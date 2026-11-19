@@ -76,12 +76,17 @@ searches everything.
   per view in this browser.
 - Each row shows the priority as a bar, the title, a note mark, a flag
   and 🚧 for a blocker. **Row …** decides the rest, in this browser for
-  every list: each of due, state, tags, place, reason, defer, planned,
-  estimate, repeat, the note's first line, created and modified goes on
-  line 1 beside the title, on line 2 below it, or off. Both lines stay
-  one line; what does not fit is cut at the end, in that order. "Short
-  form with symbols" writes `▶ Mon 10 Nov` for defer, `◷` for planned,
-  `~1h30` for the estimate, `↻2w` for a repetition and tags as chips.
+  every list. It shows line 1 with the title, line 2 and "Off" as rows
+  of fields (due, state, tags, place, reason, defer, planned, estimate,
+  repeat, the note's first line, created, modified): drag a field to
+  its place, or move it with ← → within its row and ↑ ↓ to the row
+  above or below. A field before the title stands in front of it, one
+  after it beside it, one in line 2 below it. By default the state
+  stands before the title, the due date after it, and tags, place and
+  reason below. Both lines stay one line; what stands last is cut
+  first, fields before the title never. "Short form with symbols"
+  writes `▶ Mon 10 Nov` for defer, `◷` for planned, `~1h30` for the
+  estimate, `↻2w` for a repetition and tags as chips.
 - **Board** ("List | Board"): the same tasks as cards in columns. The
   columns are the states of a workflow or an ordered list of tags, plus
   "None" and "Completed" (the last 7 days), each with an optional

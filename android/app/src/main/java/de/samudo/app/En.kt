@@ -585,6 +585,10 @@ val EN: Map<String, String> = mapOf(
     "aus" to "off",
     "in Zeile 1" to "on line 1",
     "in Zeile 2" to "on line 2",
-    "nicht zeigen" to "not shown",
+    "Zeile 1" to "Line 1",
+    "Zeile 2" to "Line 2",
+    "Aus" to "Off",
+    "nach links" to "to the left",
+    "nach rechts" to "to the right",
     "Kurzform mit Symbolen" to "Short form with symbols",
 )

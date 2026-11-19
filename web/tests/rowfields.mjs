@@ -9,7 +9,7 @@
 const root = new URL("../../", import.meta.url);
 const { state } = await import(new URL("web/lib/state.js", root));
 const { tr } = await import(new URL("web/lib/i18n.js", root));
-const { DEFAULT_LAYOUT, FIELDS, fieldParts, layoutOf, withPlace } = await import(new URL("web/lib/rowfields.js", root));
+const { DEFAULT_LAYOUT, FIELDS, TITLE, fieldParts, layoutOf, lineOf, move } = await import(new URL("web/lib/rowfields.js", root));
 
 let failed = 0;
 let checks = 0;
@@ -60,37 +60,56 @@ const status = {
 };
 
 const keys = (parts) => parts.map((p) => p.key);
-const all = { places: Object.fromEntries(FIELDS.map(([key]) => [key, 2])), short: false };
+const ALL = FIELDS.map(([key]) => key);
+const all = { line1: [TITLE], line2: [...ALL], short: false };
 
-// Every field says something for this task, in the fixed order.
-check("all on line 2, in order", keys(fieldParts(status, 2, all)), FIELDS.map(([key]) => key));
-check("nothing on line 1", fieldParts(status, 1, all), []);
+// Every field says something for this task, in the order of the list.
+check("all on line 2, in order", keys(fieldParts(status, 2, all)), ALL);
+check("nothing before the title", fieldParts(status, "before", all), []);
+check("nothing after the title", fieldParts(status, "after", all), []);
+const reversed = { line1: [TITLE], line2: [...ALL].reverse(), short: false };
+check("the order of the list", keys(fieldParts(status, 2, reversed)), [...ALL].reverse());
 
-// The default: due beside the title, state, tags, place, reason below.
+// The default (ADR 0131 §6): state before the title, due after it.
 const plain = layoutOf(null);
 check("default", plain, DEFAULT_LAYOUT);
-check("default line 1", keys(fieldParts(status, 1, plain)), ["due"]);
-check("default line 2", keys(fieldParts(status, 2, plain)), ["state", "tags", "place", "reason"]);
+check("default before", keys(fieldParts(status, "before", plain)), ["state"]);
+check("default after", keys(fieldParts(status, "after", plain)), ["due"]);
+check("default line 2", keys(fieldParts(status, 2, plain)), ["tags", "place", "reason"]);
+check("lineOf", [lineOf(plain, "state"), lineOf(plain, "tags"), lineOf(plain, "note")], [1, 2, 0]);
 
-// The old switch Details on adds Start, Geplant and the estimate once.
+// The old switch Details on adds Start, Geplant and the estimate.
 const legacy = layoutOf(null, "on");
-check("legacy details on", keys(fieldParts(status, 2, legacy)), ["state", "tags", "place", "reason", "defer", "planned", "estimate"]);
+check("legacy details on", legacy.line2, ["tags", "place", "reason", "defer", "planned", "estimate"]);
 check("legacy details off", layoutOf(null, "off"), DEFAULT_LAYOUT);
-// A kept layout wins over the old switch.
-const tagsFirst = withPlace(withPlace(plain, "tags", 1), "place", 0);
-const kept = layoutOf(JSON.stringify(tagsFirst), "on");
-check("kept wins", kept, tagsFirst);
-check("tags on line 1", keys(fieldParts(status, 1, kept)), ["due", "tags"]);
-check("place off", keys(fieldParts(status, 2, kept)), ["state", "reason"]);
-// Broken or partial JSON: defaults for what it does not say.
+
+// A layout of ADR 0130 is read once: its order, the state before the title.
+const old = { places: { due: 1, state: 2, tags: 1, place: 0, reason: 2, defer: 2, note: 1 }, short: true };
+check("ADR 0130 layout", layoutOf(JSON.stringify(old), "on"), { line1: ["state", TITLE, "due", "tags", "note"], line2: ["reason", "defer"], short: true });
+check("ADR 0130 state off stays off", lineOf(layoutOf(JSON.stringify({ places: { state: 0 } })), "state"), 0);
+
+// A kept layout wins over the old switch and is settled.
+const kept = { line1: ["tags", TITLE, "due"], line2: ["state"], short: true };
+check("kept wins", layoutOf(JSON.stringify(kept), "on"), kept);
+check(
+  "unknown and twice go, a missing title comes first",
+  layoutOf(JSON.stringify({ line1: ["due", "bogus", "due"], line2: ["due", "note", TITLE], short: 1 })),
+  { line1: [TITLE, "due"], line2: ["note"], short: true },
+);
 check("broken json", layoutOf("{nope"), DEFAULT_LAYOUT);
-check("unknown field ignored, missing default", layoutOf(JSON.stringify({ places: { note: 1, bogus: 2 }, short: true })), {
-  places: { ...DEFAULT_LAYOUT.places, note: 1 },
-  short: true,
-});
+
+// Moving (ADR 0131 §4, §5).
+check("move before the title", move(plain, "due", 1, 0).line1, ["due", "state", TITLE]);
+check("move into line 2 at its end", move(plain, "state", 2), { line1: [TITLE, "due"], line2: ["tags", "place", "reason", "state"], short: false });
+check("move into line 2 at a place", move(plain, "due", 2, 1).line2, ["tags", "due", "place", "reason"]);
+check("move off", lineOf(move(plain, "tags", 0), "tags"), 0);
+check("move from off", move(plain, "note", 1).line1, ["state", TITLE, "due", "note"]);
+check("the title moves within line 1", move(plain, TITLE, 1, 0).line1, [TITLE, "state", "due"]);
+check("the title never leaves line 1", move(plain, TITLE, 2), plain);
+check("move leaves the old layout alone", plain, DEFAULT_LAYOUT);
 
 // Texts, long and short.
-const text = (layout, key) => fieldParts(status, 2, withPlace(layout, key, 2)).find((p) => p.key === key)?.text;
+const text = (layout, key) => fieldParts(status, 2, layout).find((p) => p.key === key)?.text;
 const short = { ...all, short: true };
 check("tags long", text(all, "tags"), "@Ort/Büro @Telefon");
 check("tags short", text(short, "tags"), "@Büro @Telefon");

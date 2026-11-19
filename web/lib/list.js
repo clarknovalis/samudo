@@ -146,6 +146,8 @@ function row(status, depth, context, why = null, bare = false) {
     },
     [
       ...lead(status, bare),
+      // The fields placed before the title (ADR 0131 §2), never cut.
+      ...fieldParts(status, "before", rowLayout(), whereOf(depth)).map((part) => fieldSpan(part, true)),
       lines(task, status, depth),
       el("span", { class: "meta" }, [
         why ? el("span", { class: `why why-${why.kind}`, text: why.text }) : null,
@@ -158,7 +160,7 @@ function row(status, depth, context, why = null, bare = false) {
         folded && summary ? el("span", { class: "summary", text: summary }) : null,
         task.flagged ? el("span", { class: "flag", text: tr("⚑ markiert") }) : null,
         // The fields placed on line 1 (ADR 0130 §2).
-        ...fieldParts(status, 1, rowLayout(), whereOf(depth)).map(fieldSpan),
+        ...fieldParts(status, "after", rowLayout(), whereOf(depth)).map((part) => fieldSpan(part)),
       ]),
     ],
   );
@@ -444,10 +446,11 @@ const whereOf = (depth) => (depth || place === "none" ? "none" : place);
 
 // One field of a row (ADR 0130): its short form keeps the long one for a
 // hover and a screen reader; tags in the short form are chips.
-function fieldSpan(part) {
+// `before`: in front of the title, as a small plaque like the state's.
+function fieldSpan(part, before = false) {
   const short = part.text !== part.label;
   const kind = part.kind?.startsWith("due-") ? `badge ${part.kind}` : part.kind;
-  const attrs = { class: ["field", `field-${part.key}`, kind].filter(Boolean).join(" "), title: short ? part.label : null };
+  const attrs = { class: ["field", `field-${part.key}`, kind, before ? "before" : null].filter(Boolean).join(" "), title: short ? part.label : null };
   if (part.items && rowLayout().short) return el("span", attrs, part.items.map((item) => el("span", { class: "chip-tag", text: item })));
   return el("span", { ...attrs, text: part.text });
 }
@@ -457,14 +460,14 @@ function fieldSpan(part) {
 // table draws it without `status`: its columns say the rest.
 function lines(task, status = null, depth = 0) {
   const note = task.note?.trim();
-  const second = status ? fieldParts(status, 2, rowLayout(), whereOf(depth)) : [];
+  const second = status ? fieldParts(status, 2, rowLayout(), whereOf(depth)).map((part) => fieldSpan(part)) : [];
   return el("span", { class: "lines" }, [
     el("span", { class: "title" }, [
       holdsUp(task.id) ? el("span", { class: "blocker-mark", title: `${tr("Hält auf:")} ${heldUpBy(task.id).map((h) => h.task.title).join(", ")}`, "aria-label": "Blocker", text: "🚧 " }) : null,
       task.title,
       note ? el("span", { class: "note-mark", title: noteHint(note), "aria-label": tr("hat Notiz"), text: "✎" }) : null,
     ]),
-    second.length ? el("span", { class: "details" }, second.map(fieldSpan)) : null,
+    second.length ? el("span", { class: "details" }, second) : null,
   ]);
 }
 

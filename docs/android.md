@@ -62,11 +62,11 @@ connection.
 
 One line: the title, the [scope](concepts.md#scopes) as a chip (a tap
 picks another) and a menu (⋮) with "Row …", "Sync", "Settings" and, in
-the projects, "New project" or folder. "Row …" places each field of a
-task's row on line 1, line 2 or nowhere, and switches the short form
-with symbols, as in the [web](web.md#list); the phone keeps its own
-choice and starts with the due date beside the title, state and tags
-below it, short. **Pull a list down** to
+the projects, "New project" or folder. "Row …" arranges the fields of
+a task's row as in the [web](web.md#list): line 1 with the title, line
+2 and "Off" as rows of chips; tap a chip to move it left or right or
+into another row. The phone keeps its own choice and starts with the
+state before the title, the due date after it and tags below, short. **Pull a list down** to
 sync. The tag chips are the first row of the list and scroll away with
 it; each filters by one tag and everything below it.
 
