@@ -1,0 +1,1 @@
+Jede Listenzeile anordnen: Zustand, Fällig, Tags, Ort, Daten, Schätzung, Wiederholung oder die erste Notizzeile vor den Titel, daneben oder in eine zweite Zeile, auch in Kurzform. Mehrere Zeilen auf einmal erfassen, eingerückte werden Unteraufgaben. Erledigen oder Verwerfen mit offenen Aufgaben darunter fragt, was mit ihnen geschieht. Die CLI macht aus einer Aufgabe ein Projekt.

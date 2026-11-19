@@ -1,0 +1,1 @@
+Arrange each list row: put state, due, tags, place, dates, estimate, repeat or the note's first line before the title, beside it or on a second line, with a short form. Capture several lines at once; indented lines become subtasks. Completing or dropping a task with open tasks below asks what to do with them. The CLI turns a task into a project.
