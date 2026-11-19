@@ -18,6 +18,11 @@ its citations in the code have no target.
 
 | ADR | Status | Decision |
 |---|---|---|
+| [0039](0039-comments-attachments-author.md) | accepted | Comments and attachments as objects; blobs by SHA-256 in samu; the server sets the author `{device, kind}` from the session |
+| [0043](0043-scopes-second-round.md) | accepted | Scopes: inbox as a checkbox, filter in the search language, capture defaults, schedule windows, choice over Tasker |
+| [0047](0047-calendars.md) | accepted | Calendars over ICS and CalDAV fetched by the server, sources encrypted; appointments expanded in `samu-core`, in forecast and calendar view |
+| [0068](0068-writing-appointments.md) | accepted | Appointments written back over CalDAV, offline through the outbox; series edits in `samu-core`; collisions per field |
+| [0099](0099-registration-and-demo-content.md) | accepted | Registration off, demo-only or open; demo accounts expire; demo content built in the server |
 | [0133](0133-decision-records-in-the-repository.md) | accepted | Decision records live in this repository, in English, as living documents |
 | [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; agents push with a token of their own |
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
