@@ -14,6 +14,7 @@
 import { api, change } from "./api.js";
 import { $, el, uuidv7 } from "./dom.js";
 import { richText } from "./rich.js";
+import { info } from "./message.js";
 import { state, update } from "./state.js";
 import { stamp } from "./words.js";
 import { tr } from "./i18n.js";
@@ -240,7 +241,7 @@ async function send(owner) {
   const text = d.text.trim();
   if (sending || (!text && !d.files.length)) return;
   sending = true;
-  update({ message: d.files.length ? tr("Lade hoch …") : null });
+  update({ message: d.files.length ? info(tr("Lade hoch …")) : null });
   try {
     const changes = [];
     let target = owner;

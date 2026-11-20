@@ -9,6 +9,7 @@
 import { api, change } from "./api.js";
 import { attachmentFor } from "./comments.js";
 import { $ } from "./dom.js";
+import { info } from "./message.js";
 import { state, update } from "./state.js";
 import { tr } from "./i18n.js";
 
@@ -76,7 +77,7 @@ export function cancelVoice() {
   if (!recording) return false;
   recording.keep = false;
   recording.recorder.stop();
-  update({ message: tr("Sprachnotiz verworfen.") });
+  update({ message: info(tr("Sprachnotiz verworfen.")) });
   return true;
 }
 
@@ -88,7 +89,7 @@ async function save(blob, started) {
     const attachment = await attachmentFor(null, file);
     const answer = await api.capture(voiceTitle(started), null, false, state.scope);
     await api.write([change.create("attachment", { ...attachment, owner: answer.task.id })]);
-    update({ message: tr("„{title}“ angelegt.", { title: answer.task.title }) });
+    update({ message: info(tr("„{title}“ angelegt.", { title: answer.task.title })) });
   } catch (error) {
     update({ message: `${tr("Sprachnotiz nicht gespeichert:")} ${error.message}` });
   }

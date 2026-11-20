@@ -37,6 +37,7 @@ import { renderSearch, wireSearch } from "./lib/searchbar.js";
 import { renderSettings, wireSettings } from "./lib/settings.js";
 import { chooseFilterOf, chooseOrderOf, current as currentPerspective } from "./lib/perspectives.js";
 import { renderSidebar, wireSidebar } from "./lib/sidebar.js";
+import { messageParts } from "./lib/message.js";
 import { chooseScope, onChange, routePerspectiveOrder, state, update } from "./lib/state.js";
 import { wireVoice } from "./lib/voice.js";
 import { tr, translatePage } from "./lib/i18n.js";
@@ -96,11 +97,10 @@ function showMessage() {
   box.hidden = !state.message;
   if (state.message === shownMessage) return;
   shownMessage = state.message;
-  // A message is text, or `{ text, actions: [[label, do]] }` with buttons
-  // (ADR 0124 §5); a click anywhere still takes it away.
+  // What a message holds: lib/message.js. A click anywhere takes it away.
   const message = state.message;
-  const text = typeof message === "object" && message ? message.text : (message ?? "");
-  const actions = typeof message === "object" && message ? (message.actions ?? []) : [];
+  const { text, actions, kind } = messageParts(message);
+  box.dataset.kind = kind;
   replace(box, text, ...actions.map(([label, act]) => el("button", { type: "button", class: "link", text: label, onclick: act })));
   clearTimeout(messageTimer);
   if (!message) return;

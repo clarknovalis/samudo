@@ -38,6 +38,7 @@ import { indent, openBlockPalette, openGoPalette, openPalette, outdent } from ".
 import { tableKey } from "./table.js";
 import { closeSettings, openSettings } from "./settings.js";
 import { chooseView, cycleSidebar } from "./sidebar.js";
+import { info } from "./message.js";
 import { isOpen, shown, state, statusOf, update } from "./state.js";
 import { keyedTemplates } from "./templates.js";
 import { cancelVoice, toggleVoice } from "./voice.js";
@@ -193,7 +194,7 @@ function startPrefix(first) {
   prefix = first;
   clearTimeout(prefixTimer);
   prefixTimer = setTimeout(endPrefix, 2000);
-  update({ message: `${pretty(first)} … ${next.join(" · ")}` });
+  update({ message: info(`${pretty(first)} … ${next.join(" · ")}`) });
   return true;
 }
 
@@ -212,7 +213,7 @@ function startTemplates() {
   clearTimeout(prefixTimer);
   prefixTimer = setTimeout(endPrefix, 2000);
   const first = pretty(keyOf("capture.template") ?? "");
-  update({ message: `${first} … ${list.map((t) => `${t.key} ${t.title}`).join(" · ")}` });
+  update({ message: info(`${first} … ${list.map((t) => `${t.key} ${t.title}`).join(" · ")}`) });
 }
 
 // The template whose key was pressed: `h` and `H` are two keys, so the

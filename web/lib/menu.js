@@ -33,6 +33,7 @@ import { ownOrder } from "./list.js";
 import { indent, openBlockPalette, openPalette, outdent, siblingAbove } from "./palette.js";
 import { shiftTarget, shiftTask } from "./reorder.js";
 import { inEffect, normalize, pretty } from "./keymap.js";
+import { info } from "./message.js";
 import { isOpen, state, statusOf, update } from "./state.js";
 import { addDays, today } from "./words.js";
 import { tr } from "./i18n.js";
@@ -199,9 +200,9 @@ function many() {
 export async function copyLink(id) {
   try {
     await navigator.clipboard.writeText(`samu:${id}`);
-    update({ message: tr("Link kopiert.") });
+    update({ message: info(tr("Link kopiert.")) });
   } catch {
-    update({ message: `samu:${id}` });
+    update({ message: info(`samu:${id}`) });
   }
 }
 

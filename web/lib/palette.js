@@ -16,6 +16,7 @@
 import { api, change } from "./api.js";
 import { $, el, replace, uuidv7 } from "./dom.js";
 import { byPosition, movePlace, subtree } from "./placeops.js";
+import { info } from "./message.js";
 import { byId, chooseScope, elsewhereOf, isOpen, state, statusOf, update } from "./state.js";
 import { placeOf } from "./words.js";
 import { tr } from "./i18n.js";
@@ -78,16 +79,16 @@ function movedAway(project, from) {
       update({ message: error.message });
     }
   };
-  return {
-    text: tr("Verschoben nach {project}, nur im Scope {scope} sichtbar.", { project: title, scope: byId(state.scopes, scope)?.title ?? "?" }),
-    actions: [
+  return info(
+    tr("Verschoben nach {project}, nur im Scope {scope} sichtbar.", { project: title, scope: byId(state.scopes, scope)?.title ?? "?" }),
+    [
       [tr("Dorthin"), () => {
         chooseScope(scope);
         update({ view: { kind: "project", project }, message: null });
       }],
       [tr("Rückgängig"), back],
     ],
-  };
+  );
 }
 
 // The changes of such a move, unwritten; null when a task would go under

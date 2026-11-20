@@ -12,6 +12,7 @@ import { deepestFirst, waiting } from "./close.js";
 import { flushDetail } from "./detail.js";
 import { el } from "./dom.js";
 import { tr } from "./i18n.js";
+import { info } from "./message.js";
 import { byId, isOpen, state, update } from "./state.js";
 
 // Completes (`field` "completed") or drops ("dropped") the open ones of
@@ -57,7 +58,7 @@ async function send(ids, field, children) {
     if (again) return (await send(left.map((w) => w.id), field, again)) || wrote;
     return wrote;
   }
-  update({ message: lifted ? (lifted === 1 ? tr("1 Unteraufgabe herausgeholt.") : tr("{n} Unteraufgaben herausgeholt.", { n: lifted })) : null });
+  update({ message: lifted ? info(lifted === 1 ? tr("1 Unteraufgabe herausgeholt.") : tr("{n} Unteraufgaben herausgeholt.", { n: lifted })) : null });
   return wrote;
 }
 

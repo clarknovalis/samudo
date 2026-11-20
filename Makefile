@@ -79,6 +79,7 @@ web-check:
 	node web/tests/rowfields.mjs
 	node web/tests/tagfields.mjs
 	node web/tests/jump.mjs
+	node web/tests/message.mjs
 
 # samu.el: compiled with warnings as errors, then its ERT tests, both
 # without a CLI or a server (ADR 0082 §8). Skipped, and

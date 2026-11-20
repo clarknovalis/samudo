@@ -173,6 +173,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     ("lib/menu.js", include_str!("../../../web/lib/menu.js"), JS),
+    (
+        "lib/message.js",
+        include_str!("../../../web/lib/message.js"),
+        JS,
+    ),
     ("lib/pair.js", include_str!("../../../web/lib/pair.js"), JS),
     (
         "lib/perspectives.js",
