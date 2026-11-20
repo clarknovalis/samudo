@@ -5,7 +5,8 @@ org-agenda, Aktionen am Punkt, ein Puffer je Aufgabe, Schnellerfassung, die
 laufende Uhr in der Mode-Line und der Org-Linktyp `samu:`. Alles läuft über
 die [Kommandozeile](cli.md) mit `--format json`, also sind Konfiguration,
 Sitzung und Server die von `samu`, ein lokales [Profil](profiles.md)
-eingeschlossen. Emacs schreibt als die Person, die dort angemeldet ist.
+eingeschlossen. Emacs schreibt als die Person, die dort angemeldet ist. Die Oberfläche
+in Emacs ist englisch.
 
 ## Laden
 
@@ -63,7 +64,7 @@ die von Emacs. Mit `M` markierte Aufgaben nehmen
 |---|---|
 | `n` `p`, `j` `k` | nächste / vorige Aufgabe |
 | `RET` / `TAB` | Aufgabe zeigen / im anderen Fenster |
-| `x` | erledigen / wieder öffnen; mit offenen Aufgaben darunter fragt es: `m` mit erledigen, `h` herausholen, `a` abbrechen |
+| `x` | erledigen / wieder öffnen; mit offenen Aufgaben darunter fragt es: `t` mit erledigen, `l` herausholen, `c` abbrechen |
 | `s` / `t` | nächster Zustand / Zustand per Taste |
 | `f` | Markierung an/aus |
 | `c`, `I` / `O` | Uhr umschalten; ein / aus |
@@ -103,9 +104,9 @@ des Puffers.
 Eine Zeile einer [Gewohnheit](habits.md) zeigt vor dem Titel, wie es um
 den laufenden Zeitraum steht: ✓, sobald das Ziel erreicht ist, ✗ für heute
 nicht getan, ‖ für eine Pause, ○ für noch nicht. Mit einer Einheit oder
-einem Ziel über eins folgt die Menge, etwa `5/8 Glas` oder `2/3 Woche`, und
+einem Ziel über eins folgt die Menge, etwa `5/8 Glas` oder `2/3 week`, und
 dann die Serie, etwa `🔥4` (`samu-habit-streak-mark`). Eine Gewohnheit zum
-Vermeiden zeigt `frei seit n T`. Die Zahlen kommen aus `samu habit list`,
+Vermeiden zeigt `free for n d`. Die Zahlen kommen aus `samu habit list`,
 einmal bei jedem Füllen eines Puffers, durch denselben Scope wie die
 Ansicht.
 

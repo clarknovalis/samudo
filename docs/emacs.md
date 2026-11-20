@@ -63,7 +63,7 @@ together.
 |---|---|
 | `n` `p`, `j` `k` | next / previous task |
 | `RET` / `TAB` | show the task / in the other window |
-| `x` | complete / reopen; with open tasks below it asks: `m` complete them too, `h` lift out, `a` cancel |
+| `x` | complete / reopen; with open tasks below it asks: `t` complete them too, `l` lift out, `c` cancel |
 | `s` / `t` | next state / state by key |
 | `f` | flag on/off |
 | `c`, `I` / `O` | clock toggle; in / out |
@@ -102,8 +102,8 @@ Action keys act on the child task at point, else on the buffer's task.
 A row of a [habit](habits.md) shows, before the title, what the running
 period is: ✓ once the goal is met, ✗ for not done today, ‖ for a pause,
 ○ for not yet. With a unit or a goal above one, the amount follows, like
-`5/8 Glas` or `2/3 Woche`, and then the streak, like `🔥4`
-(`samu-habit-streak-mark`). A habit to avoid shows `frei seit n T`. The
+`5/8 glasses` or `2/3 week`, and then the streak, like `🔥4`
+(`samu-habit-streak-mark`). A habit to avoid shows `free for n d`. The
 figures come from `samu habit list`, once each time a buffer is filled,
 through the same scope as the view.
 

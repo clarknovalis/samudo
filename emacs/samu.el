@@ -407,8 +407,8 @@ Nil when no row is a habit.  Fetched once each time the buffer is filled.")
 (defun samu--scope-label ()
   "How the header names the scope."
   (pcase samu-scope
-    ('nil "Scope wie die CLI")
-    ('none "kein Scope")
+    ('nil "Scope as the CLI")
+    ('none "No scope")
     (scope (concat "Scope " scope))))
 
 (defun samu--render-view ()
@@ -424,7 +424,7 @@ Nil when no row is a habit.  Fetched once each time the buffer is filled.")
             (propertize (concat "  " (samu--scope-label)) 'face 'samu-meta)
             "\n")
     (if (null samu--rows)
-        (insert "\n  (nichts)\n")
+        (insert "\n  (nothing)\n")
       (dolist (group groups)
         (when (cdr group)
           (when (car group)
@@ -624,7 +624,7 @@ where it starts, also when the buffer is filled from elsewhere."
   "The heading for the forecast SECTION: a day as weekday and date."
   (if (string-match "\\`\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\)\\'" section)
       (format-time-string
-       "%A %d.%m.%Y"
+       "%A %Y-%m-%d"
        (encode-time (list 0 0 12
                           (string-to-number (match-string 3 section))
                           (string-to-number (match-string 2 section))
@@ -637,7 +637,7 @@ where it starts, also when the buffer is filled from elsewhere."
   (let ((why (samu--get row 'why)))
     (if (equal why "termin")
         `((title . ,(format "%s %s" (samu--get row 'date) (samu--get row 'title)))
-          (why . "Termin"))
+          (why . "appointment"))
       (let ((full (gethash (samu--get row 'id) open)))
         (if full
             (cons (cons 'why why) (assq-delete-all 'why (copy-alist full)))
@@ -680,27 +680,27 @@ where it starts, also when the buffer is filled from elsewhere."
 (defun samu-available ()
   "The available tasks, by project."
   (interactive)
-  (samu--open-view "available" "Verfügbar"
+  (samu--open-view "available" "Available"
                    (lambda () (samu--by-project (samu--list "--available")))))
 
 ;;;###autoload
 (defun samu-today ()
   "The tasks planned for today or earlier, by project."
   (interactive)
-  (samu--open-view "today" "Heute"
+  (samu--open-view "today" "Today"
                    (lambda () (samu--by-project (samu--list "--today")))))
 
 ;;;###autoload
 (defun samu-flagged ()
   "The flagged tasks, by project."
   (interactive)
-  (samu--open-view "flagged" "Markiert"
+  (samu--open-view "flagged" "Flagged"
                    (lambda () (samu--by-project (samu--list "--flagged")))))
 
 ;;;###autoload
 (defun samu-project (id)
   "The open tasks of the project ID."
-  (interactive (list (samu--read-project "Projekt: ")))
+  (interactive (list (samu--read-project "Project: ")))
   (let ((title (concat "#" (or (samu--project-title id) id))))
     (samu--open-view title title (lambda () (list (cons nil (samu--list "--project" id)))))))
 
@@ -716,8 +716,8 @@ where it starts, also when the buffer is filled from elsewhere."
 ;;;###autoload
 (defun samu-search (words)
   "The open tasks with every one of WORDS in title, note or id."
-  (interactive (list (read-string "Suchen: ")))
-  (samu--open-view (concat "/" words) (concat "Suche: " words)
+  (interactive (list (read-string "Search: ")))
+  (samu--open-view (concat "/" words) (concat "Search: " words)
                    (lambda () (samu--by-project (samu--list "--search" words)))))
 
 (defun samu--project-rows (&optional folder review)
@@ -737,10 +737,10 @@ With REVIEW, only those due for review, through the scope (ADR 0088 §8)."
                      (why . ,(string-join
                               (cl-remove-if #'string-empty-p
                                             (list (if (string-empty-p (samu--text (samu--get p 'stuck)))
-                                                      "" "steckt fest")
+                                                      "" "stuck")
                                                   (if (string-empty-p (samu--text (samu--get p 'review_due)))
                                                       ""
-                                                    (concat "Review fällig seit "
+                                                    (concat "review due since "
                                                             (samu--text (samu--get p 'review))))
                                                   (samu--text (samu--get p 'reasons))))
                               ", ")))))
@@ -750,7 +750,7 @@ With REVIEW, only those due for review, through the scope (ADR 0088 §8)."
   "Every project with its availability; RET opens one.
 With FOLDER, an id, only the projects in that folder."
   (interactive)
-  (samu--open-view (if folder (concat "folder " folder) "projects") "Projekte"
+  (samu--open-view (if folder (concat "folder " folder) "projects") "Projects"
                    (lambda () (list (cons nil (samu--project-rows folder))))))
 
 ;;;###autoload
@@ -769,9 +769,9 @@ In a project's own buffer, that project (ADR 0088 §3, §8)."
                    (row (samu--get row 'status 'task 'project))
                    (samu--task-object (and (null samu--task-row) samu--task-id)))))
     (unless (and id (not (string-empty-p (samu--text id))))
-      (user-error "Hier steht kein Projekt"))
+      (user-error "No project here"))
     (samu--call-text (list "review" id))
-    (samu--after-action "Als geprüft markiert")))
+    (samu--after-action "Marked reviewed")))
 
 ;;;; Acting on tasks
 
@@ -793,7 +793,7 @@ In a project's own buffer, that project (ADR 0088 §3, §8)."
   "The ids to act on: the marked ones, else the task here."
   (or (reverse samu--marked)
       (let ((id (samu--id-at-point)))
-        (if id (list id) (user-error "Hier steht keine Aufgabe")))))
+        (if id (list id) (user-error "No task here")))))
 
 (defun samu--target-rows ()
   "The rows of the ids to act on, where the buffer has them."
@@ -813,8 +813,8 @@ In a project's own buffer, that project (ADR 0088 §3, §8)."
   (samu--call (append (list "bulk" command) args ids)))
 
 (defun samu--count (ids)
-  "\"1 Aufgabe\" or \"N Aufgaben\" for IDS."
-  (if (cdr ids) (format "%d Aufgaben" (length ids)) "1 Aufgabe"))
+  "\"1 task\" or \"N tasks\" for IDS."
+  (if (cdr ids) (format "%d tasks" (length ids)) "1 task"))
 
 (defun samu--choice-question (err ids)
   "The question for IDS from the stderr ERR of exit code 7.
@@ -825,15 +825,15 @@ ERR lists each waiting task, the open tasks below it indented."
                                            lines)))
          (below (cl-count-if (lambda (l) (string-prefix-p " " l)) lines)))
     (if (cdr ids)
-        (format "%d der %d Aufgaben haben offene Unteraufgaben. Was passiert mit ihnen? "
+        (format "%d of the %d tasks have open subtasks. What happens to them? "
                 (max tasks 1) (length ids))
       (if (= below 1)
-          "1 offene Unteraufgabe. Was passiert mit ihr? "
-        (format "%d offene Unteraufgaben. Was passiert mit ihnen? " below)))))
+          "1 open subtask. What happens to it? "
+        (format "%d open subtasks. What happens to them? " below)))))
 
 (defun samu--close (command ids along)
   "Run `samu bulk COMMAND' on IDS; ask when tasks have open tasks below.
-ALONG names the first answer, \"mit erledigen\" or \"mit verwerfen\".
+ALONG names the first answer, \"complete them too\" or \"drop them too\".
 Return non-nil when something was closed (ADR 0128 §5)."
   (pcase-let ((`(,code ,_out ,err)
                (samu--run (append (list "bulk" command) ids (list "--format" "json")))))
@@ -842,13 +842,13 @@ Return non-nil when something was closed (ADR 0128 §5)."
      ((eql code samu--exit-needs-choice)
       (let ((answer (car (read-multiple-choice
                           (samu--choice-question err ids)
-                          `((?m ,along "die offenen Unteraufgaben ebenso")
-                            (?h "herausholen" "eine Ebene höher rücken, hinter die Aufgabe")
-                            (?a "abbrechen" "nichts ändern"))))))
+                          `((?t ,along "the open subtasks as well")
+                            (?l "lift out" "one level up, behind the task")
+                            (?c "cancel" "change nothing"))))))
         (pcase answer
-          (?m (samu--bulk command ids "--children" "close") t)
-          (?h (samu--bulk command ids "--children" "lift") t)
-          (_ (message "Nichts geändert") nil))))
+          (?t (samu--bulk command ids "--children" "close") t)
+          (?l (samu--bulk command ids "--children" "lift") t)
+          (_ (message "Nothing changed") nil))))
      (t (samu--fail code err)))))
 
 (defun samu-toggle-done ()
@@ -860,26 +860,26 @@ With open tasks below, ask whether they are completed along or lifted out."
          (reopen (cl-every #'samu--row-closed-p rows)))
     (if reopen
         (progn (samu--bulk "reopen" ids)
-               (samu--after-action (format "%s wieder offen" (samu--count ids))))
-      (when (samu--close "done" ids "mit erledigen")
-        (samu--after-action (format "%s erledigt" (samu--count ids)))))))
+               (samu--after-action (format "%s reopened" (samu--count ids))))
+      (when (samu--close "done" ids "complete them too")
+        (samu--after-action (format "%s completed" (samu--count ids)))))))
 
 (defun samu-drop ()
   "Drop the tasks, after asking.
 With open tasks below, ask whether they are dropped along or lifted out."
   (interactive)
   (let ((ids (samu--targets)))
-    (when (and (yes-or-no-p (format "%s verwerfen? " (samu--count ids)))
-               (samu--close "drop" ids "mit verwerfen"))
-      (samu--after-action (format "%s verworfen" (samu--count ids))))))
+    (when (and (yes-or-no-p (format "Drop %s? " (samu--count ids)))
+               (samu--close "drop" ids "drop them too"))
+      (samu--after-action (format "%s dropped" (samu--count ids))))))
 
 (defun samu-delete ()
   "Delete the tasks with their children, after asking (ADR 0036)."
   (interactive)
   (let ((ids (samu--targets)))
-    (when (yes-or-no-p (format "%s samt Unteraufgaben löschen? " (samu--count ids)))
+    (when (yes-or-no-p (format "Delete %s with subtasks? " (samu--count ids)))
       (samu--bulk "delete" ids)
-      (samu--after-action (format "%s gelöscht" (samu--count ids))))))
+      (samu--after-action (format "%s deleted" (samu--count ids))))))
 
 (defun samu-toggle-flag ()
   "Flag the tasks, or take the flag off if all of them have it."
@@ -913,11 +913,11 @@ With open tasks below, ask whether they are dropped along or lifted out."
   (let* ((workflow (samu--get (car (samu--target-rows)) 'status 'workflow))
          (states (cl-remove-if (lambda (s) (string-empty-p (car s)))
                                (samu--workflow-states workflow))))
-    (unless states (user-error "Kein Ablauf mit Kürzeln"))
+    (unless states (user-error "No workflow with keys"))
     (let ((char (read-char-choice
                  (concat (mapconcat (lambda (s) (format "[%s] %s" (car s) (cadr s)))
                                     states " ")
-                         " [SPC] keiner: ")
+                         " [SPC] none: ")
                  (cons ?\s (mapcar (lambda (s) (string-to-char (car s))) states)))))
       (if (eq char ?\s)
           (samu--bulk "state" (samu--targets) "--none")
@@ -927,7 +927,7 @@ With open tasks below, ask whether they are dropped along or lifted out."
 (defun samu-set-priority ()
   "Set the priority: A, B, C, or none with SPC."
   (interactive)
-  (let ((char (read-char-choice "Priorität [A] [B] [C] [SPC] keine: "
+  (let ((char (read-char-choice "Priority [A] [B] [C] [SPC] none: "
                                 '(?a ?b ?c ?A ?B ?C ?\s))))
     (dolist (id (samu--targets))
       (if (eq char ?\s)
@@ -989,13 +989,13 @@ States of a workflow stay as they are; `t' sets them."
 (defun samu-set-planned (clear)
   "Set the planned date; with C-u (CLEAR) take it off."
   (interactive "P")
-  (samu--bulk "date" (samu--targets) "planned" (samu--read-date "Geplant: " clear))
+  (samu--bulk "date" (samu--targets) "planned" (samu--read-date "Planned: " clear))
   (samu--after-action nil))
 
 (defun samu-set-due (clear)
   "Set the due date; with C-u (CLEAR) take it off."
   (interactive "P")
-  (samu--bulk "date" (samu--targets) "due" (samu--read-date "Fällig: " clear))
+  (samu--bulk "date" (samu--targets) "due" (samu--read-date "Due: " clear))
   (samu--after-action nil))
 
 (defun samu--open-tasks ()
@@ -1015,16 +1015,16 @@ States of a workflow stay as they are; `t' sets them."
   (interactive "P")
   (let ((ids (samu--targets)))
     (if group
-        (samu--bulk "move" ids "--group" (samu--read-task "Unter die Aufgabe: "))
-      (samu--bulk "move" ids "--to" (samu--read-project "Nach: " t)))
-    (samu--after-action (format "%s verschoben" (samu--count ids)))))
+        (samu--bulk "move" ids "--group" (samu--read-task "Under the task: "))
+      (samu--bulk "move" ids "--to" (samu--read-project "To: " t)))
+    (samu--after-action (format "%s moved" (samu--count ids)))))
 
 (defun samu--report (record)
   "Show the warnings and new tags of the capture RECORD, if any."
   (let ((parts (append
                 (mapcar #'samu--text (samu--get record 'warnings))
                 (and (samu--get record 'new_tags)
-                     (list (concat "Tag neu: "
+                     (list (concat "New tag: "
                                    (mapconcat #'samu--text (samu--get record 'new_tags) ", ")))))))
     (when parts (message "%s" (string-join parts " · ")))))
 
@@ -1032,7 +1032,7 @@ States of a workflow stay as they are; `t' sets them."
   "Edit the tasks by LINE, marks of quick capture (ADR 0078).
 `@tag' adds, `#project !A d:fr ~30m every:1w !' overwrite, `// text'
 is appended to the note, `/name' applies a template, `z:' books time."
-  (interactive (list (samu--read-line "Bearbeiten: ")))
+  (interactive (list (samu--read-line "Edit: ")))
   (let ((records nil))
     (dolist (id (samu--targets))
       (setq records (append records (samu--call (list "edit" id line)))))
@@ -1043,7 +1043,7 @@ is appended to the note, `/name' applies a template, `z:' books time."
 (defun samu-copy-link ()
   "Put the `samu:' link of the task here into the kill ring."
   (interactive)
-  (let ((id (or (samu--id-at-point) (user-error "Hier steht keine Aufgabe"))))
+  (let ((id (or (samu--id-at-point) (user-error "No task here"))))
     (kill-new (concat "samu:" id))
     (message "samu:%s" id)))
 
@@ -1065,7 +1065,7 @@ is appended to the note, `/name' applies a template, `z:' books time."
 (defun samu-mark ()
   "Mark the task here and go on to the next."
   (interactive)
-  (let ((id (or (get-text-property (point) 'samu-id) (user-error "Hier steht keine Aufgabe"))))
+  (let ((id (or (get-text-property (point) 'samu-id) (user-error "No task here"))))
     (cl-pushnew id samu--marked :test #'equal)
     (samu--set-mark-here t)
     (samu-next-task 1)))
@@ -1088,13 +1088,13 @@ is appended to the note, `/name' applies a template, `z:' books time."
 (defun samu-bulk ()
   "Pick an action for the marked tasks (ADR 0052)."
   (interactive)
-  (unless samu--marked (user-error "Nichts markiert"))
+  (unless samu--marked (user-error "Nothing marked"))
   (let ((choice (read-multiple-choice
                  (samu--count samu--marked)
-                 '((?x "erledigen") (?X "verwerfen") (?f "markieren")
-                   (?m "verschieben") (?t "Zustand") (?s "nächster Zustand")
-                   (?, "Priorität") (?: "Tags") (?p "geplant") (?d "fällig")
-                   (?e "bearbeiten") (?D "löschen")))))
+                 '((?x "complete") (?X "drop") (?f "flag")
+                   (?m "move") (?t "state") (?s "next state")
+                   (?, "priority") (?: "tags") (?p "planned") (?d "due")
+                   (?e "edit") (?D "delete")))))
     (call-interactively
      (pcase (car choice)
        (?x #'samu-toggle-done) (?X #'samu-drop) (?f #'samu-toggle-flag)
@@ -1108,11 +1108,11 @@ is appended to the note, `/name' applies a template, `z:' books time."
   "Choose the scope the views look through, for this Emacs."
   (interactive)
   (let* ((titles (mapcar (lambda (s) (samu--get s 'title)) (samu--call '("scope" "list"))))
-         (choice (completing-read "Scope: " (append '("(wie die CLI)" "(kein Scope)") titles)
+         (choice (completing-read "Scope: " (append '("(as the CLI)" "(no scope)") titles)
                                   nil t)))
     (setq samu-scope (pcase choice
-                       ("(wie die CLI)" nil)
-                       ("(kein Scope)" 'none)
+                       ("(as the CLI)" nil)
+                       ("(no scope)" 'none)
                        (title title)))
     (samu--refresh-all)))
 
@@ -1127,7 +1127,7 @@ is appended to the note, `/name' applies a template, `z:' books time."
 
 (defun samu-switch-account (account)
   "Act on ACCOUNT from now on, in this Emacs; empty for the CLI's."
-  (interactive (list (read-string "Konto (leer: wie die CLI): " nil nil samu-account)))
+  (interactive (list (read-string "Account (empty: as the CLI): " nil nil samu-account)))
   (setq samu-account (if (string-empty-p account) nil account))
   (samu--switched))
 
@@ -1142,7 +1142,7 @@ is appended to the note, `/name' applies a template, `z:' books time."
 A profile names server and account at once (ADR 0086), so both
 `samu-server' and `samu-account' are cleared."
   (interactive
-   (list (completing-read "Profil (leer: wie die CLI): "
+   (list (completing-read "Profile (empty: as the CLI): "
                           (samu--profile-names) nil t nil nil samu-profile)))
   (setq samu-profile (if (string-empty-p profile) nil profile)
         samu-server nil
@@ -1207,7 +1207,7 @@ A profile names server and account at once (ADR 0086), so both
 ;;;###autoload
 (defun samu-capture (&optional parent initial)
   "Capture a task by a line of quick capture (ADR 0011).
-`#project @tag ! !A d:fr s:mo p:morgen ~15m every:1w /template // note'.
+`#project @tag ! !A d:fr s:mo p:tomorrow ~15m every:1w /template // note'.
 An active region and, in a file, where it came from go into the note.
 PARENT, an id, puts the task below that task.  INITIAL is the line to
 start from, as `read-from-minibuffer' takes it.  With \\[universal-argument] \\[universal-argument],
@@ -1215,9 +1215,9 @@ choose a template by its key first, like `samu-capture-template'."
   (interactive (and (equal current-prefix-arg '(16))
                     (list nil (samu--template-line (samu--choose-template)))))
   (let* ((note (samu--capture-note))
-         (line (string-trim (samu--read-line (if parent "Unteraufgabe: " "Erfassen: ")
+         (line (string-trim (samu--read-line (if parent "Subtask: " "Capture: ")
                                              initial))))
-    (when (string-empty-p line) (user-error "Nichts zu erfassen"))
+    (when (string-empty-p line) (user-error "Nothing to capture"))
     ;; Several lines pasted in make a task each (ADR 0129).
     (if (samu--several-p line)
         (samu-capture-lines line parent)
@@ -1226,7 +1226,7 @@ choose a template by its key first, like `samu-capture-template'."
         (deactivate-mark)
         (samu--forget)
         (samu--refresh-all)
-        (message "Erfasst: %s  %s" (samu--get record 'title) (samu--get record 'short))
+        (message "Captured: %s  %s" (samu--get record 'title) (samu--get record 'short))
         (samu--report record)
         record))))
 
@@ -1259,7 +1259,7 @@ PARENT, an id, puts the top lines below that task."
     (deactivate-mark)
     (samu--forget)
     (samu--refresh-all)
-    (message "Erfasst: %d Aufgaben" (length records))
+    (message "Captured: %d tasks" (length records))
     records))
 
 (defvar-local samu--lines-parent nil
@@ -1272,17 +1272,17 @@ PARENT, an id, puts the top lines below that task."
     map)
   "Keys of the buffer for several lines.")
 
-(define-derived-mode samu-lines-mode text-mode "samu Zeilen"
+(define-derived-mode samu-lines-mode text-mode "samu lines"
   "A task per line, an indented line below the one above it (ADR 0129).
 \\{samu-lines-mode-map}"
   (add-hook 'completion-at-point-functions #'samu--capture-capf nil t)
   (setq header-line-format
         (substitute-command-keys
-         "Eine Aufgabe je Zeile · \\[samu-lines-finish] anlegen · \\[samu-lines-cancel] verwerfen")))
+         "One task per line · \\[samu-lines-finish] captures · \\[samu-lines-cancel] discards")))
 
 (defun samu--lines-buffer (parent)
   "Open the buffer for several lines, below PARENT if any."
-  (let ((buffer (get-buffer-create "*samu Zeilen*")))
+  (let ((buffer (get-buffer-create "*samu lines*")))
     (with-current-buffer buffer
       (erase-buffer)
       (samu-lines-mode)
@@ -1294,7 +1294,7 @@ PARENT, an id, puts the top lines below that task."
   "Capture the lines of this buffer and close it; on an error it stays."
   (interactive)
   (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-    (when (string-blank-p text) (user-error "Nichts zu erfassen"))
+    (when (string-blank-p text) (user-error "Nothing to capture"))
     (prog1 (samu--send-lines text samu--lines-parent)
       (quit-window t))))
 
@@ -1311,9 +1311,9 @@ A small window lists the templates with a key; \\[keyboard-quit] gives up."
                  (samu--templates)))
          (keys (mapcar (lambda (template) (string-to-char (samu--get template 'key))) keyed)))
     (unless keyed
-      (user-error "Keine Vorlage mit Taste: samu template key <name> <taste>"))
+      (user-error "No template with a key: samu template key <name> <key>"))
     (save-window-excursion
-      (with-current-buffer (get-buffer-create "*samu Vorlagen*")
+      (with-current-buffer (get-buffer-create "*samu templates*")
         (let ((inhibit-read-only t))
           (erase-buffer)
           (dolist (template keyed)
@@ -1326,7 +1326,7 @@ A small window lists the templates with a key; \\[keyboard-quit] gives up."
         (fit-window-to-buffer (display-buffer (current-buffer)
                                               '(display-buffer-at-bottom
                                                 (window-height . fit-window-to-buffer)))))
-      (let ((key (read-char-choice "Vorlage: " keys)))
+      (let ((key (read-char-choice "Template: " keys)))
         (cl-find key keyed :key (lambda (template) (string-to-char (samu--get template 'key))))))))
 
 (defun samu--template-line (template)
@@ -1344,7 +1344,7 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
 (defun samu-capture-below ()
   "Capture a task below the task here."
   (interactive)
-  (samu-capture (or (samu--id-at-point) (user-error "Hier steht keine Aufgabe"))))
+  (samu-capture (or (samu--id-at-point) (user-error "No task here"))))
 
 ;;;; Clocking
 
@@ -1378,7 +1378,7 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
       (propertize (format " ⏱ %d:%02d %s" (/ minutes 60) (% minutes 60)
                           (truncate-string-to-width (samu--text (samu--get samu--clock 'title))
                                                     30 nil nil "…"))
-                  'help-echo "samu: die laufende Uhr"))))
+                  'help-echo "samu: the running clock"))))
 
 (defvar samu--clock-mode-line '(:eval (samu--clock-text))
   "The mode line's part for the running clock.")
@@ -1401,10 +1401,10 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
 (defun samu-clock-in ()
   "Start a clock on the task here; a running one ends."
   (interactive)
-  (let ((id (or (samu--id-at-point) (user-error "Hier steht keine Aufgabe"))))
+  (let ((id (or (samu--id-at-point) (user-error "No task here"))))
     (samu--call (list "clock" "in" id))
     (samu--clock-update)
-    (samu--after-action "Uhr läuft")))
+    (samu--after-action "Clock running")))
 
 ;;;###autoload
 (defun samu-clock-out ()
@@ -1413,10 +1413,10 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
   (let ((stopped (car (samu--call '("clock" "out") nil t))))
     (samu--clock-update)
     (if stopped
-        (samu--after-action (format "Uhr gestoppt: %s %s"
+        (samu--after-action (format "Clock stopped: %s %s"
                                     (samu--text (samu--get stopped 'length))
                                     (samu--text (samu--get stopped 'title))))
-      (message "Keine Uhr läuft"))))
+      (message "No clock running"))))
 
 (defun samu-clock-toggle ()
   "Stop the clock if it runs on the task here, else start one there."
@@ -1429,15 +1429,15 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
 ;;;###autoload
 (defun samu-clock-report (by from)
   "Time clocked from the day FROM on, BY task, project, folder, tag or day."
-  (interactive (list (completing-read "Nach: " '("task" "project" "folder" "tag" "day")
+  (interactive (list (completing-read "By: " '("task" "project" "folder" "tag" "day")
                                       nil t nil nil "task")
-                     (progn (require 'org) (org-read-date nil nil nil "Ab: "))))
+                     (progn (require 'org) (org-read-date nil nil nil "From: "))))
   (let ((text (samu--call-text (list "clock" "report" "--by" by "--from" from)))
-        (buffer (get-buffer-create "*samu: Zeit*")))
+        (buffer (get-buffer-create "*samu: time*")))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (erase-buffer)
-        (insert (propertize (format "Zeit ab %s nach %s" from by) 'face 'samu-title)
+        (insert (propertize (format "Time from %s by %s" from by) 'face 'samu-title)
                 "\n\n" text))
       (special-mode)
       (goto-char (point-min)))
@@ -1558,7 +1558,7 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
   (interactive)
   (setq samu-live (not samu-live))
   (samu--live-ensure)
-  (message "samu: Live-Aktualisierung %s" (if samu-live "an" "aus")))
+  (message "samu: live updates %s" (if samu-live "on" "off")))
 
 ;;;; Habits
 
@@ -1588,21 +1588,21 @@ more."
 
 (defun samu--habit-goal (habit)
   "The goal of HABIT in words, as the web says it.
-Like \"täglich\", \"3× pro Woche\", \"8 Glas am Tag\", \"vermeiden\"."
+Like \"daily\", \"3× a week\", \"8 glasses a day\", \"avoid\"."
   (let ((per (pcase (samu--get habit 'per)
-               ("week" "pro Woche") ("month" "im Monat") (_ "am Tag")))
+               ("week" "a week") ("month" "a month") (_ "a day")))
         (times (or (samu--get habit 'times) 1))
         (unit (samu--get habit 'unit)))
-    (cond ((equal (samu--get habit 'kind) "avoid") "vermeiden")
+    (cond ((equal (samu--get habit 'kind) "avoid") "avoid")
           (unit (format "%d %s %s" times unit per))
-          ((and (= times 1) (member (samu--get habit 'per) '(nil "day"))) "täglich")
+          ((and (= times 1) (member (samu--get habit 'per) '(nil "day"))) "daily")
           (t (format "%d× %s" times per)))))
 
 (defun samu--habit-cell (record)
   "What the row of a habit shows, from its RECORD of `samu habit list'.
 To build: ✓ once the period's goal is met, else ✗ for a fail today, ‖
 for a pause, ○ for not yet; with a unit or a goal above 1 the amount
-like 5/8 Glas, and the streak.  To avoid: \"frei seit n T\"."
+like 5/8 glasses, and the streak.  To avoid: \"free for n d\"."
   (let* ((status (samu--get record 'status))
          (habit (samu--get status 'task 'habit))
          (day (samu--get status 'day))
@@ -1612,7 +1612,7 @@ like 5/8 Glas, and the streak.  To avoid: \"frei seit n T\"."
          (unit (samu--get habit 'unit))
          (per (samu--get habit 'per)))
     (if (equal (samu--get habit 'kind) "avoid")
-        (propertize (format "frei seit %d T" streak)
+        (propertize (format "free for %d d" streak)
                     'face (if (equal day "fail") 'samu-habit-fail 'samu-habit-met))
       (concat
        (cond ((samu--get period 'met) (propertize "✓" 'face 'samu-habit-met))
@@ -1623,7 +1623,7 @@ like 5/8 Glas, and the streak.  To avoid: \"frei seit n T\"."
            (propertize
             (concat (format " %d/%d" (or (samu--get period 'amount) 0) target)
                     (if unit (concat " " unit) "")
-                    (pcase per ("week" " Woche") ("month" " Monat") (_ "")))
+                    (pcase per ("week" " week") ("month" " month") (_ "")))
             'face (if (samu--get period 'met) 'samu-habit-met 'samu-habit-quiet))
          "")
        (if (> streak 0)
@@ -1636,7 +1636,7 @@ Signal if one the buffer knows is no habit."
   (let ((ids (samu--targets)))
     (dolist (row (samu--target-rows))
       (when (and (samu--row-task row) (not (samu--row-habit row)))
-        (user-error "Kein Habit: %s" (samu--text (samu--get row 'title)))))
+        (user-error "Not a habit: %s" (samu--text (samu--get row 'title)))))
     ids))
 
 (defun samu--habit-enter (ids command &rest args)
@@ -1661,11 +1661,11 @@ the habit; `x' does."
   (interactive "P")
   (let ((ids (samu--habit-targets)))
     (apply #'samu--habit-enter ids "done"
-           (append (samu--habit-day-args arg "Geschafft am: ")
+           (append (samu--habit-day-args arg "Done on: ")
                    (and (integerp arg)
                         (if (> arg 0)
                             (list "--amount" (number-to-string arg))
-                          (user-error "Eine Menge ist mindestens 1")))))))
+                          (user-error "An amount is at least 1")))))))
 
 (defun samu-habit-fail (arg)
   "Enter the habits here as not done today; for a habit to avoid, a relapse.
@@ -1673,7 +1673,7 @@ With \\[universal-argument] (ARG), for an earlier day."
   (interactive "P")
   (let ((ids (samu--habit-targets)))
     (apply #'samu--habit-enter ids "fail"
-           (samu--habit-day-args arg "Nicht geschafft am: "))))
+           (samu--habit-day-args arg "Not done on: "))))
 
 (defun samu-habit-pause (from until)
   "Pause the habits here from the day FROM to the day UNTIL.
@@ -1682,15 +1682,15 @@ is today by default, UNTIL the same day."
   (interactive
    (progn
      (require 'org)
-     (let ((from (org-read-date nil nil nil "Pause von: ")))
-       (list from (org-read-date nil nil nil "Pause bis: " nil from)))))
+     (let ((from (org-read-date nil nil nil "Pause from: ")))
+       (list from (org-read-date nil nil nil "Pause until: " nil from)))))
   (let ((ids (samu--habit-targets)))
     (apply #'samu--habit-enter ids "pause"
            "--from" from
            (and until (not (equal until from)) (list "--until" until)))))
 
 (defconst samu--habit-entry-words
-  '(("done" . "geschafft") ("fail" . "nicht geschafft") ("pause" . "Pause"))
+  '(("done" . "done") ("fail" . "not done") ("pause" . "pause"))
   "The status of an entry in words.")
 
 (defun samu--habit-entry-text (entry)
@@ -1702,7 +1702,7 @@ is today by default, UNTIL the same day."
               ("done" (let ((n (or (samu--get entry 'amount) 1)))
                         (if (> n 1) (format " %d" n) "")))
               ("pause" (if (samu--get entry 'until)
-                           (concat " bis " (samu--get entry 'until))
+                           (concat " until " (samu--get entry 'until))
                          ""))
               (_ "")))))
 
@@ -1715,9 +1715,9 @@ is today by default, UNTIL the same day."
 
 (defun samu--habit-undo-entry (entry)
   "Delete ENTRY, a record of `samu habit entries', after asking."
-  (when (y-or-n-p (format "Eintrag %s löschen? " (samu--habit-entry-text entry)))
+  (when (y-or-n-p (format "Delete the entry %s? " (samu--habit-entry-text entry)))
     (samu--call (list "habit" "undo" (samu--get entry 'id)))
-    (samu--after-action (concat "Gelöscht: " (samu--habit-entry-text entry)))))
+    (samu--after-action (concat "Deleted: " (samu--habit-entry-text entry)))))
 
 (defun samu-habit-undo ()
   "Delete the entry made last for the habit here: a wrong tap.
@@ -1729,7 +1729,7 @@ On an entry in a habit's buffer, that entry."
       (let ((id (car (samu--habit-targets))))
         (samu--habit-undo-entry
          (or (samu--habit-last-entry id)
-             (user-error "Keine Einträge in den letzten 28 Tagen")))))))
+             (user-error "No entries in the last 28 days")))))))
 
 (defun samu-habit-delete ()
   "On an entry, delete it; elsewhere delete the habit like \\[samu-delete]."
@@ -1812,11 +1812,11 @@ On an entry in a habit's buffer, that entry."
 
 (defun samu--insert-habit-calendar (history)
   "Insert HISTORY as a calendar: a line per week, Monday first."
-  (insert (make-string 9 ?\s) "Mo Di Mi Do Fr Sa So\n")
+  (insert (make-string 9 ?\s) "Mo Tu We Th Fr Sa Su\n")
   (dolist (week (samu--habit-weeks history))
     (let ((monday (cl-find-if #'identity week)))
       (insert (propertize (format-time-string
-                           "  %d.%m. "
+                           "  %m-%d  "
                            (time-subtract (samu--day-time (samu--get monday 'day))
                                           (* 86400 (1- (samu--weekday (samu--get monday 'day))))))
                           'face 'samu-meta))
@@ -1829,7 +1829,7 @@ On an entry in a habit's buffer, that entry."
                         (t ".  ")))))
       (delete-char -2)
       (insert "\n")))
-  (insert (propertize "  # geschafft  + teils  x nicht geschafft  = Pause  . nichts"
+  (insert (propertize "  # done  + partly  x not done  = pause  . nothing"
                       'face 'samu-meta)
           "\n"))
 
@@ -1854,15 +1854,15 @@ On an entry in a habit's buffer, that entry."
   "Insert goal, today, streak and rate of the RECORD of `samu habit show'."
   (let* ((status (samu--get record 'status))
          (habit (samu--get status 'task 'habit)))
-    (samu--field "Ziel" (samu--habit-goal habit))
-    (samu--field "Heute" (samu--habit-cell record))
-    (samu--field "Serie" (format "%d, längste %d"
+    (samu--field "Goal" (samu--habit-goal habit))
+    (samu--field "Today" (samu--habit-cell record))
+    (samu--field "Streak" (format "%d, longest %d"
                                  (or (samu--get record 'streak) 0)
                                  (or (samu--get record 'longest) 0)))
-    (samu--field "Quote" (format "4 Wochen %s, Jahr %s"
+    (samu--field "Rate" (format "4 weeks %s, year %s"
                                  (samu--habit-rate (samu--get record 'recent))
                                  (samu--habit-rate (samu--get record 'year))))
-    (samu--field "Rückfall" (samu--get record 'last_fail))))
+    (samu--field "Relapse" (samu--get record 'last_fail))))
 
 (defun samu--insert-habit-fields (id)
   "Insert the habit part of the task buffer of ID, from `samu habit show'."
@@ -1871,7 +1871,7 @@ On an entry in a habit's buffer, that entry."
                   (samu-error nil))))
     (when record
       (samu--insert-habit-facts record)
-      (samu--field "" (propertize "h s zeigt den Verlauf" 'face 'samu-meta)))))
+      (samu--field "" (propertize "h s shows the history" 'face 'samu-meta)))))
 
 (defun samu--render-habit ()
   "Fill a habit's buffer from `samu habit show', point where it was."
@@ -1881,7 +1881,7 @@ On an entry in a habit's buffer, that entry."
          (record (or (car (samu--call (list "habit" "show" id "--days"
                                             (number-to-string (samu--habit-history-days)))
                                       nil t))
-                     (user-error "Kein Habit: %s" id)))
+                     (user-error "Not a habit: %s" id)))
          (status (samu--get record 'status))
          (title (samu--text (samu--get record 'title))))
     (erase-buffer)
@@ -1889,12 +1889,12 @@ On an entry in a habit's buffer, that entry."
     (insert (propertize title 'face 'samu-title) "\n\n")
     (samu--insert-habit-facts record)
     (samu--field "ID" id)
-    (samu--heading "Verlauf")
+    (samu--heading "History")
     (samu--insert-habit-calendar (samu--get status 'history))
-    (samu--heading "Einträge")
+    (samu--heading "Entries")
     (let ((entries (samu--habit-entries status)))
       (if (null entries)
-          (insert (propertize "  (keine; h h trägt ein)" 'face 'samu-meta) "\n")
+          (insert (propertize "  (none; h h enters one)" 'face 'samu-meta) "\n")
         (dolist (entry entries)
           (let ((start (point)))
             (insert "  " (samu--habit-entry-text entry)
@@ -1904,7 +1904,7 @@ On an entry in a habit's buffer, that entry."
                       "")
                     "\n")
             (put-text-property start (point) 'samu-habit-entry entry)))
-        (insert (propertize "  DEL löscht einen Eintrag" 'face 'samu-meta) "\n")))
+        (insert (propertize "  DEL deletes an entry" 'face 'samu-meta) "\n")))
     (goto-char (min pos (point-max)))))
 
 (defun samu-habit-show (id)
@@ -2022,27 +2022,27 @@ Interactively the habit here."
 (defun samu--insert-task-fields (row object)
   "Insert the fields of the task with ROW and OBJECT."
   (let ((project (samu--text (samu--get row 'project))))
-    (samu--field "Ort" (if (string-empty-p project) "Inbox" (concat "#" project))))
-  (samu--field "Zustand" (samu--get row 'state))
-  (samu--field "Verfügbar" (cond ((samu--row-closed-p row) nil)
-                                 ((samu--get row 'available) "ja")
-                                 (t (concat "nein: " (samu--text (samu--get row 'why))))))
-  (samu--field "Erledigt" (samu--when-text (samu--get object 'completed)))
-  (samu--field "Verworfen" (samu--when-text (samu--get object 'dropped)))
-  (samu--field "Priorität" (samu--get object 'priority))
-  (samu--field "Markiert" (and (samu--get object 'flagged) "⚑"))
+    (samu--field "Where" (if (string-empty-p project) "Inbox" (concat "#" project))))
+  (samu--field "State" (samu--get row 'state))
+  (samu--field "Available" (cond ((samu--row-closed-p row) nil)
+                                 ((samu--get row 'available) "yes")
+                                 (t (concat "no: " (samu--text (samu--get row 'why))))))
+  (samu--field "Completed" (samu--when-text (samu--get object 'completed)))
+  (samu--field "Dropped" (samu--when-text (samu--get object 'dropped)))
+  (samu--field "Priority" (samu--get object 'priority))
+  (samu--field "Flagged" (and (samu--get object 'flagged) "⚑"))
   (samu--field "Tags" (samu--get row 'tags))
-  (samu--field "Fällig" (samu--when-text (samu--get object 'due)))
-  (samu--field "Geplant" (samu--when-text (samu--get object 'planned)))
-  (samu--field "Verfügbar ab" (samu--when-text (samu--get object 'defer)))
-  (samu--field "Schätzung" (samu--get object 'estimate))
-  (samu--field "Wiederholung" (samu--text (samu--get row 'next_repeat))))
+  (samu--field "Due" (samu--when-text (samu--get object 'due)))
+  (samu--field "Planned" (samu--when-text (samu--get object 'planned)))
+  (samu--field "Available from" (samu--when-text (samu--get object 'defer)))
+  (samu--field "Estimate" (samu--get object 'estimate))
+  (samu--field "Repeat" (samu--text (samu--get row 'next_repeat))))
 
 (defun samu--insert-task ()
   "Fill the buffer of a task or project from the server."
   (let* ((id samu--task-id)
          (shown (or (car (samu--call (list "show" id) nil t))
-                    (user-error "Nicht gefunden: %s" id)))
+                    (user-error "Not found: %s" id)))
          (kind (samu--get shown 'kind))
          (object (samu--get shown 'object))
          (row (and (equal kind "task")
@@ -2059,13 +2059,13 @@ Interactively the habit here."
     (if (equal kind "task")
         (progn (samu--insert-task-fields row object)
                (when (samu--get object 'habit) (samu--insert-habit-fields id)))
-      (samu--field "Art" (samu--get object 'kind))
+      (samu--field "Kind" (samu--get object 'kind))
       (samu--field "Status" (samu--get object 'status))
-      (samu--field "Markiert" (and (samu--get object 'flagged) "⚑"))
+      (samu--field "Flagged" (and (samu--get object 'flagged) "⚑"))
       (samu--field "Review" (samu--get object 'review_interval))
-      (samu--field "Nächstes Review" (samu--get object 'next_review))
-      (samu--field "Zuletzt geprüft" (samu--get object 'last_reviewed)))
-    (samu--field "Erinnerungen"
+      (samu--field "Next review" (samu--get object 'next_review))
+      (samu--field "Last reviewed" (samu--get object 'last_reviewed)))
+    (samu--field "Reminders"
                  (mapconcat (lambda (r) (samu--when-text (samu--get r 'when)))
                             (samu--call (list "reminders" id) nil t) ", "))
     (samu--field "ID" id)
@@ -2077,20 +2077,20 @@ Interactively the habit here."
             (insert (propertize (format "%-15s" (samu--get p 'key)) 'face 'samu-field)
                     (samu--text (samu--get p 'value))
                     (if (samu--get p 'from)
-                        (propertize (format "  (von %s)" (samu--get p 'from)) 'face 'samu-meta)
+                        (propertize (format "  (from %s)" (samu--get p 'from)) 'face 'samu-meta)
                       "")
                     "\n")
             (put-text-property start (point) 'samu-property (samu--get p 'key))))))
-    (samu--heading "Notiz")
+    (samu--heading "Note")
     (if (string-blank-p note)
-        (insert (propertize "(keine; N schreibt eine)" 'face 'samu-meta) "\n")
+        (insert (propertize "(none; N writes one)" 'face 'samu-meta) "\n")
       (samu--insert-note note))
     (when below
-      (samu--heading "Unteraufgaben")
+      (samu--heading "Subtasks")
       (samu--insert-rows below))
     (let ((comments (samu--call (list "comments" id) nil t)))
       (when comments
-        (samu--heading "Kommentare")
+        (samu--heading "Comments")
         (dolist (c comments)
           (insert (propertize (format "%s, %s" (samu--text (samu--get c 'author))
                                       (samu--when-text (samu--get c 'created)))
@@ -2100,7 +2100,7 @@ Interactively the habit here."
           (insert "\n"))))
     (let ((files (samu--call (list "attachments" id) nil t)))
       (when files
-        (samu--heading "Anhänge")
+        (samu--heading "Attachments")
         (dolist (a files)
           (let ((start (point)))
             (insert "  " (samu--text (or (samu--get a 'name) (samu--get a 'short)))
@@ -2110,7 +2110,7 @@ Interactively the habit here."
                     "\n")
             (put-text-property start (point) 'samu-attachment a)))))
     (if (not samu--show-logbook)
-        (insert "\n" (propertize "Logbook: l zeigt es" 'face 'samu-meta) "\n")
+        (insert "\n" (propertize "Logbook: l shows it" 'face 'samu-meta) "\n")
       (samu--heading "Logbook")
       (dolist (entry (samu--call (list "log" id) nil t))
         (insert (propertize (samu--text (samu--when-text (samu--get entry 'at))) 'face 'samu-meta)
@@ -2139,7 +2139,7 @@ Interactively the habit here."
 ;;;###autoload
 (defun samu-show (id &optional other-window)
   "Show the task or project ID in its own buffer; OTHER-WINDOW elsewhere."
-  (interactive (list (samu--read-task "Aufgabe: ")))
+  (interactive (list (samu--read-task "Task: ")))
   (let ((buffer (cl-find-if (lambda (b) (equal (buffer-local-value 'samu--task-id b) id))
                             (buffer-list))))
     (unless buffer
@@ -2166,15 +2166,15 @@ Interactively the habit here."
   "Show the task here; on a project, its tasks."
   (interactive)
   (let ((row (get-text-property (point) 'samu-row)))
-    (cond ((null row) (user-error "Hier steht keine Aufgabe"))
+    (cond ((null row) (user-error "No task here"))
           ((equal (samu--get row 'kind) "project") (samu-project (samu--get row 'id)))
-          ((null (samu--get row 'id)) (user-error "Ein Termin, keine Aufgabe"))
+          ((null (samu--get row 'id)) (user-error "An appointment, not a task"))
           (t (samu-show (samu--get row 'id))))))
 
 (defun samu-show-other-window ()
   "Show the task here in another window; point stays."
   (interactive)
-  (samu-show (or (get-text-property (point) 'samu-id) (user-error "Hier steht keine Aufgabe"))
+  (samu-show (or (get-text-property (point) 'samu-id) (user-error "No task here"))
              t))
 
 (defun samu-task-ret ()
@@ -2192,7 +2192,7 @@ Interactively the habit here."
 
 (defun samu-set-title (title)
   "Give the task here the TITLE."
-  (interactive (list (read-string "Titel: " (samu--title-at-point))))
+  (interactive (list (read-string "Title: " (samu--title-at-point))))
   (samu--call (list "set" (samu--id-at-point) "title" (json-encode title)))
   (samu--after-action nil))
 
@@ -2201,13 +2201,13 @@ Interactively the habit here."
   (interactive)
   (samu--call-text (list "open" samu--task-id
                          (or (get-text-property (point) 'samu-property)
-                             (user-error "Hier steht keine Property")))))
+                             (user-error "No property here")))))
 
 (defun samu-open-attachment ()
   "Fetch the attachment on this line into the cache and open it."
   (interactive)
   (let* ((a (or (get-text-property (point) 'samu-attachment)
-                (user-error "Hier steht kein Anhang")))
+                (user-error "No attachment here")))
          (dir (expand-file-name (concat "samu/" (samu--get a 'blob))
                                 (or (getenv "XDG_CACHE_HOME") "~/.cache")))
          (file (expand-file-name (file-name-nondirectory
@@ -2220,9 +2220,9 @@ Interactively the habit here."
 
 (defun samu-attach (file)
   "Attach FILE to the task here."
-  (interactive "fAnhängen: ")
+  (interactive "fAttach: ")
   (samu--call (list "attach" (samu--id-at-point) (expand-file-name file)))
-  (samu--after-action (format "Angehängt: %s" (file-name-nondirectory file))))
+  (samu--after-action (format "Attached: %s" (file-name-nondirectory file))))
 
 ;;;; Writing a note or a comment
 
@@ -2253,7 +2253,7 @@ Interactively the habit here."
       (set-buffer-modified-p nil)
       (setq header-line-format
             (substitute-command-keys
-             "\\<samu-edit-mode-map>\\[samu-edit-save] speichert, \\[samu-edit-cancel] verwirft"))
+             "\\<samu-edit-mode-map>\\[samu-edit-save] saves, \\[samu-edit-cancel] discards"))
       (goto-char (point-min)))
     (pop-to-buffer buffer)
     buffer))
@@ -2263,12 +2263,12 @@ Interactively the habit here."
   (interactive)
   (funcall samu--edit-save (string-trim-right (buffer-string)))
   (quit-window t)
-  (samu--after-action "Gespeichert"))
+  (samu--after-action "Saved"))
 
 (defun samu-edit-cancel ()
   "Close the buffer without saving."
   (interactive)
-  (when (or (not (buffer-modified-p)) (yes-or-no-p "Verwerfen? "))
+  (when (or (not (buffer-modified-p)) (yes-or-no-p "Discard? "))
     (quit-window t)))
 
 (defun samu--save-note (id text)
@@ -2281,12 +2281,12 @@ Interactively the habit here."
 (defun samu-edit-note ()
   "Write the note of the task here, in the mode of its format."
   (interactive)
-  (let* ((id (or (samu--id-at-point) (user-error "Hier steht keine Aufgabe")))
+  (let* ((id (or (samu--id-at-point) (user-error "No task here")))
          (object (if (equal id samu--task-id)
                      samu--task-object
                    (samu--get (car (samu--call (list "show" id))) 'object)))
          (note (samu--text (samu--get object 'note))))
-    (samu--edit-buffer (format "*samu Notiz: %s*" (samu--text (samu--get object 'title)))
+    (samu--edit-buffer (format "*samu note: %s*" (samu--text (samu--get object 'title)))
                        note
                        (samu--note-mode (if (string-blank-p note) "org" (samu--note-format note)))
                        (lambda (text) (samu--save-note id text)))))
@@ -2294,8 +2294,8 @@ Interactively the habit here."
 (defun samu-comment ()
   "Write a comment on the task here (ADR 0039 §3)."
   (interactive)
-  (let ((id (or (samu--id-at-point) (user-error "Hier steht keine Aufgabe"))))
-    (samu--edit-buffer "*samu Kommentar*" "" (samu--note-mode "markdown")
+  (let ((id (or (samu--id-at-point) (user-error "No task here"))))
+    (samu--edit-buffer "*samu comment*" "" (samu--note-mode "markdown")
                        (lambda (text)
                          (unless (string-blank-p text)
                            (samu--call (list "comment" id "-") text))))))
@@ -2363,7 +2363,7 @@ Without `samu-web-url' or `samu-profile' it stays a `samu:' link."
 
 (defun samu-complete-link (&optional _arg)
   "A `samu:' link to an open task, read with completion."
-  (concat "samu:" (samu--read-task "Aufgabe: ")))
+  (concat "samu:" (samu--read-task "Task: ")))
 
 (with-eval-after-load 'ol
   (org-link-set-parameters "samu"
