@@ -62,3 +62,4 @@ its citations in the code have no target.
 | [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; only the maintainer pushes, agents do not |
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
 | [0136](0136-removing-a-feature.md) | accepted | A feature leaves in three stages: deprecated, retired, removed |
+| [0137](0137-published-container-image.md) | accepted | A container image on ghcr.io for amd64 and arm64: `X.Y.Z`, `X.Y` and `latest` from a release tag, `edge` from `main` after CI |
