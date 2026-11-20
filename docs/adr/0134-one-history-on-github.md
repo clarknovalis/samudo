@@ -31,7 +31,8 @@ recorded. And the snapshot adds a step after every rollout.
 3. **The maintainer's operations stay in a private repository** of their
    own, as before.
 4. **A private mirror pulls from GitHub**, as a backup. Nothing is pushed
-   from the mirror.
+   from the mirror, and nothing reads from it: computers and scheduled
+   jobs fetch from GitHub.
 5. **Agents do not push.** Only the maintainer does, also once the
    repository is public again. An agent commits, and names at its
    handover what is to be pushed. The `pre-push` hook of §2 holds the
@@ -76,3 +77,9 @@ recorded. And the snapshot adds a step after every rollout.
   hold it; one person pushing, behind the hooks, needs neither. The
   consequence about the hosting plan enforcing those limits is dropped
   with them.
+- 2026-11-20: §4 narrowed to a backup that nothing reads. The mirror
+  had been serving the old snapshot history, which shares no commit
+  with the real one, and new checkouts and the daily advisory check
+  read from it without noticing. GitHub is public and needs no key over
+  https, so they read from there; a checkout that shares no commit with
+  GitHub's `main` is set aside and cloned anew.
