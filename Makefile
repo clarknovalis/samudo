@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # The definition of done (AGENTS.md).
-.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check deny reuse-lint web-check emacs-check install install-replica install-front android
+.PHONY: check check-public secret-scan fmt clippy test api-standalone license-check deny reuse-lint web-check emacs-check install install-handler install-replica install-front android
 
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
@@ -100,16 +100,19 @@ emacs-check:
 # The command line on this workstation. Written beside the target and moved
 # into place, never over it: truncating a running binary hands it a SIGBUS
 # (as in catastr).
-install:
+install: install-handler
 	cargo build --release --locked --bin samu
 	install -d $(BINDIR)
 	install -m 0755 $$(cargo metadata --format-version 1 --no-deps | jq -r .target_directory)/release/samu $(BINDIR)/samu.new
 	mv $(BINDIR)/samu.new $(BINDIR)/samu
 	@$(BINDIR)/samu --version
-	@# The handler for samu-open:<uuid>/<key>, the address the web hands a
-	@# click on a property to (ADR 0054 §6), and for samu:<uuid>, which
-	@# opens the object in the web UI (ADR 0075 §2). The browser asks before
-	@# it passes one on; the address carries no value, samu reads it itself.
+
+# The handler for samu-open:<uuid>/<key>, the address the web hands a
+# click on a property to (ADR 0054 §6), and for samu:<uuid>, which opens
+# the object in the web UI (ADR 0075 §2). The browser asks before it
+# passes one on; the address carries no value, samu reads it itself. A
+# target of its own for a computer that gets the binary without building.
+install-handler:
 	install -d $(APPDIR)
 	printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=samudo open' \
 		'Comment=Opens a samudo address: a task, or a property of one' \
