@@ -97,9 +97,12 @@ a change: `make check-public`.
 
 ## Sister project
 
-samudo grew alongside *catastr*, a document and knowledge store. Tasks
-link to catastr objects by stable URIs, and catastr reads samudo as a
-source. The two talk only through versioned APIs.
+samudo grew alongside *catastr*, a document and knowledge store in the
+manner of DEVONthink, made for Linux and backed by a standalone server.
+Tasks link to catastr objects by stable URIs (`catastr:<id>`), and catastr
+reads samudo as a source; the two talk only through versioned APIs.
+catastr is tailored closely to its maintainer's own use and is not
+published. samudo does not need it.
 
 ## Contributing and license
 
