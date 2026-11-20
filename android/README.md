@@ -1,14 +1,14 @@
-# Android-App
+# Android app
 
-Kotlin/Compose über die Crate `samu-mobile` (ADR 0028), gebaut wie die App
-von catastr (catastr ADR 0080).
+Kotlin and Compose over the crate `samu-mobile`
+([ADR 0028](../docs/adr/0028-android-app.md)).
 
-**Benutzung:** [`docs/android.md`](../docs/android.md) (englisch). Hier steht
-nur, wie sie gebaut wird.
+**Using it:** [`docs/android.md`](../docs/android.md). This page only says
+how it is built.
 
-## Einrichten
+## Setting up
 
-Wie für catastr, einmal je Rechner:
+Once per computer:
 
 ```sh
 ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager \
@@ -18,18 +18,18 @@ cargo install cargo-ndk --locked
 echo "sdk.dir=$HOME/Android/Sdk" > android/local.properties
 ```
 
-## Bauen und installieren
+## Building and installing
 
 ```sh
 make android
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Der Debug-Build heißt `de.samudo.app.dev` („samudo dev“) und läuft neben
-der veröffentlichten App, mit eigenem Cache und eigenem Konto.
+The debug build is called `de.samudo.app.dev` ("samudo dev") and runs
+beside the released app, with a cache and an account of its own.
 
-Die Version kommt aus `version` unter `[workspace.package]` in `Cargo.toml`;
-`versionCode` ist major·10000 + minor·100 + patch.
+The version comes from `version` under `[workspace.package]` in
+`Cargo.toml`; `versionCode` is major·10000 + minor·100 + patch.
 
 ## Release
 
@@ -37,32 +37,33 @@ Die Version kommt aus `version` unter `[workspace.package]` in `Cargo.toml`;
 ./gradlew assembleRelease     # in android/
 ```
 
-ergibt ohne Schlüssel `app-release-unsigned.apk`, das mit `apksigner`
-signiert wird. Mit Schlüssel signiert Gradle selbst: Pfad und Alias als
-Properties in `~/.gradle/gradle.properties`, die Passwörter aus der
-Umgebung.
+Without a key this gives `app-release-unsigned.apk`, to be signed with
+`apksigner`. With a key Gradle signs by itself: path and alias as
+properties in `~/.gradle/gradle.properties`, the passwords from the
+environment.
 
 ```properties
-samudo.keystore=/pfad/zum/release.jks
+samudo.keystore=/path/to/release.jks
 samudo.keyAlias=samudo
 ```
 
 ```sh
-SAMUDO_KEYSTORE_PASSWORD=… ./gradlew assembleRelease   # SAMUDO_KEY_PASSWORD, wenn anders
+SAMUDO_KEYSTORE_PASSWORD=… ./gradlew assembleRelease   # SAMUDO_KEY_PASSWORD if different
 ```
 
-Vor jedem Bau ruft Gradle `android/rust.sh`: es baut `samu-mobile` für
-`arm64-v8a` und erzeugt daraus die Kotlin-Bindings unter `app/build/rust/`.
-Beides wird nicht eingecheckt, damit Rust und Kotlin nicht auseinanderlaufen.
+Before every build Gradle runs `android/rust.sh`: it builds `samu-mobile`
+for `arm64-v8a` and generates the Kotlin bindings from it under
+`app/build/rust/`. Neither is checked in, so that Rust and Kotlin cannot
+drift apart.
 
-`android/` liegt außerhalb von `make check`; `samu-mobile` selbst baut und
-testet `make check` auf dem Host mit, gegen ein echtes `samu-server`.
+`android/` is outside `make check`; `samu-mobile` itself is built and
+tested by `make check` on the host, against a real `samu-server`.
 
-## Gegen einen Testserver auf dem Rechner
+## Against a test server on the computer
 
 ```sh
 target/debug/samu-server --data /tmp/samu-test serve --listen 127.0.0.1:8492
 adb reverse tcp:8492 tcp:8492
 ```
 
-In der App dann als Server `http://127.0.0.1:8492`.
+In the app, the server is then `http://127.0.0.1:8492`.
