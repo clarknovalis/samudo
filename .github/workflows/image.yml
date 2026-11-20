@@ -29,6 +29,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/samudo
+  DESCRIPTION: "Self-hosted task manager: server and command line"
 
 jobs:
   version:
@@ -93,38 +94,41 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.sha }}
 
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      # Only actions by GitHub are allowed in this repository: the Docker
+      # CLI with buildx is on the runner, so it is called directly.
+      - name: Sign in to ghcr.io
+        env:
+          TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
 
       - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/${{ matrix.arch }}
-          build-args: SAMU_VERSION=${{ needs.version.outputs.version }}
-          labels: |
-            org.opencontainers.image.title=samudo
-            org.opencontainers.image.description=Self-hosted task manager: server and command line
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.licenses=AGPL-3.0-or-later
-            org.opencontainers.image.version=${{ needs.version.outputs.version }}
-            org.opencontainers.image.revision=${{ needs.version.outputs.sha }}
-          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=image-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=image-${{ matrix.arch }}
-
-      - name: Keep the digest
-        run: |
-          mkdir -p digests
-          touch "digests/${DIGEST#sha256:}"
         env:
-          DIGEST: ${{ steps.build.outputs.digest }}
+          ARCH: ${{ matrix.arch }}
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA: ${{ needs.version.outputs.sha }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          # The default driver cannot push by digest; a container builder can.
+          docker buildx create --use --name samu >/dev/null
+          docker buildx build . \
+            --platform "linux/$ARCH" \
+            --build-arg "SAMU_VERSION=$VERSION" \
+            --label "org.opencontainers.image.title=samudo" \
+            --label "org.opencontainers.image.description=$DESCRIPTION" \
+            --label "org.opencontainers.image.source=$SOURCE" \
+            --label "org.opencontainers.image.licenses=AGPL-3.0-or-later" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.revision=$SHA" \
+            --output "type=image,name=$IMAGE,push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file meta.json
+          digest=$(jq -r '."containerimage.digest"' meta.json)
+          case $digest in
+            sha256:*) ;;
+            *) echo "no digest in the build's metadata: $digest" >&2; exit 1 ;;
+          esac
+          mkdir -p digests
+          touch "digests/${digest#sha256:}"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -142,13 +146,11 @@ jobs:
           path: digests
           merge-multiple: true
 
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+      - name: Sign in to ghcr.io
+        env:
+          TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
 
       # The index carries the description too: the registry shows a
       # multi-architecture image's from there, not from the images.
@@ -161,8 +163,12 @@ jobs:
           args=()
           for tag in $TAGS; do args+=(-t "$IMAGE:$tag"); done
           for digest in *; do args+=("$IMAGE@sha256:$digest"); done
+          if [ "${#args[@]}" -ne $(( $(wc -w <<<"$TAGS") * 2 + 2 )) ]; then
+            echo "expected two digests, have: $(ls)" >&2
+            exit 1
+          fi
           docker buildx imagetools create \
-            --annotation "index:org.opencontainers.image.description=Self-hosted task manager: server and command line" \
+            --annotation "index:org.opencontainers.image.description=$DESCRIPTION" \
             --annotation "index:org.opencontainers.image.source=$SOURCE" \
             --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-or-later" \
             "${args[@]}"
