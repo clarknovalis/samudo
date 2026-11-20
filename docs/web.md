@@ -122,8 +122,8 @@ Markdown; a pencil or double click edits it, checkboxes are clickable,
 comments, time, habit streak, logbook. A scope's layout can fold parts of
 it away.
 
-`]` (or ⤢) shows the task across the middle and right columns, the text in
-readable width.
+`]` (or ⤢, or a double click on its row) shows the task across the middle
+and right columns, the text in readable width.
 
 Comments are rendered like the note and show their author, marked "Agent"
 when an agent wrote them. You can edit and delete what a session of your
@@ -272,6 +272,23 @@ With a selection, `x`, `f`, `m`, `s`, `t`, `e` and Delete act on all
 selected tasks. Every binding can be changed under "Keyboard" (stored in the
 account, so every browser gets it; `samu settings set keys` on the command
 line).
+
+## Addresses
+
+The address bar always shows what the page shows, so every state can be
+bookmarked or sent as a link:
+
+- the view is the path: `/` (inbox), `/v/projects`, `/v/today`,
+  `/v/forecast`, `/v/calendar`, `/v/flagged`, `/v/stuck`, `/v/review`,
+  `/v/report`; a project or a perspective is `/o/<id>`;
+- the query adds `q=` (the search, as you would type it), `scope=<id>`
+  (or `scope=none`), `show=remaining` or `show=all`, in the calendar
+  `mode=day|week|month|list` and `day=2026-12-01`, and `open=<id>` for the
+  open task, with `full=1` when it fills the window.
+
+`/?q=@home&show=all` lists every task tagged `home`, done ones included. A project, tag or folder named in `q` is looked up by name when
+the page opens. Changing the view is a step in the browser's history,
+so Back returns to the previous one.
 
 ## Links from outside
 

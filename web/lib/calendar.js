@@ -61,6 +61,20 @@ function choose(patch) {
   update({});
 }
 
+// What the calendar shows, for the address (ADR 0075 §7): the day null
+// when it is today.
+export function calendarChoice() {
+  return { mode: choice.mode, day: choice.day === today() ? null : choice.day };
+}
+
+// The same from an address; what is missing stays.
+export function setCalendarChoice({ mode = null, day = null }) {
+  const patch = {};
+  if (MODES.includes(mode)) patch.mode = mode;
+  if (day) patch.day = day;
+  if (Object.keys(patch).length) choose(patch);
+}
+
 // Monday of the week a day is in.
 function monday(day) {
   const weekday = (new Date(`${day}T12:00:00`).getDay() + 6) % 7;

@@ -125,4 +125,5 @@ heißt: alles, was man zeigt, von Grund auf neu laden.
 ## Routen der Web-Oberfläche
 
 `/` und `/lib/…` liefern die Web-Oberfläche aus dem Binary; `/o/{id}`
-öffnet darin ein Objekt.
+öffnet darin ein Objekt, `/v/{view}` eine Ansicht (siehe
+[Web-Oberfläche](web.md#adressen)).

@@ -129,8 +129,8 @@ Aufgabe), Properties, Links, Blocker, Anhänge, Kommentare, Zeit, Serie
 einer Gewohnheit, Logbuch. Das Layout eines Scopes kann Teile davon
 wegklappen.
 
-`]` (oder ⤢) zeigt die Aufgabe über die mittlere und rechte Spalte, den
-Text in lesbarer Breite.
+`]` (oder ⤢, oder ein Doppelklick auf ihre Zeile) zeigt die Aufgabe über
+die mittlere und rechte Spalte, den Text in lesbarer Breite.
 
 Kommentare werden wie die Notiz gerendert und zeigen ihren Autor, mit
 „Agent“ markiert, wenn ein Agent sie geschrieben hat. Was eine Sitzung
@@ -287,6 +287,24 @@ Mit einer Auswahl wirken `x`, `f`, `m`, `s`, `t`, `e` und Entf auf alle
 gewählten Aufgaben. Jede Belegung lässt sich unter „Tastatur“ ändern
 (gespeichert im Konto, also bekommt sie jeder Browser; auf der
 Kommandozeile `samu settings set keys`).
+
+## Adressen
+
+Die Adresszeile zeigt immer, was die Seite zeigt; so lässt sich jeder
+Stand als Lesezeichen ablegen oder als Link verschicken:
+
+- die Ansicht ist der Pfad: `/` (Inbox), `/v/projects`, `/v/today`,
+  `/v/forecast`, `/v/calendar`, `/v/flagged`, `/v/stuck`, `/v/review`,
+  `/v/report`; ein Projekt oder eine Perspektive ist `/o/<id>`;
+- die Query ergänzt `q=` (die Suche, wie man sie tippt), `scope=<id>`
+  (oder `scope=none`), `show=remaining` oder `show=all`, im Kalender
+  `mode=day|week|month|list` und `day=2026-12-01`, und `open=<id>` für die
+  offene Aufgabe, mit `full=1`, wenn sie das Fenster füllt.
+
+`/?q=@home&show=all` listet alle Aufgaben mit dem Tag `home`, erledigte
+eingeschlossen. Ein Projekt, Tag oder Ordner in `q` wird beim
+Öffnen der Seite über seinen Namen gesucht. Ein Wechsel der Ansicht ist
+ein Schritt in der Geschichte des Browsers; „Zurück“ führt zur vorigen.
 
 ## Links von außen
 

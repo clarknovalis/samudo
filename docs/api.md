@@ -122,4 +122,4 @@ you show from scratch.
 ## Web UI routes
 
 `/` and `/lib/…` serve the web UI from the binary; `/o/{id}` opens an
-object in it.
+object in it, `/v/{view}` a view (see [Web UI](web.md#addresses)).
