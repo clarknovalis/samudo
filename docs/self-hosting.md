@@ -19,31 +19,42 @@ These steps use Docker Compose; the binary runs just as well under systemd.
 - **Resources** are small: a few thousand tasks are computed in memory;
   half a CPU and 256 MB are plenty.
 
-## Build the image
+## The image
 
-There is no published image yet. Build one from the repository:
+The image is published as `ghcr.io/clarknovalis/samudo`, for amd64 and
+arm64:
+
+- `latest` and a version like `0.1.5` (or `0.1` for its newest patch)
+  come from a release;
+- `edge` is the newest commit on `main` that passed its checks.
+
+It is Debian slim with `samu-server` and `samu`, running as user 10010,
+with its data in `/data`.
+
+To build it yourself instead, from the repository:
 
 ```sh
-git clone <repository> samu && cd samu
+git clone https://github.com/clarknovalis/samudo samu && cd samu
 docker build -t samu-server .
 ```
-
-The image is Debian slim with `samu-server` and `samu`, running as user
-10010, with its data in `/data`.
 
 ## Compose
 
 The repository has a ready file, [`docker-compose.example.yml`](../docker-compose.example.yml):
-it builds the image from the checkout, binds the port to localhost for
-the reverse proxy, and refuses to start without a secret key.
+it takes the published image, binds the port to localhost for the
+reverse proxy, and refuses to start without a secret key.
 
 ```sh
-# in the checkout
-cp docker-compose.example.yml docker-compose.yml
+mkdir samu && cd samu
+curl -fsSL -o docker-compose.yml \
+  https://raw.githubusercontent.com/clarknovalis/samudo/main/docker-compose.example.yml
 (umask 077; echo "SAMU_SECRET_KEY=$(openssl rand -base64 32)" > .env)
-docker compose up -d --build
+docker compose up -d
 curl -s http://127.0.0.1:8490/health        # {"status":"ok",...}
 ```
+
+To run your own build, replace the `image:` line with `build: .` in the
+checkout and start with `docker compose up -d --build`.
 
 A reverse proxy entry, for example with Caddy:
 
@@ -248,7 +259,8 @@ Then set each calendar source again.
 
 ## Updating
 
-Build the new image, back up, then `docker compose up -d`. The server
+Back up, then `docker compose pull` and `docker compose up -d` (with
+your own build: build the new image instead of pulling). The server
 migrates the databases on start; a database migrated by a newer version
 cannot be opened by an older one, so do not go back without the backup.
 `/health` reports the running version.

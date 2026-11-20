@@ -1,0 +1,169 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Publishes the server's container image to ghcr.io (ADR 0137): for a
+# release tag v<version> as X.Y.Z, X.Y and latest, and for every push to
+# main whose CI passed as edge and sha-<short>. Each architecture is
+# compiled on a runner of its own, pushed by digest, and one manifest
+# list then names both.
+name: Image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+# A newer push to main makes the edge build before it pointless; a
+# release is never cancelled.
+concurrency:
+  group: image-${{ github.event_name == 'push' && github.ref || 'edge' }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/samudo
+
+jobs:
+  version:
+    # From CI only a passed run of a push to main, never of a pull request
+    # (ADR 0137 §5).
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.v.outputs.sha }}
+      version: ${{ steps.v.outputs.version }}
+      tags: ${{ steps.v.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # The commit count in an edge version.
+          fetch-depth: 0
+
+      - name: Version and tags
+        id: v
+        run: |
+          read -r version _ < <(scripts/app-version.sh)
+          sha=$(git rev-parse HEAD)
+          short=$(git rev-parse --short=7 HEAD)
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+              echo "tag $GITHUB_REF_NAME does not name the version $version in Cargo.toml" >&2
+              exit 1
+            fi
+            # A pre-release (0.2.0-rc.1) moves neither X.Y nor latest.
+            case $version in
+              *-*) tags="$version" ;;
+              *) tags="$version ${version%.*} latest" ;;
+            esac
+          else
+            version="$version+git$(git rev-list --count HEAD).$short"
+            tags="edge sha-$short"
+          fi
+          echo "version $version, tags $tags"
+          {
+            echo "sha=$sha"
+            echo "version=$version"
+            echo "tags=$tags"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          build-args: SAMU_VERSION=${{ needs.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=samudo
+            org.opencontainers.image.description=Self-hosted task manager: server and command line
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
+            org.opencontainers.image.version=${{ needs.version.outputs.version }}
+            org.opencontainers.image.revision=${{ needs.version.outputs.sha }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=image-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=image-${{ matrix.arch }}
+
+      - name: Keep the digest
+        run: |
+          mkdir -p digests
+          touch "digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: digests/*
+          retention-days: 1
+
+  manifest:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The index carries the description too: the registry shows a
+      # multi-architecture image's from there, not from the images.
+      - name: One manifest list for both
+        working-directory: digests
+        env:
+          TAGS: ${{ needs.version.outputs.tags }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          args=()
+          for tag in $TAGS; do args+=(-t "$IMAGE:$tag"); done
+          for digest in *; do args+=("$IMAGE@sha256:$digest"); done
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=Self-hosted task manager: server and command line" \
+            --annotation "index:org.opencontainers.image.source=$SOURCE" \
+            --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-or-later" \
+            "${args[@]}"
+          docker buildx imagetools inspect "$IMAGE:${TAGS%% *}"

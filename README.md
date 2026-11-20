@@ -36,8 +36,9 @@ reads as a nod to getting things done. Inside, everything is still called
 **Status:** server, command line, web UI, Android app and Emacs package
 are in daily use. The Android app is released on
 [GitHub Releases](https://github.com/clarknovalis/samudo/releases)
-([installing](docs/android.md#installing)); everything else is built
-from `main`. What
+([installing](docs/android.md#installing)), the server as a container
+image for amd64 and arm64 ([self-hosting](docs/self-hosting.md#the-image));
+everything else is built from `main`. What
 is being worked on and what may come next is on the
 [roadmap](docs/roadmap.md).
 

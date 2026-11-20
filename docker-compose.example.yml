@@ -7,7 +7,7 @@
 # reverse proxy). Copy it to docker-compose.yml next to a .env file:
 #
 #     (umask 077; echo "SAMU_SECRET_KEY=$(openssl rand -base64 32)" > .env)
-#     docker compose up -d --build
+#     docker compose up -d
 #
 # The port is bound to localhost: put a reverse proxy with TLS in front,
 # and keep the instance inside your own network or VPN.
@@ -16,10 +16,11 @@ name: samu
 
 services:
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: samu-server
+    # The published image (ADR 0137): a version like 0.1.5, latest, or
+    # edge for the newest commit on main. To build from the checkout
+    # instead, replace this line with `build: .` and run
+    # `docker compose up -d --build`.
+    image: ghcr.io/clarknovalis/samudo:latest
     restart: unless-stopped
     volumes:
       # server.db and one SQLite file per account. Back these up as files.
