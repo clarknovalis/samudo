@@ -2033,7 +2033,15 @@ async fn the_web_ui_is_served_without_a_session() {
     for reference in ["href=\"/style.css\"", "href=\"/favicon.svg\""] {
         assert!(page.body.contains(reference), "{reference}");
     }
+    // So is every view's (ADR 0075 §7).
+    for view in crate::web::VIEW_PATHS {
+        let page_of_view = call(address, "GET", &format!("/v/{view}"), None, None).await;
+        assert_eq!(page_of_view.status, 200, "/v/{view}");
+        assert_eq!(page_of_view.body, page.body, "/v/{view}");
+    }
     for path in [
+        "/v/nope",
+        "/v/today/x",
         "/lib/nope.js",
         "/nope.js",
         "/lib/../app.js",
@@ -2714,6 +2722,7 @@ async fn the_web_ui_is_served_with_its_security_headers() {
     for path in [
         "/",
         object.as_str(),
+        "/v/today",
         "/app.js",
         "/style.css",
         "/favicon.svg",

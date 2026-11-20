@@ -356,6 +356,25 @@ export function addAt(list, chip, at = null, same = (a, b) => a.kind === b.kind 
 // A chip added at the end of a field's list (ADR 0121 §4).
 export const addTo = (list, chip, same) => addAt(list, chip, null, same).list;
 
+// The search as one line of text for the address (ADR 0075 §7): the chips
+// as their English words, then the free text.
+export function searchText(chips, text) {
+  return [...tidy(chips).map((chip) => chipText(chip, "en")), (text ?? "").trim()].filter(Boolean).join(" ");
+}
+
+// Such a line read back: the words the search knows become chips, the
+// rest stays free text. Names are looked up in the loaded objects.
+export function searchFrom(line) {
+  let chips = [];
+  const words = [];
+  for (const [word] of (line ?? "").matchAll(WORD)) {
+    const chip = parseWord(word);
+    if (chip) chips = addTo(chips, chip);
+    else words.push(word);
+  }
+  return { searchChips: chips, search: words.join(" ") };
+}
+
 // A word as a chip { kind, value, not }, the separator for `oder`, or null
 // when it is free text.
 export function parseWord(word) {

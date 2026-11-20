@@ -1610,6 +1610,7 @@ pub(crate) fn router(replica: Arc<Replica>) -> Router {
     let mut router = Router::new()
         .route("/", get(crate::web::index))
         .route("/o/{id}", get(crate::web::object_page))
+        .route("/v/{view}", get(crate::web::view_page))
         .route("/{name}", get(crate::web::root_file))
         .route("/lib/{name}", get(crate::web::lib_file))
         .route("/health", get(crate::app::health))

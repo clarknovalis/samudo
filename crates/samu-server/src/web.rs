@@ -276,6 +276,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
     ),
     ("lib/rich.js", include_str!("../../../web/lib/rich.js"), JS),
     (
+        "lib/route.js",
+        include_str!("../../../web/lib/route.js"),
+        JS,
+    ),
+    (
         "lib/searchbar.js",
         include_str!("../../../web/lib/searchbar.js"),
         JS,
@@ -406,6 +411,32 @@ pub(crate) async fn object_page(UrlPath(id): UrlPath<String>) -> Response {
     serve("index.html")
 }
 
+/// The views with an address of their own, `/v/<word>` (ADR 0075 §7);
+/// the same words as `VIEW_PATHS` in `web/lib/route.js`.
+pub(crate) const VIEW_PATHS: &[&str] = &[
+    "inbox", "projects", "today", "forecast", "calendar", "flagged", "stuck", "review", "report",
+];
+
+/// `GET /v/{view}`: the same page, opened on a view (ADR 0075 §7). A word
+/// that is no view is not a page.
+pub(crate) async fn view_page(UrlPath(view): UrlPath<String>) -> Response {
+    if !VIEW_PATHS.contains(&view.as_str()) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    serve("index.html")
+}
+
+/// The same at the server, with the banner of a demo.
+pub(crate) async fn server_view_page(
+    State(state): State<Arc<crate::app::AppState>>,
+    UrlPath(view): UrlPath<String>,
+) -> Response {
+    if !VIEW_PATHS.contains(&view.as_str()) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    page(&state)
+}
+
 /// The same at the server, with the banner of a demo.
 pub(crate) async fn server_object_page(
     State(state): State<Arc<crate::app::AppState>>,
@@ -464,6 +495,28 @@ mod tests {
             }
         }
         found
+    }
+
+    /// The server serves a view under exactly the words the page writes
+    /// (ADR 0075 §7): the two lists are one.
+    #[test]
+    fn the_view_paths_are_those_of_the_page() {
+        let (_, route) = scripts()
+            .find(|(name, _)| *name == "lib/route.js")
+            .expect("route.js is served");
+        let block = route
+            .split("export const VIEW_PATHS = {")
+            .nth(1)
+            .and_then(|rest| rest.split("};").next())
+            .expect("route.js has VIEW_PATHS");
+        let words: BTreeSet<&str> = between(block, ": \"", '"').into_iter().collect();
+        let served: BTreeSet<&str> = super::VIEW_PATHS.iter().copied().collect();
+        assert!(
+            words.len() > 5,
+            "only {} words found: the probe is broken",
+            words.len()
+        );
+        assert_eq!(words, served);
     }
 
     #[test]

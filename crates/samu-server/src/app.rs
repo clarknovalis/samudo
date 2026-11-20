@@ -2403,6 +2403,7 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         // The web UI, without a session (ADR 0025 §2).
         .route("/", get(crate::web::server_index))
         .route("/o/{id}", get(crate::web::server_object_page))
+        .route("/v/{view}", get(crate::web::server_view_page))
         .route("/{name}", get(crate::web::root_file))
         .route("/lib/{name}", get(crate::web::lib_file))
         .route("/health", get(health))
