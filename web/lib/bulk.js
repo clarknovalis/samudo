@@ -60,6 +60,15 @@ export function rowClick(event, id) {
   else update({ selected: id, pane: "detail" });
 }
 
+// A double click opens the task over the middle and the right, as the
+// button in the inspector does (ADR 0055 §6); not on what takes clicks of
+// its own (the checkbox, a link, a field being typed into).
+export function rowDoubleClick(event, id) {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (event.target.closest?.("input, button, a, select, textarea, [contenteditable]")) return;
+  update({ selected: id, pane: "detail", full: true });
+}
+
 // --- The actions (§2) -----------------------------------------------------
 
 async function write(changes, done = null) {

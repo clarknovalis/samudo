@@ -9,7 +9,7 @@
 import { api, change } from "./api.js";
 import { startNew, writableCalendars } from "./appointment.js";
 import { boardConfig, boardFull, boardView, clearBoard, closeBoardMenu, renderBoardMenu, setBoardFull, toggleBoardMenu } from "./board.js";
-import { rowClick, rowDrag } from "./bulk.js";
+import { rowClick, rowDoubleClick, rowDrag } from "./bulk.js";
 import { $, el, replace } from "./dom.js";
 import { calendarView } from "./calendar.js";
 import { setDone } from "./detail.js";
@@ -141,6 +141,7 @@ function row(status, depth, context, why = null, bare = false) {
       "data-id": task.id,
       style: depth ? `--depth: ${depth}` : null,
       onclick: (event) => rowClick(event, task.id),
+      ondblclick: (event) => rowDoubleClick(event, task.id),
       ...rowDrag(task.id),
       ...rowDrop(task.id),
     },
@@ -1142,6 +1143,7 @@ function tableContext(statuses, chosen, compare, orderAt = orderKey(), prefix = 
     lead,
     lines,
     rowClick,
+    rowDoubleClick,
     foldClick,
     sortBy: (sort) => chooseOrder(orderAt, chosen.sort === sort ? { desc: !chosen.desc } : { sort, desc: false }),
     setColumns: (columns) => chooseOrder(orderAt, { table: { columns } }),

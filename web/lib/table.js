@@ -193,7 +193,7 @@ function head(ctx, columns) {
 
 // ctx: { chosen, columns, sections: [{ fold, heading, subtitle, folded,
 // entries: [{ status, depth, context, bare }] }], lead(status, bare),
-// lines(task), rowClick(event, id), foldClick(fold, event),
+// lines(task), rowClick(event, id), rowDoubleClick(event, id), foldClick(fold, event),
 // sortBy(sort), setColumns(columns) }
 export function tableView(ctx) {
   const n = numbersNow();
@@ -258,6 +258,7 @@ function row(ctx, columns, status, depth, context, bare, n) {
       class: classes.filter(Boolean).join(" "),
       "data-id": task.id,
       onclick: (event) => ctx.rowClick(event, task.id),
+      ondblclick: (event) => ctx.rowDoubleClick(event, task.id),
     },
     [
       el("td", { class: "title-cell", style: depth ? `--depth: ${depth}` : null }, el("span", { class: "lead" }, [...ctx.lead(status, bare), ctx.lines(task)])),
