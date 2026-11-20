@@ -32,13 +32,11 @@ recorded. And the snapshot adds a step after every rollout.
    own, as before.
 4. **A private mirror pulls from GitHub**, as a backup. Nothing is pushed
    from the mirror.
-5. **Agents may push**, within three limits:
-   - with a token of their own that may write contents and nothing else,
-     so that the maintainer and an agent can be told apart;
-   - only `main`, never forced, and no tags: a release stays the
-     maintainer's;
-   - only at a handover, after the full check has passed, not after every
-     commit.
+5. **Agents do not push.** Only the maintainer does, also once the
+   repository is public again. An agent commits, and names at its
+   handover what is to be pushed. The `pre-push` hook of §2 holds the
+   limits on the maintainer's side: only `main`, only forward, a
+   release tag only on request.
 6. **The repository is private during the changeover** and becomes
    public again when three things hold: the hooks have run on the real
    history for some days, the findings of the review that touch data
@@ -46,7 +44,7 @@ recorded. And the snapshot adds a step after every rollout.
    40 most cited decision records are here (0133 §5).
 7. **Before it becomes public again, §5 is decided anew**, from what the
    hooks stopped and what slipped past them while a push could still be
-   corrected.
+   corrected. Decided on 2026-11-20: see §5.
 
 ## Consequences
 
@@ -56,8 +54,6 @@ recorded. And the snapshot adds a step after every rollout.
   matters, it is rolled out first and pushed after.
 - The snapshot script and the `published/…` tags are no longer needed.
 - Pull requests can be merged in the usual way.
-- Whether the hosting plan enforces the limits of §5 on a private
-  repository has to be checked before they are relied on.
 
 ## Changes
 
@@ -72,3 +68,11 @@ recorded. And the snapshot adds a step after every rollout.
   and the authors of every outgoing commit rather than the last tree,
   since a word that one commit brings and the next removes would stay
   in the history. Every refusal of a hook is counted, without the word.
+- 2026-11-20: §5 decided anew, as §7 asks: agents do not push after the
+  repository is public either. Until this day §5 allowed them to, with
+  a token of their own that could write contents only, to `main` only,
+  never forced, without tags, and only at a handover after the full
+  check. That needs a second credential and rules on the server to
+  hold it; one person pushing, behind the hooks, needs neither. The
+  consequence about the hosting plan enforcing those limits is dropped
+  with them.
