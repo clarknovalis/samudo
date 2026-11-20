@@ -40,6 +40,7 @@ its citations in the code have no target.
 | [0072](0072-scope-as-workspace.md) | accepted | A scope carries a layout on the server, first for the inspector; parts not shown are folded and named when they have a value |
 | [0073](0073-capture-templates.md) | accepted | Capture templates: a quick-capture line as defaults plus reminders, invoked with `/name`; line before template before scope |
 | [0074](0074-export-and-restore.md) | accepted | Export as a directory of stable JSON and files, readable without samu; restore only into an empty account; Org as an output only |
+| [0075](0075-opening-references.md) | accepted | Opening references: `/o/<uuid>` and an address for every view in the web UI, `samu:` handlers on desktop, Emacs and Android, `catastr:` as link class `app` |
 | [0078](0078-edit-dialog.md) | accepted | The "Edit" dialog changes an existing task in quick-capture syntax, its values as removable chips; `CaptureRequest.task` |
 | [0080](0080-report.md) | accepted | Report of done, worked on and time over a period, filtered with the search language, `GET /report`; by default only the person's own work |
 | [0081](0081-report-replaces-time.md) | accepted | "Report" replaces "Time"; booking time afterwards with `z:` (and `x:` for completed) in capture and edit |
