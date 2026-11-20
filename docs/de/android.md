@@ -185,6 +185,14 @@ und Name) und öffnet sie.
 - **„Habits“**: jede offene Gewohnheit; siehe
   [Gewohnheiten](habits.md#widget-habits).
 
+**Für einen Launcher.** In denselben Momenten meldet die App der
+eingestellten Start-App, wie Eingang und Tag stehen, als expliziter
+Broadcast `de.samudo.app.action.GLANCE` mit den ganzzahligen Extras
+`inbox`, `overdue`, `today_open` und `today_done`; abgemeldet fehlen sie.
+Ein Launcher, der einen exportierten Empfänger für die Aktion anmeldet,
+kann die Zahlen zeigen. Ab Android 14 nennt der Broadcast seinen
+Absender, den der Empfänger mit `getSentFromPackage()` prüfen kann.
+
 ## Erinnerungen und Kalender
 
 Erinnerungen an Aufgaben werden als Wecker auf dem Handy gestellt und

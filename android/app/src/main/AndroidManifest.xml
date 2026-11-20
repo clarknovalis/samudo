@@ -29,10 +29,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
          permission here. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- The launcher hears how the inbox stands (Launcher.kt); without
-         this the system hides its package and drops the broadcast. -->
+    <!-- The home screen hears how the inbox stands (Launcher.kt); without
+         this the system hides the launcher and drops the broadcast. -->
     <queries>
-        <package android:name="org.example.launcher" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
     </queries>
 
     <!-- No backup: it would carry the session token off the phone, and the

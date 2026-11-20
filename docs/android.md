@@ -168,6 +168,14 @@ it.
   task. For a task with open tasks below the check opens it instead. Redrawn after every sync and when you leave the app.
 - **"Habits"**: every open habit; see [Habits](habits.md#widget-habits).
 
+**For a launcher.** At the same moments the app tells the home screen you
+have set how the inbox and the day stand, as an explicit broadcast
+`de.samudo.app.action.GLANCE` with the integer extras `inbox`, `overdue`,
+`today_open` and `today_done`; signed out, they are missing. A launcher
+that declares an exported receiver for the action can show the counts.
+From Android 14 on the broadcast shares its sender, so the receiver can
+check `getSentFromPackage()`.
+
 ## Reminders and calendar
 
 Reminders of tasks are set as alarms on the phone and show as
