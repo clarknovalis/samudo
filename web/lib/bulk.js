@@ -8,6 +8,7 @@
 
 import { api, change } from "./api.js";
 import { $, el, replace } from "./dom.js";
+import { clickCounter } from "./clicks.js";
 import { closeTasks } from "./closeask.js";
 import { statesOf } from "./detail.js";
 import { openEdit } from "./edit.js";
@@ -53,21 +54,22 @@ export function clearPicks() {
 }
 
 // What a click on a row does: Ctrl/⌘ picks, Shift picks a range, else
-// it opens the task as before and leaves the picks.
+// it opens the task as before and leaves the picks. A second click on the
+// same row opens it over the middle and the right, as the button in the
+// inspector does (ADR 0055 §6); not on what takes clicks of its own (the
+// checkbox, a link, a field being typed into). See clicks.js for why this
+// is not the browser's dblclick.
+const secondClick = clickCounter();
+
 export function rowClick(event, id) {
   if (event.ctrlKey || event.metaKey) togglePick(id);
   else if (event.shiftKey) pickRange(id);
+  else if (secondClick(id, event.timeStamp) && !event.target.closest?.(OWN_CLICKS))
+    update({ selected: id, pane: "detail", full: true });
   else update({ selected: id, pane: "detail" });
 }
 
-// A double click opens the task over the middle and the right, as the
-// button in the inspector does (ADR 0055 §6); not on what takes clicks of
-// its own (the checkbox, a link, a field being typed into).
-export function rowDoubleClick(event, id) {
-  if (event.ctrlKey || event.metaKey || event.shiftKey) return;
-  if (event.target.closest?.("input, button, a, select, textarea, [contenteditable]")) return;
-  update({ selected: id, pane: "detail", full: true });
-}
+const OWN_CLICKS = "input, button, a, select, textarea, [contenteditable]";
 
 // --- The actions (§2) -----------------------------------------------------
 

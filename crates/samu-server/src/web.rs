@@ -38,6 +38,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
     ),
     ("lib/api.js", include_str!("../../../web/lib/api.js"), JS),
     (
+        "lib/clicks.js",
+        include_str!("../../../web/lib/clicks.js"),
+        JS,
+    ),
+    (
         "lib/blockdialog.js",
         include_str!("../../../web/lib/blockdialog.js"),
         JS,
