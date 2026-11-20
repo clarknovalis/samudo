@@ -95,6 +95,8 @@ pub enum ChipError {
     Property(String),
     #[error("prio:{0} is not a priority: a, b, c, mit or ohne")]
     Priority(String),
+    #[error("id:{0} is not a task's id: its last 8 characters or the whole id")]
+    TaskId(String),
 }
 
 /// A day range, both ends inclusive, `None` open.
@@ -222,6 +224,17 @@ fn priority_test(word: &str) -> Option<impl Fn(Option<Priority>) -> bool + use<>
     })
 }
 
+/// An `id:` chip's value as samu keeps it: a short id (the last 8
+/// characters, as the command line prints it) in lower case, or a whole id
+/// in its usual form. `None` when it is neither.
+fn task_id(value: &str) -> Option<String> {
+    let value = value.to_lowercase();
+    if value.len() == 8 && value.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Some(value);
+    }
+    value.parse::<Id>().ok().map(|id| id.to_string())
+}
+
 /// Whether a chip can be part of a filter: a kind and a word samu knows, an
 /// id where one belongs. Whether the id names something live is the
 /// store's question.
@@ -251,6 +264,10 @@ pub fn check(chip: &ScopeChip) -> Result<(), ChipError> {
         Kind::Priority => priority_test(&chip.value)
             .map(|_| ())
             .ok_or_else(|| ChipError::Priority(chip.value.clone())),
+        Kind::Id => task_id(&chip.value)
+            .filter(|v| *v == chip.value)
+            .map(|_| ())
+            .ok_or_else(|| ChipError::TaskId(chip.value.clone())),
         Kind::Due
         | Kind::Planned
         | Kind::Defer
@@ -592,6 +609,10 @@ fn parse_word(word: &str, snapshot: &Snapshot<'_>) -> Result<ScopeChip, ParseErr
                 lang::canonical_value(&value.to_lowercase())
             },
         )),
+        "id" => Ok(chip(
+            Kind::Id,
+            task_id(value).unwrap_or_else(|| value.to_owned()),
+        )),
         "prop" => Ok(chip(
             Kind::Property,
             match value.split_once('=') {
@@ -709,6 +730,7 @@ fn chip_word(chip: &ScopeChip, snapshot: &Snapshot<'_>, lang: Lang) -> String {
         Kind::Property => format!("prop:{}", quote(chip.value.clone())),
         Kind::Estimate => format!("~{}", value(&chip.value)),
         Kind::Priority => format!("prio:{}", value(&chip.value)),
+        Kind::Id => format!("id:{}", chip.value),
         Kind::Unknown => format!("?:{}", chip.value),
         kind => {
             let word = DATE_WORDS
@@ -914,6 +936,8 @@ impl<'a> Filter<'a> {
                 let fits = priority_test(&value)?;
                 Box::new(move |t, _| fits(t.priority))
             }
+            // The end of the id, so a whole one meets its task alone.
+            Kind::Id => Box::new(move |t, _| t.id.to_string().ends_with(&value)),
             Kind::Is => {
                 // A task with a clock on it, not deleted (ADR 0046 §6);
                 // the blockers the same way, as a set taken once.
@@ -1073,13 +1097,15 @@ pub fn join_free(words: &[String]) -> String {
 }
 
 /// A chip that asks for what is closed (`ist:erledigt`, `ist:verworfen`,
-/// `erledigt:`): the filter then acts as „all“ (ADR 0042 §4).
+/// `erledigt:`), or for a task by its id, whatever its state: the filter
+/// then acts as „all“ (ADR 0042 §4).
 #[must_use]
 pub fn asks_for_closed(chips: &[ScopeChip]) -> bool {
     chips.iter().any(|c| {
         !c.not
             && ((c.kind == Kind::Is && (c.value == "erledigt" || c.value == "verworfen"))
-                || (c.kind == Kind::Completed && c.value != "ohne"))
+                || (c.kind == Kind::Completed && c.value != "ohne")
+                || c.kind == Kind::Id)
     })
 }
 
@@ -1314,6 +1340,37 @@ mod tests {
                 assert_eq!(parse(text, &snapshot).unwrap(), want, "parse {text:?}");
             }
         }
+    }
+
+    #[test]
+    fn an_id_chip_takes_a_short_or_whole_id_and_asks_for_all() {
+        let whole = id(7).to_string();
+        let short = whole[whole.len() - 8..].to_owned();
+        assert!(check(&chip(Kind::Id, &short, false)).is_ok());
+        assert!(check(&chip(Kind::Id, &whole, false)).is_ok());
+        for bad in ["0000007", "0000000g", "", &short.to_uppercase()] {
+            assert_eq!(
+                check(&chip(Kind::Id, bad, false)),
+                Err(ChipError::TaskId(bad.to_owned())),
+                "{bad:?}"
+            );
+        }
+        let snapshot = Snapshot::default();
+        let read = parse(
+            &format!("id:{} ID:{short}", whole.to_uppercase()),
+            &snapshot,
+        )
+        .unwrap();
+        assert_eq!(
+            read,
+            [chip(Kind::Id, &whole, false), chip(Kind::Id, &short, false)]
+        );
+        assert_eq!(
+            words_in(&read, &snapshot, Lang::En),
+            format!("id:{whole} id:{short}")
+        );
+        assert!(asks_for_closed(&read));
+        assert!(!asks_for_closed(&[chip(Kind::Id, &short, true)]));
     }
 
     #[test]

@@ -41,6 +41,7 @@ const KEYS = [
   ["ist", "is"],
   ["prio", "prio"],
   ["prop", "prop"],
+  ["id", "id"],
 ];
 const VALUES = [
   ["heute", "today"],
@@ -128,6 +129,12 @@ function hiddenIds() {
 const ESTIMATES = ["<15m", "<30m", "<1h", ">1h", "mit", "ohne"];
 // `prio:` (ADR 0056 §4); `prio:-` is `prio:ohne`.
 const PRIORITIES = ["a", "b", "c", "mit", "ohne"];
+// `id:`: 8 characters of hex, or a whole id, in lower case.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const taskId = (value) => {
+  const v = lower(value);
+  return /^[0-9a-f]{8}$/.test(v) || UUID.test(v) ? v : null;
+};
 
 // What the list offers in an empty field: the kinds themselves.
 export const KINDS = [
@@ -144,6 +151,7 @@ export const KINDS = [
   ["zustand:", "zustand:Name"],
   ["prop:", "prop:schlüssel"],
   ["prio:", "prio:a"],
+  ["id:", "id:Kurz-ID"],
   ["~", "~<15m"],
 ];
 const KINDS_EN = [
@@ -160,6 +168,7 @@ const KINDS_EN = [
   ["state:", "state:Name"],
   ["prop:", "prop:key"],
   ["prio:", "prio:a"],
+  ["id:", "id:short-id"],
   ["~", "~<15m"],
 ];
 
@@ -419,6 +428,12 @@ export function parseWord(word) {
     const v = value === "-" ? "ohne" : canonicalValue(lower(value));
     return PRIORITIES.includes(v) ? chip("priority", v) : null;
   }
+  // A task by the end of its id (8 characters, as the command line prints
+  // it) or the whole id, as samu_core::query::task_id.
+  if (key === "id") {
+    const v = taskId(value);
+    return v ? chip("id", v) : null;
+  }
   if (key === "zustand") {
     const tag = findBy(workflowStates(), value, (t) => t.title);
     return tag ? chip("state", tag.id) : null;
@@ -461,6 +476,8 @@ export function chipText(chip, l = lang()) {
       return `${sign}~${value(chip.value)}`;
     case "priority":
       return `${sign}prio:${value(chip.value)}`;
+    case "id":
+      return `${sign}id:${chip.value}`;
     case "property":
       return `${sign}prop:${quoted(chip.value)}`;
     default:
@@ -503,6 +520,8 @@ function test(chip) {
       if (chip.value === "mit") return (s) => Boolean(s.task.priority);
       if (chip.value === "ohne") return (s) => !s.task.priority;
       return (s) => lower(s.task.priority ?? "") === chip.value;
+    case "id":
+      return (s) => s.task.id.endsWith(chip.value);
     case "property": {
       const at = chip.value.indexOf("=");
       const key = at < 0 ? chip.value : chip.value.slice(0, at);
@@ -592,6 +611,8 @@ function readable(chip) {
       return IS.includes(chip.value) || chip.value === "termin";
     case "priority":
       return PRIORITIES.includes(chip.value);
+    case "id":
+      return taskId(chip.value) === chip.value;
     default:
       return Boolean(DATE_NAME[chip.kind]) && Boolean(rangeOf(chip.value));
   }
@@ -622,14 +643,15 @@ export function matcher(chips, text) {
   };
 }
 
-// A chip that asks for what is closed: the filter then acts as „Alle“
-// (ADR 0042 §4).
+// A chip that asks for what is closed, or for a task by its id whatever
+// its state: the filter then acts as „Alle“ (ADR 0042 §4).
 export const asksForClosed = (chips) =>
   chips.some(
     (c) =>
       !c.not &&
       ((c.kind === "is" && (c.value === "erledigt" || c.value === "verworfen")) ||
-        (c.kind === "completed" && c.value !== "ohne")),
+        (c.kind === "completed" && c.value !== "ohne") ||
+        c.kind === "id"),
   );
 
 // A chip that asks for what waits (`ist:wartet`, `ist:blockiert`, `start:`):

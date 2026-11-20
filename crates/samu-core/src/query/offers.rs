@@ -39,6 +39,7 @@ const KINDS: &[(&str, &str)] = &[
     ("zustand:", "zustand:Name"),
     ("prop:", "prop:schlüssel"),
     ("prio:", "prio:a"),
+    ("id:", "id:Kurz-ID"),
     ("~", "~<15m"),
 ];
 
@@ -57,6 +58,7 @@ const KINDS_EN: &[(&str, &str)] = &[
     ("state:", "state:Name"),
     ("prop:", "prop:key"),
     ("prio:", "prio:a"),
+    ("id:", "id:short-id"),
     ("~", "~<15m"),
 ];
 

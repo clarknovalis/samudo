@@ -597,6 +597,10 @@ pub enum ScopeChipKind {
     Property,
     /// The priority (ADR 0056 §4): `a`, `b`, `c`, `mit`, `ohne`.
     Priority,
+    /// One task by its id: the whole UUID or its last 8 characters, the
+    /// short id, in lower case. Chips of this kind are alternatives, so
+    /// several name a list of tasks.
+    Id,
     /// A value from a newer samu that this reader does not know (ADR 0015).
     /// Read, never written: the server refuses it. Such a chip meets every
     /// task.

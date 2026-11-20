@@ -40,6 +40,7 @@ const KEYS: &[(&str, &str)] = &[
     ("ist", "is"),
     ("prio", "prio"),
     ("prop", "prop"),
+    ("id", "id"),
 ];
 
 /// The words after the colon or `~`: German, English.

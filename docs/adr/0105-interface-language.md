@@ -65,7 +65,7 @@ language:
 | `7t` `-30t` | `7d` `-30d` |
 | `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `versteckt` `termin` | `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `hidden` `appointment` |
 
-`prop:`, `prio:`, `#`, `@`, `~` are the same in both; the group separator
+`prop:`, `prio:`, `id:`, `#`, `@`, `~` are the same in both; the group separator
 is `oder` or `or` (ADR 0121 §3), the author chip `autor:` or `author:`
 (ADR 0080 §2).
 
@@ -114,3 +114,4 @@ placeholders, not with `t(a + b)`.
 
 - 2026-11-17 (ADR 0121): the separator `oder`/`or` joined the language.
 - 2026-11-18 (ADR 0128 §7): `versteckt`/`hidden` joined the `is:` words.
+- 2026-11-20: the chip `id:` joined the language, the same in both.

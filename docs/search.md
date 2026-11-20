@@ -44,6 +44,7 @@ searches and perspectives (see [Android app](android.md#search)).
 | `~<15m`, `~>=1h`, `~30m`, `~any`, `~none` | by estimate (`<`, `<=`, `>`, `>=`, equal; with or without one) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:any`, `prio:none` (or `prio:-`) | by priority |
 | `prop:jira`, `prop:jira=ABC-1` | with the property, own or inherited; with a value, ignoring case |
+| `id:1a2b3c4d`, `id:` + a whole id | the task with that id, by its last eight characters (as the command line prints them) or the whole id; `id:1a2b3c4d id:5e6f7a8b` finds both, so a search can be a list of tasks |
 
 ### Ranges
 
@@ -69,8 +70,8 @@ Days are counted in the account's time zone.
   on a chip toggles the negation, × removes it; in the web Backspace in
   an empty field removes the last one, Escape clears everything.
 
-Asking for completed tasks (`is:done`, `done:…`) widens the view to
-"All"; asking for waiting tasks (`is:waiting`, `defer:…`) widens
+Asking for completed tasks (`is:done`, `done:…`) or for a task by its
+id (`id:…`) widens the view to "All"; asking for waiting tasks (`is:waiting`, `defer:…`) widens
 "Available" to "Remaining". This holds when any chip asks for it, in
 whichever group.
 
@@ -112,7 +113,7 @@ prints them the same way: `samu scope filter Work "is:flagged or due:today"`.
 | `7d` `-30d` | `7t` `-30t` |
 | `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `hidden` `appointment` | `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `versteckt` `termin` |
 
-`#`, `@`, `~`, `prio:` and `prop:` are the same in both. A chip is
+`#`, `@`, `~`, `prio:`, `prop:` and `id:` are the same in both. A chip is
 **stored in its German form**: a scope or perspective keeps `heute`,
 `markiert`, `7t`, and the interface shows it in its own language. So a
 perspective made in English reads the same on a German phone, and the

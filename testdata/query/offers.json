@@ -243,6 +243,10 @@
      "insert": "prio:"
     },
     {
+     "label": "id:Kurz-ID",
+     "insert": "id:"
+    },
+    {
      "label": "~<15m",
      "insert": "~"
     }
@@ -744,6 +748,10 @@
      "insert": "prio:"
     },
     {
+     "label": "id:short-id",
+     "insert": "id:"
+    },
+    {
      "label": "~<15m",
      "insert": "~"
     }
@@ -1012,6 +1020,10 @@
      "insert": "prio:"
     },
     {
+     "label": "id:Kurz-ID",
+     "insert": "id:"
+    },
+    {
      "label": "~<15m",
      "insert": "~"
     },
@@ -1117,6 +1129,10 @@
      "insert": "prio:"
     },
     {
+     "label": "id:short-id",
+     "insert": "id:"
+    },
+    {
      "label": "~<15m",
      "insert": "~"
     },
@@ -1125,6 +1141,37 @@
      "insert": "or "
     }
    ]
+  },
+  {
+   "word": "i",
+   "offers": [
+    {
+     "label": "ist:markiert",
+     "insert": "ist:"
+    },
+    {
+     "label": "id:Kurz-ID",
+     "insert": "id:"
+    }
+   ]
+  },
+  {
+   "word": "-i",
+   "lang": "en",
+   "offers": [
+    {
+     "label": "is:flagged",
+     "insert": "-is:"
+    },
+    {
+     "label": "id:short-id",
+     "insert": "-id:"
+    }
+   ]
+  },
+  {
+   "word": "id:00",
+   "offers": []
   }
  ]
 }

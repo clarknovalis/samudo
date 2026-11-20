@@ -282,6 +282,85 @@
    "ids": [
     4
    ]
+  },
+  {
+   "about": "id: by short id, two of them OR",
+   "chips": [
+    {
+     "kind": "id",
+     "value": "00000002"
+    },
+    {
+     "kind": "id",
+     "value": "00000004"
+    }
+   ],
+   "text": "",
+   "ids": [
+    2,
+    4
+   ]
+  },
+  {
+   "about": "id: by the whole id",
+   "chips": [
+    {
+     "kind": "id",
+     "value": "01936f5e-8a00-7c3e-9b1a-000000000003"
+    }
+   ],
+   "text": "",
+   "ids": [
+    3
+   ]
+  },
+  {
+   "about": "id: is the end of the id, not a part of it",
+   "chips": [
+    {
+     "kind": "id",
+     "value": "00000000"
+    }
+   ],
+   "text": "",
+   "ids": []
+  },
+  {
+   "about": "-id: leaves a task out",
+   "chips": [
+    {
+     "kind": "id",
+     "value": "00000001",
+     "not": true
+    }
+   ],
+   "text": "",
+   "ids": [
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "about": "id: OR another group",
+   "chips": [
+    {
+     "kind": "id",
+     "value": "00000003"
+    },
+    {
+     "kind": "priority",
+     "value": "a",
+     "group": 1
+    }
+   ],
+   "text": "",
+   "ids": [
+    1,
+    3,
+    5
+   ]
   }
  ],
  "words": [
@@ -384,6 +463,25 @@
     }
    ],
    "free": "-oder"
+  },
+  {
+   "text": "ID:00000003 id:01936F5E-8A00-7C3E-9B1A-000000000005",
+   "chips": [
+    {
+     "kind": "id",
+     "value": "00000003"
+    },
+    {
+     "kind": "id",
+     "value": "01936f5e-8a00-7c3e-9b1a-000000000005"
+    }
+   ],
+   "free": ""
+  },
+  {
+   "text": "id:0000003 id:xyz",
+   "chips": [],
+   "free": "id:0000003 id:xyz"
   }
  ]
 }

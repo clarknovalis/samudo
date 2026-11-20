@@ -46,6 +46,7 @@ schnelle Filter, die letzten Suchen und die Perspektiven (siehe
 | `~<15m`, `~>=1h`, `~30m`, `~mit`, `~ohne` | nach Schätzung (`<`, `<=`, `>`, `>=`, gleich; mit oder ohne) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:mit`, `prio:ohne` (oder `prio:-`) | nach Priorität |
 | `prop:jira`, `prop:jira=ABC-1` | mit der Property, eigen oder geerbt; mit Wert, ohne auf Groß- und Kleinschreibung zu achten |
+| `id:1a2b3c4d`, `id:` + ganze ID | die Aufgabe mit dieser ID, über ihre letzten acht Zeichen (wie die Kommandozeile sie ausgibt) oder die ganze ID; `id:1a2b3c4d id:5e6f7a8b` findet beide, so wird eine Suche zur Liste von Aufgaben |
 
 ### Bereiche
 
@@ -71,8 +72,8 @@ Tage zählen in der Zeitzone des Kontos.
   Tippen) auf einen Chip schaltet die Verneinung um, × entfernt ihn; im
   Web entfernt Backspace im leeren Feld den letzten, Escape leert alles.
 
-Wer nach erledigten Aufgaben fragt (`ist:erledigt`, `erledigt:…`), weitet
-die Ansicht auf „Alle“; wer nach wartenden fragt (`ist:wartet`,
+Wer nach erledigten Aufgaben fragt (`ist:erledigt`, `erledigt:…`) oder
+nach einer Aufgabe über ihre ID (`id:…`), weitet die Ansicht auf „Alle“; wer nach wartenden fragt (`ist:wartet`,
 `start:…`), weitet „Verfügbar“ auf „Verbleibend“. Das gilt, sobald
 irgendein Chip danach fragt, in welcher Gruppe auch immer.
 
@@ -117,7 +118,7 @@ und zeigt sie genauso: `samu scope filter Arbeit "ist:markiert oder fällig:heut
 | `7t` `-30t` | `7d` `-30d` |
 | `ist:markiert` `verfügbar` `wartet` `offen` `erledigt` `verworfen` `gruppe` `notiz` `wiederholt` `geclockt` `blocker` `blockiert` `versteckt` `termin` | `is:flagged` `available` `waiting` `open` `done` `dropped` `group` `note` `repeating` `clocked` `blocker` `blocked` `hidden` `appointment` |
 
-`#`, `@`, `~`, `prio:` und `prop:` sind in beiden gleich. Ein Chip wird
+`#`, `@`, `~`, `prio:`, `prop:` und `id:` sind in beiden gleich. Ein Chip wird
 **in seiner deutschen Form gespeichert**: Ein Scope oder eine Perspektive
 behält `heute`, `markiert`, `7t`, und die Oberfläche zeigt ihn in ihrer
 Sprache. So liest sich eine auf Englisch angelegte Perspektive auf einem

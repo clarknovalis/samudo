@@ -1,0 +1,18 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f07",
+  "created": "2026-11-20T08:00:00Z",
+  "modified": "2026-11-20T10:00:00Z",
+  "title": "Handover",
+  "mode": "only",
+  "position": 5,
+  "filter": [
+    {
+      "kind": "id",
+      "value": "000000a1"
+    },
+    {
+      "kind": "id",
+      "value": "01936f5e-8a00-7c3e-9b1a-0000000000b2"
+    }
+  ]
+}
