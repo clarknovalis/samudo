@@ -29,6 +29,10 @@ port = 80
 
 Kommandozeile, Emacs und Desktop-Widget nehmen das Profil `default` oder
 das mit `--profile` / `SAMU_PROFILE` genannte.
+Ein Profil bringt sein Konto mit: `--account` / `SAMU_ACCOUNT` mit einem
+anderen Konto wird abgelehnt (Exit 2), statt aus dem Konto des Profils zu
+antworten. Dann das andere Profil wählen oder den Server mit `--server`
+nennen.
 
 ## Einrichten
 

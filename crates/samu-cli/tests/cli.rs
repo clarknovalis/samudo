@@ -4035,6 +4035,80 @@ fn the_default_profile_applies_only_when_no_server_is_named() {
     assert_eq!(code(&away), 4, "the default profile's service is not there");
 }
 
+/// `--account` under a profile that has another account was ignored but
+/// for the name: the answer came from the profile's account, so a wrong
+/// name looked like foreign or deleted data. It is refused now, and a
+/// profile's name in its place is pointed at `--profile`.
+#[test]
+fn an_account_that_is_not_the_profiles_is_refused() {
+    let dir = std::env::temp_dir().join(format!("samu-cli-mismatch-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    // Nothing listens: a refusal must come before any request.
+    let config = format!(
+        "default = \"wrk\"\n\
+         [profile.wrk]\naccount = \"work\"\nport = {port}\n\
+         [profile.prv]\naccount = \"privat\"\nport = {other}\n",
+        port = dead_port(),
+        other = dead_port()
+    );
+    let run = |env: &[(&str, &str)], args: &[&str]| run_with_config(&dir, &config, env, args, None);
+
+    let unknown = run(&[], &["--account", "foo", "list"]);
+    assert_eq!(
+        code(&unknown),
+        2,
+        "{}",
+        String::from_utf8_lossy(&unknown.stderr)
+    );
+    let said = String::from_utf8_lossy(&unknown.stderr);
+    assert!(
+        said.contains("\"foo\"") && said.contains("\"wrk\"") && said.contains("\"work\""),
+        "{said}"
+    );
+    assert!(stdout(&unknown).is_empty());
+
+    let profile = run(&[], &["--account", "prv", "list"]);
+    assert_eq!(code(&profile), 2);
+    assert!(
+        String::from_utf8_lossy(&profile.stderr).contains("did you mean --profile prv"),
+        "{}",
+        String::from_utf8_lossy(&profile.stderr)
+    );
+
+    // The same from the environment, and under a profile named outright.
+    assert_eq!(code(&run(&[("SAMU_ACCOUNT", "foo")], &["list"])), 2);
+    assert_eq!(
+        code(&run(
+            &[],
+            &["--profile", "prv", "--account", "work", "list"]
+        )),
+        2
+    );
+
+    // The profile's own account passes and goes on to the (absent) service.
+    assert_eq!(code(&run(&[], &["--account", "work", "health"])), 4);
+    assert_eq!(
+        code(&run(
+            &[],
+            &["--profile", "prv", "--account", "privat", "health"]
+        )),
+        4
+    );
+
+    // Naming the server leaves the profiles aside, any account goes (ADR 0067 §5).
+    let named = run(
+        &[("SAMU_SERVER", "http://127.0.0.1:1")],
+        &["--account", "foo", "health"],
+    );
+    assert_eq!(
+        code(&named),
+        4,
+        "{}",
+        String::from_utf8_lossy(&named.stderr)
+    );
+    std::fs::remove_dir_all(&dir).ok();
+}
+
 #[test]
 fn a_profile_takes_over_the_token_of_the_same_server_and_account() {
     let server = Server::start(true);

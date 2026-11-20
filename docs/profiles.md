@@ -29,6 +29,10 @@ port = 80
 
 The command line, Emacs and the desktop widget take the `default`
 profile, or the one named with `--profile` / `SAMU_PROFILE`.
+A profile brings its own account: `--account` / `SAMU_ACCOUNT` with
+another account is refused (exit 2) rather than answered from the
+profile's account. Choose the other profile, or name the server with
+`--server`.
 
 ## Setting up
 

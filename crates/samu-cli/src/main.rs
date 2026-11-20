@@ -85,7 +85,8 @@ struct Args {
     /// The server, like https://samu.example.org.
     #[arg(long, global = true)]
     server: Option<String>,
-    /// The account to act on.
+    /// The account to act on. Under a profile only its own account; another
+    /// one is refused (exit 2), use --profile or --server for it.
     #[arg(long, global = true)]
     account: Option<String>,
     /// A profile of the configuration file: an account on this computer
@@ -2642,6 +2643,10 @@ fn exit_code(error: &anyhow::Error) -> u8 {
     {
         return exit::USAGE;
     }
+    // An account the profile in use does not have.
+    if error.downcast_ref::<config::AccountMismatch>().is_some() {
+        return exit::USAGE;
+    }
     if error.downcast_ref::<close::NeedsChoice>().is_some() {
         return exit::NEEDS_CHOICE;
     }
@@ -2841,6 +2846,13 @@ mod tests {
             exit_code(&samu_client::profile::ProfileError::Unknown("x".into()).into()),
             exit::USAGE
         );
+        let mismatch = config::AccountMismatch {
+            account: "foo".into(),
+            profile: "wrk".into(),
+            profile_account: "work".into(),
+            is_profile: false,
+        };
+        assert_eq!(exit_code(&mismatch.into()), exit::USAGE);
         assert_eq!(exit::USAGE, 2);
     }
 }

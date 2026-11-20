@@ -66,6 +66,54 @@ pub(crate) struct Config {
     pub(crate) open: BTreeMap<String, Vec<String>>,
 }
 
+/// An account named with `--account` or `SAMU_ACCOUNT` that is not the
+/// account of the profile in use. A profile gives server, token and files,
+/// so the name alone would change nothing but what is printed: the answer
+/// would still come from the profile's account. Exit code
+/// [`crate::exit::USAGE`].
+#[derive(Debug)]
+pub(crate) struct AccountMismatch {
+    pub(crate) account: String,
+    pub(crate) profile: String,
+    pub(crate) profile_account: String,
+    /// The account's name is the name of a profile: likely meant that one.
+    pub(crate) is_profile: bool,
+}
+
+impl std::fmt::Display for AccountMismatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_profile {
+            return write!(
+                f,
+                "{:?} is a profile, not an account: did you mean --profile {}?",
+                self.account, self.account
+            );
+        }
+        write!(
+            f,
+            "account {:?} is not the account of profile {:?}, which is {:?}; \
+             choose another profile with --profile, or name the server with --server",
+            self.account, self.profile, self.profile_account
+        )
+    }
+}
+
+impl std::error::Error for AccountMismatch {}
+
+/// The profile's account, or a refusal when another one is named.
+fn account_of(profile: &Profile, named: Option<String>, profiles: &Profiles) -> Result<String> {
+    match named {
+        Some(name) if name != profile.account => Err(AccountMismatch {
+            is_profile: profiles.profiles.contains_key(&name),
+            account: name,
+            profile: profile.name.clone(),
+            profile_account: profile.account.clone(),
+        }
+        .into()),
+        _ => Ok(profile.account.clone()),
+    }
+}
+
 fn env(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty())
 }
@@ -117,7 +165,7 @@ impl Config {
                 let p = profiles.get(&name)?.clone();
                 (
                     Some(server.unwrap_or_else(|| p.server())),
-                    Some(account.unwrap_or_else(|| p.account.clone())),
+                    Some(account_of(&p, account, &profiles)?),
                     Some(p),
                 )
             }
@@ -129,7 +177,7 @@ impl Config {
                         let p = profiles.get(name)?.clone();
                         (
                             Some(p.server()),
-                            Some(account.unwrap_or_else(|| p.account.clone())),
+                            Some(account_of(&p, account, &profiles)?),
                             Some(p),
                         )
                     }
