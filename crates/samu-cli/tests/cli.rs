@@ -970,6 +970,12 @@ fn list_shows_more_and_filters() {
         "a tag finds its children"
     );
     assert_eq!(titles(&["list", "--flagged"]), ["Fliesen aussuchen"]);
+    assert_eq!(titles(&["list", "--inbox"]), ["Milch"], "only the inbox");
+    assert_eq!(
+        code(&server.samu(&["list", "--inbox", "--project", "neues"], None)),
+        2,
+        "the inbox is no project"
+    );
     assert_eq!(
         titles(&["list", "--search", "MUSTER"]),
         ["Fliesen aussuchen"],

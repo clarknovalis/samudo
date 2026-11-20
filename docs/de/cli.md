@@ -133,8 +133,9 @@ samu list                      # offene Aufgaben mit ihrer Verfügbarkeit
 samu list --available --tag telefon
 samu list --today              # geplant für heute oder früher
 samu list --flagged
+samu list --inbox              # Aufgaben ohne Projekt
 samu list --project Bad --all
-samu list --search fliesen
+samu list --search fliesen     # Wörter in Titel, Notiz oder ID, keine Chips
 samu list --perspective "Kurze Anrufe"
 samu list --columns state,due,estimate,worked,prop:jira   # als Tabelle
 samu projects                  # Projekte mit ihrer Verfügbarkeit

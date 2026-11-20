@@ -130,8 +130,9 @@ samu list                      # open tasks with their availability
 samu list --available --tag phone
 samu list --today              # planned for today or earlier
 samu list --flagged
+samu list --inbox              # tasks without a project
 samu list --project Bathroom --all
-samu list --search tiler
+samu list --search tiler       # words in title, note or id, no chips
 samu list --perspective "Quick calls"
 samu list --columns state,due,estimate,worked,prop:jira   # as a table
 samu projects                  # projects with their availability

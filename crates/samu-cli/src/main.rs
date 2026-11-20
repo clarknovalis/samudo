@@ -474,6 +474,10 @@ enum Command {
         /// end of one.
         #[arg(long, add = ArgValueCompleter::new(complete::project))]
         project: Option<String>,
+        /// Only tasks in the inbox: without a project, or in one that is
+        /// gone (ADR 0036 §6).
+        #[arg(long, conflicts_with = "project")]
+        inbox: bool,
         /// Completed and dropped tasks too.
         #[arg(long)]
         all: bool,
@@ -499,7 +503,7 @@ enum Command {
         perspective: Option<String>,
         /// Only the id and what the server computed, not the task itself
         /// (GET /available?bare=true, ADR 0065).
-        #[arg(long, conflicts_with_all = ["tag", "flagged", "search", "columns"])]
+        #[arg(long, conflicts_with_all = ["inbox", "tag", "flagged", "search", "columns"])]
         bare: bool,
         /// As a table (ADR 0115 §8): the columns after the title, by the
         /// names of the web, like `state,due,estimate,worked,prop:jira`.
@@ -1125,15 +1129,20 @@ pub(crate) fn when_text(when: &samu_api::When) -> String {
 }
 
 /// One line of `list`.
-/// What `samu list` narrows on this side: a tag and those below it,
-/// flagged, and words in title, note or id.
+/// What `samu list` narrows on this side: the inbox, a tag and those
+/// below it, flagged, and words in title, note or id.
 fn narrow(
     statuses: &mut Vec<TaskStatus>,
     names: &Names,
+    inbox: bool,
     tag: Option<&str>,
     flagged: bool,
     search: Option<&str>,
 ) -> Result<()> {
+    if inbox {
+        // As the server computes it, not `task.project` (ADR 0036 §6).
+        statuses.retain(|s| s.inbox);
+    }
     if let Some(tag) = tag {
         let wanted = tag.trim_start_matches('@').to_lowercase();
         let hits: Vec<Id> = names
@@ -1170,6 +1179,7 @@ fn print_blocks(
     client: &Client,
     format: Format,
     sections: Vec<BlockSection>,
+    inbox: bool,
     tag: Option<&str>,
     flagged: bool,
     search: Option<&str>,
@@ -1183,7 +1193,7 @@ fn print_blocks(
     ];
     let mut out = Vec::new();
     for (n, mut section) in sections.into_iter().enumerate() {
-        narrow(&mut section.tasks, &names, tag, flagged, search)?;
+        narrow(&mut section.tasks, &names, inbox, tag, flagged, search)?;
         let mut records: Vec<Value> = section
             .tasks
             .iter()
@@ -2202,6 +2212,7 @@ fn run(args: Args) -> Result<()> {
             available,
             today,
             project,
+            inbox,
             all,
             tag,
             flagged,
@@ -2238,6 +2249,7 @@ fn run(args: Args) -> Result<()> {
                         &client,
                         args.format,
                         sections,
+                        inbox,
                         tag.as_deref(),
                         flagged,
                         search.as_deref(),
@@ -2306,6 +2318,7 @@ fn run(args: Args) -> Result<()> {
             narrow(
                 &mut statuses,
                 &names,
+                inbox,
                 tag.as_deref(),
                 flagged,
                 search.as_deref(),
@@ -2313,6 +2326,7 @@ fn run(args: Args) -> Result<()> {
             narrow(
                 &mut elsewhere,
                 &names,
+                inbox,
                 tag.as_deref(),
                 flagged,
                 search.as_deref(),
