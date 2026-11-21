@@ -5,7 +5,7 @@ API und nichts sonst. Die [Kommandozeile](cli.md) deckt sie ganz ab, also
 ist `samu <kommando> --format json` der schnellste Weg, eine Antwort zu
 sehen. Die Wire-Typen sind das Rust-Crate `samu-api` (nur serde, eigens
 versioniert); JSON-Beispiele jedes Typs liegen in
-[`crates/samu-api/tests/fixtures/`](../crates/samu-api/tests/fixtures/).
+[`crates/samu-api/tests/fixtures/`](../../crates/samu-api/tests/fixtures/).
 
 ## Konventionen
 

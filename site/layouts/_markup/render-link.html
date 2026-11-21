@@ -25,7 +25,7 @@
   {{- end -}}
 {{- end -}}
 {{- if $inRepo -}}
-  <span class="samu-repo-link" title="{{ T "inRepository" }}: {{ strings.TrimPrefix "../" $dest }}">{{ .Text | safeHTML }}</span>
+  <span class="samu-repo-link" title="{{ T "inRepository" }}: {{ replaceRE `^(\.\./)+` "" $dest }}">{{ .Text | safeHTML }}</span>
 {{- else -}}
   <a href="{{ $href | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>{{ .Text | safeHTML }}</a>
 {{- end -}}

@@ -3,7 +3,7 @@
 Eine native App (Kotlin und Jetpack Compose) auf demselben Rust-Kern wie
 der Server, sodass Verfügbarkeit, Schnellerfassung, Uhren und
 Gewohnheiten auf dem Handy genauso berechnet werden, auch offline. Die Oberfläche spricht Deutsch oder Englisch (siehe
-[Sprache](#sprache)). Wie man sie baut, steht in [`android/README.md`](../android/README.md).
+[Sprache](#sprache)). Wie man sie baut, steht in [`android/README.md`](../../android/README.md).
 
 ## Installieren
 
@@ -36,7 +36,7 @@ Signatur. Erst den Ausgang leeren (Sync; das Menü ⋮ zeigt, was wartet),
 die alte App deinstallieren, das Release installieren und neu anmelden;
 Widgets müssen neu angelegt werden.
 
-**Selbst bauen** ([`android/README.md`](../android/README.md)): ein
+**Selbst bauen** ([`android/README.md`](../../android/README.md)): ein
 Debug-Build heißt „samudo dev“ mit dem Paket `de.samudo.app.dev`. Er läuft
 neben der Release-App, mit eigenem Cache und eigener Anmeldung; die
 Broadcasts für [Tasker](#automatisieren-mit-tasker) gehen weiter an
