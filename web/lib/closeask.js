@@ -7,7 +7,7 @@
 // mit erledigen / herausholen / abbrechen, one for all tasks at once.
 // Opening again stays a plain field change (§6).
 
-import { api } from "./api.js";
+import { api, together } from "./api.js";
 import { deepestFirst, waiting } from "./close.js";
 import { flushDetail } from "./detail.js";
 import { el } from "./dom.js";
@@ -41,14 +41,17 @@ async function send(ids, field, children) {
   // Open below on the server though not here: what was read is old.
   const left = [];
   try {
-    for (const id of ids) {
-      const answer = await api.closeObject(id, { field, children });
-      if (answer.seq == null && answer.open > 0) left.push({ id, open: answer.open });
-      else {
-        lifted += answer.lifted;
-        wrote ||= answer.seq != null;
+    // One reload for all of them, not one after each.
+    await together(async () => {
+      for (const id of ids) {
+        const answer = await api.closeObject(id, { field, children });
+        if (answer.seq == null && answer.open > 0) left.push({ id, open: answer.open });
+        else {
+          lifted += answer.lifted;
+          wrote ||= answer.seq != null;
+        }
       }
-    }
+    });
   } catch (error) {
     update({ message: error.message });
     return wrote;

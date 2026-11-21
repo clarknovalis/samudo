@@ -6,7 +6,7 @@
 // above it with the actions, and dragging rows onto the sidebar. Every
 // action is one write over /changes; only deleting goes task by task.
 
-import { api, change } from "./api.js";
+import { api, change, together } from "./api.js";
 import { $, el, replace } from "./dom.js";
 import { clickCounter } from "./clicks.js";
 import { closeTasks } from "./closeask.js";
@@ -197,7 +197,9 @@ async function deleteAll() {
   const { top } = roots();
   bar = {};
   try {
-    for (const t of top) await api.deleteObject(t.id, { preview: false });
+    await together(async () => {
+      for (const t of top) await api.deleteObject(t.id, { preview: false });
+    });
     update({ picked: new Set(), message: null });
   } catch (error) {
     update({ message: error.message });

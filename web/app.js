@@ -12,7 +12,7 @@
 
 import { keepAddress, resolveAddress } from "./lib/address.js";
 import { applyTheme, hideGate, renderAccount, showGate, wireSignIn } from "./lib/account.js";
-import { api, onWritten } from "./lib/api.js";
+import { api, holding, onWritten } from "./lib/api.js";
 import { refreshAlarms, stopAlarms } from "./lib/alarms.js";
 import { renderBulk } from "./lib/bulk.js";
 import { renderCapture, wireCapture } from "./lib/capture.js";
@@ -181,7 +181,8 @@ function load() {
 // From `/events`: load unless the views already show `seq` or later.
 async function reloadFor(seq) {
   await loading;
-  if (seq === null || seq > loadedSeq) load();
+  // Inside a bulk action the reload comes once, at its end (`together`).
+  if (!holding() && (seq === null || seq > loadedSeq)) load();
   // The replica on this computer also reports when only its state moved
   // (ADR 0066 §6): online or not, the outbox.
   if (state.session?.replica) {

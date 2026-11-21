@@ -54,9 +54,35 @@ const hlc = () => ({ wall: 0, counter: 0, device: "web" });
 
 // Called after every write the server applied, so the page reloads at
 // once instead of waiting for the round trip over `/events`.
-let written = () => {};
+let reload = () => {};
 export function onWritten(callback) {
-  written = callback;
+  reload = callback;
+}
+
+// Several writes with one reload at the end (bulk actions): each write
+// used to wait for its own reload of every view before the next one went
+// out, which made twenty tasks take twenty reloads.
+let held = 0;
+let owed = false;
+export const holding = () => held > 0;
+const written = () => {
+  if (!held) return reload();
+  owed = true;
+  return undefined;
+};
+// Runs `run`; the writes in it reload once, when it returns or throws, and
+// only if one of them was applied.
+export async function together(run) {
+  held += 1;
+  try {
+    return await run();
+  } finally {
+    held -= 1;
+    if (!held && owed) {
+      owed = false;
+      await reload();
+    }
+  }
 }
 
 export const api = {
