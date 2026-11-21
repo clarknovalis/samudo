@@ -152,6 +152,5 @@ Regeln, die das Projekt einhält:
 samudo hat ein Schwesterprojekt, *catastr*, einen Speicher für Dokumente
 und Wissen nach Art von DEVONthink, für Linux gemacht und mit einem
 eigenständigen Server als Backend. Aufgaben verlinken dessen Objekte per
-URI (`catastr:<id>`), und catastr liest samudo als Quelle über dieselbe API
-und das Crate `samu-api`. Keins fasst die Datenbank des anderen an.
+URI (`catastr:<id>`). Keins fasst die Datenbank des anderen an.
 catastr ist nicht veröffentlicht; samudo braucht es nicht.

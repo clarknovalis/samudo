@@ -146,6 +146,5 @@ Rules the project keeps:
 
 samudo has a sister project, *catastr*, a document and knowledge store in
 the manner of DEVONthink, made for Linux and backed by a standalone server.
-Tasks link to its objects by URI (`catastr:<id>`), and catastr reads samudo
-as a source through the same API and the `samu-api` crate. Neither touches
-the other's database. catastr is not published; samudo does not need it.
+Tasks link to its objects by URI (`catastr:<id>`). Neither touches the
+other's database. catastr is not published; samudo does not need it.
