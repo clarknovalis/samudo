@@ -178,6 +178,7 @@ impl Samu {
             let changes = checklist::from_subtask(
                 &objects.tasks,
                 &objects.checklist_items,
+                &checklist::Attached::from(objects),
                 task,
                 item,
                 Timestamp::now(),
@@ -214,6 +215,7 @@ impl Samu {
             let bulk = checklist::all_from_subtasks(
                 &objects.tasks,
                 &objects.checklist_items,
+                &checklist::Attached::from(objects),
                 task,
                 Timestamp::now(),
                 Id::new,

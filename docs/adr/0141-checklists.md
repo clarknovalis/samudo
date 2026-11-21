@@ -49,8 +49,11 @@ items.
    the item's text as title, at the end of its siblings, completed when
    the item was ticked; the item goes. A subtask becomes an item the
    other way, but only a plain one: no children, no habit, no repetition,
-   not dropped, and nothing an item cannot keep (note, dates, tags,
-   estimate, flag, priority, properties). Anything else is refused and
+   not dropped, and nothing an item cannot keep: neither in its fields
+   (note, dates, tags, estimate, flag, priority, properties) nor attached
+   to it as objects of their own, which would go with the deleted task
+   (comments, attachments, clocked time, reminders, links, a checklist of
+   its own, a `blocked_by` link of another task that names it). Anything else is refused and
    says why, instead of losing it silently. Both are one batch of
    ordinary changes, and so is converting a whole list: every item becomes
    a subtask in list order, and every plain subtask becomes an item; the
@@ -76,3 +79,4 @@ items.
 - 2026-11-21: accepted. Built in the core, the CLI, the web UI and the Android app; the Emacs package, the user documentation and the bulk conversion in both directions in the app and the CLI follow.
 - 2026-11-21: converting a whole list in both directions (§5) in the core, the CLI, the web UI and the Android app.
 - 2026-11-21: user documentation (concepts, web UI, Android app, CLI, API; English and German).
+- 2026-11-21: §5 also refuses a subtask with objects attached to it (comments, attachments, clocked time, reminders, links, a checklist of its own, a task that waits for it). Before, only its fields were checked and those objects were lost with the task.

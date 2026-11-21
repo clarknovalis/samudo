@@ -5648,4 +5648,27 @@ fn a_checklist_is_typed_ticked_moved_and_converted() {
     let eier = items[1]["short"].as_str().unwrap().to_owned();
     assert_eq!(code(&server.samu(&["checklist", "rm", &eier], None)), 0);
     assert_eq!(list(&server).as_array().unwrap().len(), 3);
+
+    // A subtask with a comment on it is refused, named, and stays with its
+    // comment: deleting the task would take the comment along.
+    let talked = json_out(&server.samu(
+        &["add", "Besprochen", "--parent", &task, "--format", "json"],
+        None,
+    ));
+    let talked = talked[0]["id"].as_str().unwrap().to_owned();
+    assert_eq!(code(&server.samu(&["comment", &talked, "Stand"], None)), 0);
+    let out = server.samu(&["checklist", "from-subtask", &talked], None);
+    assert_ne!(code(&out), 0);
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("comments"),
+        "{out:?}"
+    );
+    // Neither it nor the flagged one converts, so the whole list is refused.
+    assert_ne!(
+        code(&server.samu(&["checklist", "from-subtasks", &task], None)),
+        0
+    );
+    let comments = json_out(&server.samu(&["comments", &talked, "--format", "json"], None));
+    assert_eq!(comments.as_array().unwrap().len(), 1, "{comments}");
+    assert_eq!(list(&server).as_array().unwrap().len(), 3);
 }

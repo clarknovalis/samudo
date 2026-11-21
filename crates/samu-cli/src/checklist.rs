@@ -10,7 +10,10 @@ use std::io::Read;
 
 use anyhow::{Result, bail};
 use clap::Subcommand;
-use samu_api::{AnyObject, Change, ChangesPage, ChecklistItem, Id, Task};
+use samu_api::{
+    AnyObject, Attachment, Change, ChangesPage, ChecklistItem, Clock, Comment, Id, Link, Reminder,
+    Task,
+};
 use samu_client::Client;
 use samu_core::checklist;
 use serde_json::{Value, json};
@@ -44,32 +47,56 @@ pub(crate) enum ChecklistCommand {
     /// Make an item a subtask of its task; the item goes.
     ToSubtask { item: String },
     /// Make a plain subtask an item of its parent's list; the subtask
-    /// goes. A subtask with a note, dates, tags or the like is refused.
+    /// goes. A subtask with a note, dates, tags, comments, attachments,
+    /// clocked time, reminders, links or the like is refused: an item
+    /// cannot keep them.
     FromSubtask { task: String },
     /// Make every item of a task a subtask, in the order of the list.
     ToSubtasks { task: String },
     /// Make every plain subtask of a task an item. Those with a note,
-    /// dates, tags or the like stay and are named on stderr.
+    /// dates, tags, comments, attachments, clocked time, reminders, links
+    /// or the like stay and are named on stderr.
     FromSubtasks { task: String },
 }
 
-/// The tasks and items of the account.
+/// The tasks and items of the account, and what hangs on its tasks.
+#[derive(Default)]
 struct Objects {
     tasks: Vec<Task>,
     items: Vec<ChecklistItem>,
+    comments: Vec<Comment>,
+    attachments: Vec<Attachment>,
+    clocks: Vec<Clock>,
+    reminders: Vec<Reminder>,
+    links: Vec<Link>,
+}
+
+impl Objects {
+    /// What a subtask must not have to become an item.
+    fn attached(&self) -> checklist::Attached<'_> {
+        checklist::Attached {
+            comments: &self.comments,
+            attachments: &self.attachments,
+            clocks: &self.clocks,
+            reminders: &self.reminders,
+            links: &self.links,
+        }
+    }
 }
 
 fn objects(client: &Client) -> Result<Objects> {
     let page: ChangesPage =
         serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
-    let mut out = Objects {
-        tasks: Vec::new(),
-        items: Vec::new(),
-    };
+    let mut out = Objects::default();
     for object in page.objects {
         match object {
             AnyObject::Task(t) => out.tasks.push(t),
             AnyObject::ChecklistItem(i) => out.items.push(i),
+            AnyObject::Comment(c) => out.comments.push(c),
+            AnyObject::Attachment(a) => out.attachments.push(a),
+            AnyObject::Clock(c) => out.clocks.push(c),
+            AnyObject::Reminder(r) => out.reminders.push(r),
+            AnyObject::Link(l) => out.links.push(l),
             _ => {}
         }
     }
@@ -225,8 +252,14 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
             let id = resolve(&client, &task)?;
             let all = objects(&client)?;
             let item = Id::new();
-            let changes =
-                checklist::from_subtask(&all.tasks, &all.items, id, item, jiff::Timestamp::now())?;
+            let changes = checklist::from_subtask(
+                &all.tasks,
+                &all.items,
+                &all.attached(),
+                id,
+                item,
+                jiff::Timestamp::now(),
+            )?;
             write(&client, &changes)?;
             emit(
                 format,
@@ -254,6 +287,7 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
             let bulk = checklist::all_from_subtasks(
                 &all.tasks,
                 &all.items,
+                &all.attached(),
                 owner,
                 jiff::Timestamp::now(),
                 Id::new,

@@ -134,7 +134,9 @@ other renames, both win. Checkboxes in a note stay what they were: text.
   out to be a job of its own. A plain subtask can become an item. "Plain"
   means no children, no habit, no repetition, not dropped, and nothing an
   item cannot keep: note, dates, tags, estimate, flag, priority or
-  properties. Anything else is refused with the reason, so nothing is
+  properties, and nothing attached to it: comments, attachments, clocked
+  time, reminders, links, a checklist of its own, or another task that
+  waits for it. Anything else is refused with the reason, so nothing is
   lost silently. The same works for the whole list at once; subtasks that
   carry something an item cannot keep stay, and are named.
 

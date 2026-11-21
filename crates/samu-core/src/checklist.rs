@@ -11,8 +11,12 @@
 
 use jiff::Timestamp;
 
-use crate::api::{Change, ChecklistItem, Id, ObjectKind, Schedule, Task};
+use crate::api::{
+    Attachment, Change, ChecklistItem, Clock, Comment, Id, Link, LinkKind, ObjectKind, Reminder,
+    Schedule, Task,
+};
 use crate::delete::{after_last, placeholder};
+use crate::overlay::Objects;
 
 /// One line of pasted text as an item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,6 +106,58 @@ pub enum ChecklistError {
     Shape(String),
 }
 
+/// What hangs on tasks as objects of their own. A task that is deleted
+/// loses them, so a subtask that has any does not become an item.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Attached<'a> {
+    pub comments: &'a [Comment],
+    pub attachments: &'a [Attachment],
+    pub clocks: &'a [Clock],
+    pub reminders: &'a [Reminder],
+    pub links: &'a [Link],
+}
+
+impl<'a> From<&'a Objects> for Attached<'a> {
+    fn from(objects: &'a Objects) -> Self {
+        Self {
+            comments: &objects.comments,
+            attachments: &objects.attachments,
+            clocks: &objects.clocks,
+            reminders: &objects.reminders,
+            links: &objects.links,
+        }
+    }
+}
+
+impl Attached<'_> {
+    /// What hangs on `task` that an item cannot keep, named; `items` are
+    /// the checklist items of the account.
+    fn on(&self, items: &[ChecklistItem], task: Id) -> Option<&'static str> {
+        if items.iter().any(|i| i.owner == task) {
+            Some("a checklist of its own")
+        } else if self.comments.iter().any(|c| c.owner == task) {
+            Some("comments")
+        } else if self.attachments.iter().any(|a| a.owner == task) {
+            Some("attachments")
+        } else if self.clocks.iter().any(|c| c.owner == task) {
+            Some("clocked time")
+        } else if self.reminders.iter().any(|r| r.owner == task) {
+            Some("reminders")
+        } else if self.links.iter().any(|l| l.owner == task) {
+            Some("links")
+        } else if self
+            .links
+            .iter()
+            .any(|l| l.kind == LinkKind::BlockedBy && Id::from_uri(&l.uri) == Some(task))
+        {
+            // Deleting it would silently unblock the task that waits.
+            Some("a task that waits for it")
+        } else {
+            None
+        }
+    }
+}
+
 /// The changes that make item `item` a subtask `task` of the task it is on:
 /// the subtask takes its text as the title, its place at the end, and is
 /// completed when the item was ticked; the item goes.
@@ -170,9 +226,12 @@ pub fn to_subtask(
 /// under, at the end of its list, ticked when it was completed; the subtask
 /// goes.
 ///
-/// Only a plain subtask converts: what an item cannot keep (a note, dates,
-/// tags, an estimate, a flag, a priority, properties) would be lost silently,
-/// so it is refused and named.
+/// Only a plain subtask converts: what an item cannot keep would be lost
+/// silently, so it is refused and named. That is what the task holds in its
+/// fields (a note, dates, tags, an estimate, a flag, a priority, properties)
+/// and what hangs on it in `attached` (comments, attachments, clocked time,
+/// reminders, links, a task that waits for it) or in `items` (a checklist
+/// of its own).
 ///
 /// # Errors
 ///
@@ -181,6 +240,7 @@ pub fn to_subtask(
 pub fn from_subtask(
     tasks: &[Task],
     items: &[ChecklistItem],
+    attached: &Attached<'_>,
     task: Id,
     item: Id,
     now: Timestamp,
@@ -217,7 +277,7 @@ pub fn from_subtask(
     } else if !task.properties.is_empty() {
         Some("properties")
     } else {
-        None
+        attached.on(items, task.id)
     };
     if let Some(what) = carries {
         return Err(ChecklistError::Carries(what));
@@ -303,6 +363,7 @@ pub fn all_to_subtasks(
 pub fn all_from_subtasks(
     tasks: &[Task],
     items: &[ChecklistItem],
+    attached: &Attached<'_>,
     owner: Id,
     now: Timestamp,
     mut id: impl FnMut() -> Id,
@@ -315,7 +376,7 @@ pub fn all_from_subtasks(
         skipped: Vec::new(),
     };
     for sub in subs {
-        match from_subtask(tasks, &items, sub.id, id(), now) {
+        match from_subtask(tasks, &items, attached, sub.id, id(), now) {
             Ok(made) => {
                 if let Some(Change::Create { value, .. }) = made.first() {
                     let item: ChecklistItem = serde_json::from_value(value.clone())
@@ -462,7 +523,8 @@ mod tests {
     fn a_plain_subtask_becomes_the_last_item_and_goes() {
         let tasks = [task(1, None, 0), task(2, Some(1), 0)];
         let items = [item(10, 1, 7, false)];
-        let changes = from_subtask(&tasks, &items, id(2), id(11), now()).unwrap();
+        let changes =
+            from_subtask(&tasks, &items, &Attached::default(), id(2), id(11), now()).unwrap();
         let [
             Change::Create { kind, value, .. },
             Change::Delete { object, .. },
@@ -485,15 +547,141 @@ mod tests {
         let mut noted = task(3, Some(1), 1);
         noted.note = Some("wichtig".into());
         let tasks = [task(1, None, 0), flagged, noted, task(4, Some(3), 0)];
-        let refuse = |n| from_subtask(&tasks, &[], id(n), id(20), now()).unwrap_err();
+        let nothing = Attached::default();
+        let refuse = |n| from_subtask(&tasks, &[], &nothing, id(n), id(20), now()).unwrap_err();
         assert_eq!(refuse(2), ChecklistError::Carries("a flag"));
         assert_eq!(refuse(3), ChecklistError::HasChildren);
         assert_eq!(refuse(1), ChecklistError::NoParent);
         let mut noted = task(5, Some(1), 0);
         noted.note = Some("wichtig".into());
         assert_eq!(
-            from_subtask(&[task(1, None, 0), noted], &[], id(5), id(20), now()).unwrap_err(),
+            from_subtask(
+                &[task(1, None, 0), noted],
+                &[],
+                &nothing,
+                id(5),
+                id(20),
+                now()
+            )
+            .unwrap_err(),
             ChecklistError::Carries("a note")
+        );
+    }
+
+    /// An object of its own on task `owner`, from the least JSON it reads.
+    fn on(n: u8, owner: u8, more: serde_json::Value) -> serde_json::Value {
+        let mut value = serde_json::json!({
+            "id": id(n), "created": now(), "modified": now(), "owner": id(owner),
+        });
+        for (key, v) in more.as_object().unwrap() {
+            value[key] = v.clone();
+        }
+        value
+    }
+
+    /// What hangs on the subtask as an object of its own goes with the
+    /// task when it is deleted, so each kind is refused and named.
+    #[test]
+    fn what_hangs_on_a_subtask_is_refused() {
+        use serde_json::json;
+        let tasks = [task(1, None, 0), task(2, Some(1), 0), task(3, Some(1), 1)];
+        let comments =
+            [serde_json::from_value::<Comment>(on(50, 2, json!({"body": "x"}))).unwrap()];
+        let attachments = [serde_json::from_value::<Attachment>(on(
+            51,
+            2,
+            json!({"blob": "0".repeat(64), "name": "a.txt", "media_type": "text/plain", "size": 1}),
+        ))
+        .unwrap()];
+        let clocks =
+            [
+                serde_json::from_value::<Clock>(on(52, 2, json!({"start": now(), "end": now()})))
+                    .unwrap(),
+            ];
+        let reminders =
+            [
+                serde_json::from_value::<Reminder>(on(53, 2, json!({"anchor": "at", "at": now()})))
+                    .unwrap(),
+            ];
+        let links =
+            [
+                serde_json::from_value::<Link>(on(54, 2, json!({"uri": "https://example.org/"})))
+                    .unwrap(),
+            ];
+        let waiting = [serde_json::from_value::<Link>(on(
+            55,
+            3,
+            json!({"uri": format!("samu:{}", id(2)), "kind": "blocked_by"}),
+        ))
+        .unwrap()];
+        let cases = [
+            (
+                Attached {
+                    comments: &comments,
+                    ..Attached::default()
+                },
+                "comments",
+            ),
+            (
+                Attached {
+                    attachments: &attachments,
+                    ..Attached::default()
+                },
+                "attachments",
+            ),
+            (
+                Attached {
+                    clocks: &clocks,
+                    ..Attached::default()
+                },
+                "clocked time",
+            ),
+            (
+                Attached {
+                    reminders: &reminders,
+                    ..Attached::default()
+                },
+                "reminders",
+            ),
+            (
+                Attached {
+                    links: &links,
+                    ..Attached::default()
+                },
+                "links",
+            ),
+            (
+                Attached {
+                    links: &waiting,
+                    ..Attached::default()
+                },
+                "a task that waits for it",
+            ),
+        ];
+        for (attached, what) in &cases {
+            assert_eq!(
+                from_subtask(&tasks, &[], attached, id(2), id(20), now()).unwrap_err(),
+                ChecklistError::Carries(what)
+            );
+            // The sibling has nothing on it and converts; the task that
+            // waits has a link of its own.
+            if *what != "a task that waits for it" {
+                from_subtask(&tasks, &[], attached, id(3), id(20), now()).unwrap();
+            }
+        }
+        // A checklist of its own would go with the task.
+        let own = [item(10, 2, 0, false)];
+        let nothing = Attached::default();
+        assert_eq!(
+            from_subtask(&tasks, &own, &nothing, id(2), id(20), now()).unwrap_err(),
+            ChecklistError::Carries("a checklist of its own")
+        );
+        // The whole list: the subtask with a comment stays and is named.
+        let bulk = all_from_subtasks(&tasks, &[], &cases[0].0, id(1), now(), || id(30)).unwrap();
+        assert_eq!(bulk.changes.len(), 2);
+        assert_eq!(
+            bulk.skipped,
+            vec![(id(2), ChecklistError::Carries("comments"))]
         );
     }
 
@@ -542,7 +730,8 @@ mod tests {
         ];
         let items = [item(10, 1, 7, false)];
         let mut n = 30;
-        let bulk = all_from_subtasks(&tasks, &items, id(1), now(), || {
+        let nothing = Attached::default();
+        let bulk = all_from_subtasks(&tasks, &items, &nothing, id(1), now(), || {
             n += 1;
             id(n)
         })
@@ -565,11 +754,12 @@ mod tests {
         // Nothing plain: the reason of the first one.
         let only = [task(1, None, 0), tasks[2].clone()];
         assert_eq!(
-            all_from_subtasks(&only, &[], id(1), now(), || id(40)).unwrap_err(),
+            all_from_subtasks(&only, &[], &nothing, id(1), now(), || id(40)).unwrap_err(),
             ChecklistError::Carries("a flag")
         );
         assert_eq!(
-            all_from_subtasks(&[task(1, None, 0)], &[], id(1), now(), || id(40)).unwrap_err(),
+            all_from_subtasks(&[task(1, None, 0)], &[], &nothing, id(1), now(), || id(40))
+                .unwrap_err(),
             ChecklistError::NoPlainSubtasks
         );
     }

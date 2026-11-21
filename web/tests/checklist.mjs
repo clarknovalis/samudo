@@ -109,6 +109,38 @@ for (const [more, what] of [
   );
 }
 assert.equal(carries(task("s", "T", 0, { note: "  " })), null);
+
+// What hangs on the subtask as an object of its own goes with the task
+// when it is deleted, so each kind is refused and named.
+{
+  const pair = [task("T", null, 0), task("s", "T", 0), task("u", "T", 1)];
+  const on = { owner: "s" };
+  for (const [around, what] of [
+    [{ comments: [on] }, "comments"],
+    [{ attachments: [on] }, "attachments"],
+    [{ clocks: [on] }, "clocked time"],
+    [{ reminders: [on] }, "reminders"],
+    [{ links: [{ owner: "s", uri: "https://example.org/", kind: "ref" }] }, "links"],
+    [{ links: [{ owner: "u", uri: "samu:s", kind: "blocked_by" }] }, "a task that waits for it"],
+  ]) {
+    assert.throws(
+      () => fromSubtask({ tasks: pair, items: [], around, task: "s", id: "i", now, hlc }),
+      (e) => e.message.includes(what),
+    );
+  }
+  // A plain reference to it from elsewhere is no reason.
+  fromSubtask({ tasks: pair, items: [], around: { links: [{ owner: "u", uri: "samu:s", kind: "ref" }] }, task: "s", id: "i", now, hlc });
+  // A checklist of its own would go with the task.
+  assert.throws(
+    () => fromSubtask({ tasks: pair, items: [{ id: "x", owner: "s", position: 0 }], task: "s", id: "i", now, hlc }),
+    /a checklist of its own/,
+  );
+  // The whole list: the one with a comment stays and is named.
+  const got = allFromSubtasks({ tasks: pair, items: [], around: { comments: [on] }, task: "T", now, hlc, newId: () => "n" });
+  assert.equal(got.changes.length, 2);
+  assert.deepEqual(got.skipped.map((x) => x.id), ["s"]);
+  assert.match(got.skipped[0].reason, /comments/);
+}
 assert.throws(() => fromSubtask({ tasks, items, task: "T", id: "i", now, hlc }), /not a subtask/);
 assert.throws(
   () => fromSubtask({ tasks: [...tasks, task("g", "s1", 0)], items, task: "s1", id: "i", now, hlc }),

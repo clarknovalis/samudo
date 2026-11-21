@@ -238,7 +238,7 @@ export function checklistBody(task) {
           onclick: async () => {
             let got;
             try {
-              got = allFromSubtasks({ tasks: state.tasks, items: state.checklist, task, now: now(), hlc, newId: uuidv7 });
+              got = allFromSubtasks({ tasks: state.tasks, items: state.checklist, around: around(), task, now: now(), hlc, newId: uuidv7 });
             } catch (error) {
               update({ message: error.message });
               return;
@@ -252,6 +252,15 @@ export function checklistBody(task) {
   ]);
 }
 
+// What hangs on tasks and would go with a subtask that becomes an item.
+const around = () => ({
+  comments: state.comments,
+  attachments: state.attachments,
+  clocks: state.clocks,
+  reminders: state.reminders,
+  links: state.links,
+});
+
 // The button that makes a plain subtask an item of its parent; null for a
 // task without a parent. What an item cannot keep is named in the message.
 export function toItemButton(task) {
@@ -262,7 +271,7 @@ export function toItemButton(task) {
     onclick: async () => {
       let changes;
       try {
-        changes = fromSubtask({ tasks: state.tasks, items: state.checklist, task: task.id, id: uuidv7(), now: now(), hlc });
+        changes = fromSubtask({ tasks: state.tasks, items: state.checklist, around: around(), task: task.id, id: uuidv7(), now: now(), hlc });
       } catch (error) {
         update({ message: error.message });
         return;

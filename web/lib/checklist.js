@@ -57,8 +57,10 @@ export function progress(items, task) {
 // One past the last position, 0 for none.
 export const after = (positions) => (positions.length ? Math.max(...positions) + 1 : 0);
 
-// What an item cannot keep, named; null for a plain subtask.
-export function carries(task) {
+// What an item cannot keep, named; null for a plain subtask. `around` is
+// what hangs on tasks as objects of their own and would go with the task:
+// { items, comments, attachments, clocks, reminders, links }.
+export function carries(task, around = {}) {
   if (task.note?.trim()) return "a note";
   if (["defer", "due", "planned", "due_warning", "planned_duration", "repeat"].some((k) => task[k])) return "dates";
   if ((task.tags ?? []).length) return "tags";
@@ -66,6 +68,15 @@ export function carries(task) {
   if (task.flagged) return "a flag";
   if (task.priority) return "a priority";
   if (Object.keys(task.properties ?? {}).length) return "properties";
+  const mine = (list) => (list ?? []).some((o) => o.owner === task.id);
+  if (mine(around.items)) return "a checklist of its own";
+  if (mine(around.comments)) return "comments";
+  if (mine(around.attachments)) return "attachments";
+  if (mine(around.clocks)) return "clocked time";
+  if (mine(around.reminders)) return "reminders";
+  if (mine(around.links)) return "links";
+  // Deleting it would silently unblock the task that waits.
+  if ((around.links ?? []).some((l) => l.kind === "blocked_by" && l.uri === `samu:${task.id}`)) return "a task that waits for it";
   return null;
 }
 
@@ -108,8 +119,9 @@ export function allToSubtasks({ tasks, items, task, now, hlc, newId }) {
 
 // The changes that make the plain subtask `task` an item `id` of its
 // parent, last, ticked when completed; the subtask goes. Throws an Error
-// with the reason when it is no plain subtask.
-export function fromSubtask({ tasks, items, task, id, now, hlc }) {
+// with the reason when it is no plain subtask. `around` as in `carries`,
+// without the items.
+export function fromSubtask({ tasks, items, around = {}, task, id, now, hlc }) {
   const t = tasks.find((x) => x.id === task);
   if (!t) throw new Error("No such task.");
   if (!t.parent) throw new Error("The task is not a subtask.");
@@ -117,7 +129,7 @@ export function fromSubtask({ tasks, items, task, id, now, hlc }) {
   if (t.habit) throw new Error("The task is a habit.");
   if (t.repeat) throw new Error("The task repeats.");
   if (t.dropped_at) throw new Error("The task was dropped.");
-  const what = carries(t);
+  const what = carries(t, { ...around, items });
   if (what) throw new Error(`The task carries ${what}, which an item cannot keep.`);
   const value = {
     id,
@@ -138,14 +150,14 @@ export function fromSubtask({ tasks, items, task, id, now, hlc }) {
 // each after the ones made before it. Those that carry something an item
 // cannot keep stay and come back in `skipped` with the reason; throws the
 // first reason when none can be converted, or when there are no subtasks.
-export function allFromSubtasks({ tasks, items, task, now, hlc, newId }) {
+export function allFromSubtasks({ tasks, items, around = {}, task, now, hlc, newId }) {
   const subs = tasks.filter((t) => t.parent === task).sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1));
   const known = [...items];
   const changes = [];
   const skipped = [];
   for (const sub of subs) {
     try {
-      const made = fromSubtask({ tasks, items: known, task: sub.id, id: newId(), now, hlc });
+      const made = fromSubtask({ tasks, items: known, around, task: sub.id, id: newId(), now, hlc });
       known.push(made[0].value);
       changes.push(...made);
     } catch (error) {

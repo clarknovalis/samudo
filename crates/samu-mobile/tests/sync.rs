@@ -5204,13 +5204,20 @@ fn a_checklist_is_made_offline_and_reaches_the_server() {
             .unwrap()
             .is_empty()
     );
-    let texts: Vec<String> = second
-        .checklist(task)
-        .unwrap()
-        .into_iter()
-        .map(|r| r.text)
-        .collect();
+    let rows = second.checklist(task.clone()).unwrap();
+    let texts: Vec<&str> = rows.iter().map(|r| r.text.as_str()).collect();
     assert_eq!(texts, ["Sonnenbrille!", "Ladekabel"]);
+
+    // A subtask with a comment stays a subtask: the comment would go with
+    // the task, and an item cannot keep it.
+    let sub = second.checklist_to_subtask(rows[0].id.clone()).unwrap();
+    second.add_comment(sub.clone(), "bleibt".into()).unwrap();
+    let refused = second.checklist_from_subtask(sub.clone()).unwrap_err();
+    assert!(refused.to_string().contains("comments"), "{refused}");
+    assert!(second.checklist_all_from_subtasks(task.clone()).is_err());
+    assert_eq!(second.task(sub.clone()).unwrap().row.title, "Sonnenbrille!");
+    assert_eq!(second.comments(sub).unwrap().len(), 1);
+    assert_eq!(second.checklist(task).unwrap().len(), 1);
 }
 
 /// A second phone of the same account.

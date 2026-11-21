@@ -148,7 +148,9 @@ sie waren: Text.
   kann ein Punkt werden. „Schlicht“ heißt: keine Kinder, keine Gewohnheit,
   keine Wiederholung, nicht verworfen und nichts, was ein Punkt nicht
   behalten kann: Notiz, Daten, Tags, Schätzung, Markierung, Priorität oder
-  Properties. Alles andere wird mit dem Grund abgelehnt, damit nichts
+  Properties, und nichts, was an ihr hängt: Kommentare, Anhänge, gebuchte
+  Zeit, Erinnerungen, Links, eine eigene Checkliste oder eine andere
+  Aufgabe, die auf sie wartet. Alles andere wird mit dem Grund abgelehnt, damit nichts
   stillschweigend verloren geht. Dasselbe geht für die ganze Liste auf
   einmal; Unteraufgaben, die etwas tragen, das ein Punkt nicht behalten
   kann, bleiben und werden genannt.
