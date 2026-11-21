@@ -65,3 +65,4 @@ its citations in the code have no target.
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
 | [0136](0136-removing-a-feature.md) | accepted | A feature leaves in three stages: deprecated, retired, removed |
 | [0137](0137-published-container-image.md) | accepted | A container image on ghcr.io for amd64 and arm64: `X.Y.Z`, `X.Y` and `latest` from a release tag, `edge` from `main` after CI |
+| [0140](0140-voice-capture.md) | draft | Voice capture: an optional transcript service at the server, a recorder in the app that can be the digital assistant, recordings handed between apps by intent |
