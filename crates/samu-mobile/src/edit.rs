@@ -54,6 +54,9 @@ pub struct TaskEdit {
     pub priority: Option<String>,
     /// It has descendants that a move or a delete takes along.
     pub descendants: u32,
+    /// It is a subtask: it can become an item of its parent's checklist
+    /// (ADR 0141).
+    pub subtask: bool,
     /// Its repetition; none when it does not repeat.
     pub repeat: Option<RepeatEdit>,
 }
@@ -286,6 +289,7 @@ impl Samu {
             due_soon_days: days_of(settings.due_soon),
             priority: task.priority.and_then(crate::priority_text),
             descendants: u32::try_from(descendants(&objects, id).len()).unwrap_or(u32::MAX),
+            subtask: task.parent.is_some(),
             repeat: task
                 .schedule
                 .repeat

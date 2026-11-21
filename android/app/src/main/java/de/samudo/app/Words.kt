@@ -34,7 +34,7 @@ object Words {
         "properties" to "Properties", "availability" to tr("Verfügbarkeit"), "state" to tr("Zustand"),
         "project" to tr("Projekt"), "priority" to tr("Priorität"), "defer" to tr("Start"), "due" to tr("Fällig"),
         "planned" to tr("Geplant"), "repeat" to tr("Wiederholung"), "series" to tr("Serie"), "estimate" to tr("Schätzung"), "tags" to "Tags",
-        "note" to tr("Notiz"), "links" to "Links", "reminders" to tr("Erinnerungen"), "clock" to "Clocking",
+        "note" to tr("Notiz"), "checklist" to tr("Checkliste"), "links" to "Links", "reminders" to tr("Erinnerungen"), "clock" to "Clocking",
         "comments" to tr("Kommentare"), "attachments" to tr("Anhänge"), "logbook" to "Logbook",
     )
 

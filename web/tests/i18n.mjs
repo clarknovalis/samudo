@@ -104,8 +104,9 @@ if (existsSync(i18nKt)) {
   const kt = readFileSync(i18nKt, "utf8");
   const start = kt.indexOf("private val MESSAGES");
   const block = kt.slice(start, kt.indexOf(").map", start));
-  // samu-mobile passes some of samu-core's on, as the refusals of tagfields.
-  const rust = [...files(join(root, "crates/samu-mobile/src"), ".rs"), join(root, "crates/samu-core/src/tagfields.rs")]
+  // samu-mobile passes some of samu-core's on, as the refusals of tagfields
+  // and of the checklist conversions.
+  const rust = [...files(join(root, "crates/samu-mobile/src"), ".rs"), join(root, "crates/samu-core/src/tagfields.rs"), join(root, "crates/samu-core/src/checklist.rs")]
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
   const names = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");

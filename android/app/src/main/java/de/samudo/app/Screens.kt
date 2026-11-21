@@ -556,7 +556,7 @@ private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: St
                             append(rowText(before, t.muted, t.overdue, t.soon))
                             append("  ")
                         }
-                        append((if (row.blocks) "🚧 " else "") + row.title + (if (row.hasNote) "  ✎" else ""))
+                        append((if (row.blocks) "🚧 " else "") + row.title + (if (row.hasNote) "  ✎" else "") + (if (row.checksAll > 0u) "  ☑ ${row.checksDone}/${row.checksAll}" else ""))
                     },
                     color = if (dim || row.done) t.muted else t.fg,
                     fontWeight = if (row.group) FontWeight.SemiBold else FontWeight.Normal,
@@ -697,6 +697,7 @@ fun TaskScreen(id: String, tick: Int, changed: () -> Unit, open: (String) -> Uni
             NoteField(e.note ?: "", { v -> act { setNote(id, v) } }, open, rendered = layout?.noteRendered == true)
         }
         EditChips(id, e, act, show)
+        if (show("checklist")) ChecklistPart(id, row, tick, act)
         if (show("clock")) ClockPart(id, row, d.estimate, tick, act)
         if (show("reminders") && !row.done && !row.dropped) RemindersPart(id, row, tick, act)
         NotesPart(id, tick, act, open, showComments = show("comments"), showFiles = show("attachments"))
@@ -719,6 +720,7 @@ fun TaskScreen(id: String, tick: Int, changed: () -> Unit, open: (String) -> Uni
                 }) { Text(tr("Verwerfen")) }
             }
             OutlinedButton(onClick = { act { setFlag(id, !row.flagged) } }) { Text(if (row.flagged) tr("Markierung weg") else tr("⚑ Markieren")) }
+            if (e.subtask && !row.dropped) ToItemButton(id, changed, back)
         }
         DeleteButton(id, changed, back)
         Spacer(Modifier.heightIn(min = 48.dp))
