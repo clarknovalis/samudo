@@ -248,7 +248,8 @@ stays as text and unchanged until you replace it.
 
 ## Language
 
-The account menu chooses the language of this browser: "System"
+The page is English until you choose. The account menu, and the sign-in
+page below its forms, choose the language of this browser: "System"
 (German if the browser prefers German, else English), "Deutsch" or
 "English". The choice is not synced; the page reloads in it, and dates
 follow it. The [search language](search.md) understands both languages

@@ -58,6 +58,15 @@ SPDX-License-Identifier: AGPL-3.0-or-later
       <button type="submit">Konto anlegen</button>
       <p id="register-error" role="alert"></p>
     </form>
+    <!-- The language before signing in (ADR 0105 §2), wired with the
+         account menu's row by lib/account.js. -->
+    <div class="gate-lang" role="group" aria-label="Sprache">
+      <span class="segments">
+        <button type="button" data-lang-choice="system" aria-pressed="false">System</button>
+        <button type="button" data-lang-choice="de" aria-pressed="false" lang="de">Deutsch</button>
+        <button type="button" data-lang-choice="en" aria-pressed="false" lang="en">English</button>
+      </span>
+    </div>
   </div>
   <div id="app" hidden>
     <header>

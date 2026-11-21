@@ -5,9 +5,10 @@
 // The language of the interface (ADR 0105): German is the key. `tr("…")`
 // looks the German text up in the English table when the page is English
 // and falls back to German; `{name}` is filled from `vars` after the
-// lookup. The choice is per browser like the theme (ADR 0026 §2):
-// `system` follows navigator.language, `de` and `en` hold. A change
-// reloads the page, since tables like the key map are made at load.
+// lookup. The choice is per browser like the theme (ADR 0026 §2): `de`
+// and `en` hold, `system` follows navigator.language, and a browser that
+// never chose is English. A change reloads the page, since tables like
+// the key map are made at load.
 
 import { EN } from "./en.js";
 
@@ -18,33 +19,38 @@ export const LANG_CHOICES = [
   ["en", "English"],
 ];
 
+// What this browser chose; English until it chooses (ADR 0105 §2).
 export function langChoice() {
   try {
-    return localStorage.getItem(KEY) || "system";
+    return choiceOf(localStorage.getItem(KEY));
   } catch {
-    return "system";
+    return "en";
   }
 }
 
-const systemLang = () => {
-  const code = typeof navigator === "undefined" ? "" : navigator.language || "";
-  return code.toLowerCase().startsWith("de") ? "de" : "en";
-};
+// The choice a stored value stands for: anything else is none, so English.
+export function choiceOf(stored) {
+  return stored === "system" || stored === "de" ? stored : "en";
+}
+
+// `de` or `en` for a choice; `system` asks the browser's language `code`.
+export function langOf(choice, code) {
+  if (choice === "de" || choice === "en") return choice;
+  return (code || "").toLowerCase().startsWith("de") ? "de" : "en";
+}
 
 let current = null;
 
 // `de` or `en`, as chosen or as the system says.
 export function lang() {
   if (current) return current;
-  const choice = langChoice();
-  current = choice === "de" || choice === "en" ? choice : systemLang();
+  current = langOf(langChoice(), typeof navigator === "undefined" ? "" : navigator.language);
   return current;
 }
 
 export function setLang(choice) {
   try {
-    if (choice === "system") localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, choice);
+    localStorage.setItem(KEY, choice);
   } catch {
     // Private mode: nothing to keep, so nothing changes.
     return;

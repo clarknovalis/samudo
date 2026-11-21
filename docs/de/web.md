@@ -265,9 +265,10 @@ Text stehen und unverändert, bis man sie ersetzt.
 
 ## Sprache
 
-Das Kontomenü wählt die Sprache dieses Browsers: „System“ (Deutsch, wenn
-der Browser Deutsch bevorzugt, sonst Englisch), „Deutsch“ oder
-„English“. Die Wahl wird nicht gesynct; die Seite lädt in ihr neu, und
+Die Seite ist englisch, bis man wählt. Das Kontomenü, und die
+Anmeldeseite unter ihren Formularen, wählt die Sprache dieses Browsers:
+„System“ (Deutsch, wenn der Browser Deutsch bevorzugt, sonst Englisch),
+„Deutsch“ oder „English“. Die Wahl wird nicht gesynct; die Seite lädt in ihr neu, und
 Daten folgen ihr. Die [Suchsprache](search.md) versteht beide Sprachen,
 gleich was gewählt ist. Die Tasten bleiben in beiden dieselben. Namen,
 die man selbst vergibt (Projekte, Tags, Zustände eines Ablaufs), werden

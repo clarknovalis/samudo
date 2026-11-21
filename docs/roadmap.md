@@ -7,8 +7,9 @@ by building from source.
 
 ## In progress
 
-- **English interface.** The web UI and the Android app follow the system
-  language or a choice of German or English. Both are translated; the last
+- **English interface.** The web UI is English unless German or the
+  system language is chosen; the Android app follows the system language
+  or a choice of German or English. Both are translated; the last
   German strings that slip through are being caught.
 - **Table view.** A perspective can show its tasks as a table, with
   columns for properties and an estimate against the time clocked, sums

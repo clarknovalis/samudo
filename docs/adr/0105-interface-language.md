@@ -42,10 +42,11 @@ Like the theme (ADR 0026 §2), the language holds per browser or phone and
 is not synced; nothing in `samu-api`, no migration.
 
 - **Web:** `localStorage` `samu.lang` (`system` | `de` | `en`), in the
-  account menu as a second row below system/light/dark. "System" follows
-  `navigator.language` (`de…` → German, otherwise English). `<html lang>`
-  is set too; `Intl` formats take the chosen language. A change redraws
-  the page.
+  account menu as a second row below system/light/dark, and on the
+  sign-in page below its forms. A browser that never chose is English.
+  "System" follows `navigator.language` (`de…` → German, otherwise
+  English). `<html lang>` is set too; `Intl` formats take the chosen
+  language. A change redraws the page.
 - **App:** a settings page "Language" with the same three choices, in the
   phone's cache. "System" follows the context's locale, so Android's own
   per-app language works too (Android 13+, `res/xml/locales_config.xml`
@@ -115,3 +116,8 @@ placeholders, not with `t(a + b)`.
 - 2026-11-17 (ADR 0121): the separator `oder`/`or` joined the language.
 - 2026-11-18 (ADR 0128 §7): `versteckt`/`hidden` joined the `is:` words.
 - 2026-11-20: the chip `id:` joined the language, the same in both.
+- 2026-11-22 (§2): the web is English until the browser chooses, where it
+  followed the browser's language before; "System" is now a choice that is
+  stored. A public instance greets most visitors in a language their
+  browser does not name, and the sign-in page had no way to change it, so
+  it got the same three choices. The app still follows the phone.

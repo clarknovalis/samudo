@@ -71,6 +71,7 @@ web-check:
 	node web/tests/author.mjs
 	node web/tests/transcript.mjs
 	node web/tests/i18n.mjs
+	node web/tests/lang.mjs
 	node web/tests/table.mjs
 	node web/tests/clicks.mjs
 	node web/tests/blocks.mjs
