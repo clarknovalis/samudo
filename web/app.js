@@ -228,6 +228,7 @@ async function loadNow() {
       clocks: of("clock"),
       reminders: of("reminder"),
       comments: of("comment"),
+      checklist: of("checklist_item"),
       attachments: of("attachment"),
       scopes: of("scope"),
       templates: of("template"),

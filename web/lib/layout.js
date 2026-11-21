@@ -28,6 +28,7 @@ export const PARTS = [
   ["estimate", tr("Schätzung"), (t) => Boolean(t.estimate)],
   ["tags", "Tags", (t) => (t.tags ?? []).length > 0],
   ["note", tr("Notiz"), (t) => Boolean(t.note?.trim())],
+  ["checklist", tr("Checkliste"), (t) => state.checklist.some((i) => i.owner === t.id)],
   ["links", "Links", (t) => state.links.some((l) => l.owner === t.id)],
   ["reminders", tr("Erinnerungen"), (t) => state.reminders.some((r) => r.owner === t.id)],
   ["clock", "Clocking", (t) => state.clocks.some((c) => c.owner === t.id)],

@@ -11,6 +11,7 @@ import { api, change } from "./api.js";
 import { appointmentDetail } from "./appointment.js";
 import { closeTasks } from "./closeask.js";
 import { clockSection } from "./clock.js";
+import { checklistBody, checklistTitle, toItemButton } from "./checklistview.js";
 import { commentSections } from "./comments.js";
 import { $, el, icon, replace } from "./dom.js";
 import { blockersOf, moveTo, openBlockPalette, openPalette, withScope } from "./palette.js";
@@ -823,6 +824,7 @@ export function renderDetail() {
     repeatEditing === task.id ? repeatForm(task) : null,
     show("series") ? seriesSection(task, section) : null,
     show("note") ? section(tr("Notiz"), noteView(task)) : null,
+    show("checklist") ? section(checklistTitle(task.id), checklistBody(task.id)) : null,
     show("links") ? blockerSection(status) : null,
     show("links") ? heldUpSection(task) : null,
     show("links") && links.length
@@ -863,6 +865,7 @@ export function renderDetail() {
               ]),
           }),
       el("button", { type: "button", text: tr("Umhängen (m)"), onclick: () => openPalette(status) }),
+      open ? toItemButton(task) : null,
       open
         ? el("button", {
             type: "button",

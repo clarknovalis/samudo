@@ -1386,3 +1386,13 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 }
 .elsewhere-hint { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 10px; font-size: 13px; }
 #message button.link { margin-left: 10px; color: inherit; }
+
+/* Checklist in the inspector (ADR 0141). */
+.cl-items { list-style: none; margin: 0 0 4px; padding: 0; }
+.cl-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.cl-item.done .cl-text { color: var(--muted); text-decoration: line-through; }
+.cl-handle { cursor: grab; color: var(--muted); user-select: none; letter-spacing: -2px; }
+.cl-text, .cl-add { flex: 1; min-width: 0; }
+.cl-add { width: 100%; box-sizing: border-box; }
+.cl-tool { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 4px; }
+.cl-tool:hover { color: var(--fg); }

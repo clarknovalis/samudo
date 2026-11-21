@@ -141,6 +141,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/checklist.js",
+        include_str!("../../../web/lib/checklist.js"),
+        JS,
+    ),
+    (
+        "lib/checklistview.js",
+        include_str!("../../../web/lib/checklistview.js"),
+        JS,
+    ),
+    (
         "lib/comments.js",
         include_str!("../../../web/lib/comments.js"),
         JS,

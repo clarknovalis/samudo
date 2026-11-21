@@ -28,6 +28,8 @@ export const state = {
   reminders: [],
   // Comments and attachments on tasks and projects (ADR 0039).
   comments: [],
+  // Items of the checklists on tasks (ADR 0141).
+  checklist: [],
   attachments: [],
   // Every task from /changes, whatever the scope shows: a move takes
   // descendants along that the scope hides.

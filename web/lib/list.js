@@ -13,6 +13,7 @@ import { rowClick, rowDrag } from "./bulk.js";
 import { $, el, replace } from "./dom.js";
 import { calendarView } from "./calendar.js";
 import { setDone } from "./detail.js";
+import { progress } from "./checklist.js";
 import { closeTableMenu, drawTable, drawTables, renderTableMenu, tableMenuOpen, toggleTableMenu } from "./table.js";
 import { assemble, isBlocks, passes } from "./blocks.js";
 import { columnsOf } from "./tabledata.js";
@@ -123,6 +124,8 @@ function row(status, depth, context, why = null, bare = false) {
         : null
       : tr("{n} verfügbar", { n: group.available })
     : null;
+  const [ticked, listed] = progress(state.checklist, task.id);
+  const checks = listed ? [ticked, listed] : null;
   const classes = [
     "row",
     state.selected === task.id ? "selected" : null,
@@ -157,6 +160,7 @@ function row(status, depth, context, why = null, bare = false) {
             })
           : null,
         group ? el("span", { class: "badge", text: `${group.done}/${group.done + group.open}` }) : null,
+        checks ? el("span", { class: "badge", title: tr("Checkliste"), text: `☑ ${checks[0]}/${checks[1]}` }) : null,
         folded && summary ? el("span", { class: "summary", text: summary }) : null,
         task.flagged ? el("span", { class: "flag", text: tr("⚑ markiert") }) : null,
         // The fields placed on line 1 (ADR 0130 §2).

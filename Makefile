@@ -75,6 +75,7 @@ web-check:
 	node web/tests/clicks.mjs
 	node web/tests/blocks.mjs
 	node web/tests/close.mjs
+	node web/tests/checklist.mjs
 	node web/tests/text.mjs
 	node web/tests/groups.mjs
 	node web/tests/clocks.mjs
