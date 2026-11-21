@@ -343,6 +343,77 @@ fn a_login_only_for_a_folder_sees_only_that() {
     );
 }
 
+/// A session with a grant does not see the account's settings: `samu prop`
+/// shows the properties all the same, and a value leads where it is a URI
+/// itself.
+#[test]
+fn prop_works_in_a_session_with_a_grant() {
+    let server = signed_in_server();
+    let made = |args: &[&str]| {
+        json_out(&server.samu(args, None))[0]["id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let folder = made(&["folder", "add", "ai", "--format", "json"]);
+    let project = made(&[
+        "project", "add", "Werkbank", "--folder", &folder, "--format", "json",
+    ]);
+    let task = made(&["add", "Hobeln", "--project", &project, "--format", "json"]);
+    for (id, key, value) in [
+        (&project, "properties.site", "https://example.org/werkbank"),
+        (&project, "properties.jira", "HAUS-12"),
+        (&task, "properties.team", "blau"),
+    ] {
+        assert_eq!(code(&server.samu(&["set", id, key, value], None)), 0);
+    }
+    assert_eq!(
+        code(&server.samu(
+            &[
+                "settings",
+                "link",
+                "jira",
+                "https://jira.example.org/{value}"
+            ],
+            None
+        )),
+        0
+    );
+
+    let agent_dir = server.dir.join("agent");
+    let agent = |args: &[&str], stdin| run_samu(&server.url, &agent_dir, args, stdin);
+    let login = agent(
+        &["login", "--agent", "--only", "ai", "--password-stdin"],
+        Some(PASSWORD),
+    );
+    assert_eq!(
+        code(&login),
+        0,
+        "{}",
+        String::from_utf8_lossy(&login.stderr)
+    );
+    let out = agent(&["prop", &task, "--format", "json"], None);
+    assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+    let props = json_out(&out);
+    let by_key = |key: &str| {
+        props
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["key"] == key)
+            .cloned()
+            .unwrap_or_else(|| panic!("no {key} in {props:#}"))
+    };
+    assert_eq!(by_key("team")["value"], "blau");
+    assert_eq!(by_key("site")["link"], "https://example.org/werkbank");
+    assert_eq!(by_key("jira")["value"], "HAUS-12");
+    assert!(by_key("jira")["link"].is_null(), "the template is unseen");
+    // The person's own session sees the template.
+    let own = json_out(&server.samu(&["prop", &task, "--format", "json"], None));
+    let jira = own.as_array().unwrap().iter().find(|p| p["key"] == "jira");
+    assert_eq!(jira.unwrap()["link"], "https://jira.example.org/HAUS-12");
+}
+
 #[test]
 fn a_wrong_password_is_exit_6() {
     let server = Server::start(true);

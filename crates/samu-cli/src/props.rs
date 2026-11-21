@@ -10,7 +10,7 @@
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, anyhow, bail};
-use samu_api::{AnyObject, Change, Id, Inherited, TaskStatus};
+use samu_api::{AnyObject, Change, ChangesPage, Id, Inherited, TaskStatus};
 use serde_json::{Value, json};
 
 use crate::config::Config;
@@ -62,6 +62,25 @@ fn link_for(value: &str, template: Option<&str>) -> Option<String> {
     let template = template?.trim();
     (!template.is_empty() && template.contains("{value}"))
         .then(|| template.replace("{value}", &encode(value)))
+}
+
+/// The account's link templates by key (ADR 0054 §4), from all of its
+/// objects. A session with a grant does not see the settings: its values
+/// lead only where they are URIs themselves.
+pub(crate) fn templates_in(objects: &[AnyObject]) -> BTreeMap<String, String> {
+    objects
+        .iter()
+        .find_map(|o| match o {
+            AnyObject::Settings(s) => Some(s.property_links.clone()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
+fn templates(client: &Client) -> Result<BTreeMap<String, String>> {
+    let page: ChangesPage =
+        serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
+    Ok(templates_in(&page.objects))
 }
 
 /// One property of an object: its own or inherited.
@@ -116,14 +135,11 @@ fn rows_of(client: &Client, id: Id) -> Result<Vec<Row>> {
 pub(crate) fn show(config: &Config, format: Format, id: &str) -> Result<()> {
     let client = signed_in(config)?;
     let id = resolve(&client, id)?;
-    let (settings, _) = forecast::settings_of(&client)?;
+    let templates = templates(&client)?;
     let records: Vec<Value> = rows_of(&client, id)?
         .into_iter()
         .map(|row| {
-            let link = link_for(
-                &row.value,
-                settings.property_links.get(&row.key).map(String::as_str),
-            );
+            let link = link_for(&row.value, templates.get(&row.key).map(String::as_str));
             json!({
                 "key": row.key,
                 "value": row.value,
@@ -164,8 +180,8 @@ pub(crate) fn open(
         .into_iter()
         .find(|r| r.key == key)
         .ok_or_else(|| Failure::NotFound(format!("{} has no property {key:?}", short(&id))))?;
-    let (settings, _) = forecast::settings_of(&client)?;
-    let template = settings.property_links.get(key).map(String::as_str);
+    let templates = templates(&client)?;
+    let template = templates.get(key).map(String::as_str);
     let Some(argv) = command_for(config, key, &row.value, template) else {
         return Err(Failure::NotFound(format!(
             "{key} = {:?} leads nowhere: no command for {key} in the config file, \
