@@ -247,9 +247,13 @@ INPUT goes to stdin.  With NOT-FOUND-OK, exit code 3 returns nil."
 (defvar samu--cache nil
   "Projects, tags and templates as the CLI gave them, by kind.")
 
+(defvar samu--note-formats (make-hash-table :test #'equal)
+  "The format of each note and comment asked for, by its text.")
+
 (defun samu--forget ()
   "Forget what completion offers, so the next use asks again."
-  (setq samu--cache nil))
+  (setq samu--cache nil)
+  (clrhash samu--note-formats))
 
 (defun samu--cached (kind args)
   "The records of KIND, from the CLI with ARGS the first time."
@@ -411,14 +415,22 @@ Nil when no row is a habit.  Fetched once each time the buffer is filled.")
     ('none "No scope")
     (scope (concat "Scope " scope))))
 
-(defun samu--render-view ()
-  "Fill a view from `samu--view', keeping point on the same task."
+(defun samu--fetch-view ()
+  "What a view shows, from the CLI: a plist with :groups, :rows and :habits."
+  (let* ((groups (funcall (plist-get samu--view :fetch)))
+         (rows (apply #'append (mapcar #'cdr groups))))
+    (list :groups groups
+          :rows rows
+          :habits (samu--habit-statuses rows (samu--scope-args)))))
+
+(defun samu--draw-view (data)
+  "Fill a view from DATA of `samu--fetch-view', point on the same task."
   (let ((inhibit-read-only t)
         (id (get-text-property (point) 'samu-id))
         (line (line-number-at-pos))
-        (groups (funcall (plist-get samu--view :fetch))))
-    (setq samu--rows (apply #'append (mapcar #'cdr groups))
-          samu--habits (samu--habit-statuses samu--rows (samu--scope-args)))
+        (groups (plist-get data :groups)))
+    (setq samu--rows (plist-get data :rows)
+          samu--habits (plist-get data :habits))
     (erase-buffer)
     (insert (propertize (plist-get samu--view :title) 'face 'samu-title)
             (propertize (concat "  " (samu--scope-label)) 'face 'samu-meta)
@@ -432,8 +444,19 @@ Nil when no row is a habit.  Fetched once each time the buffer is filled.")
           (samu--insert-rows (cdr group) (plist-get samu--view :project)))))
     (samu--goto id line)))
 
+(defun samu--fetch ()
+  "What this samu buffer shows, from the CLI; `samu--draw' takes it.
+Only this asks the CLI, drawing does not."
+  (cond (samu--habit-id (samu--fetch-habit))
+        (samu--task-id (samu--fetch-task))
+        (t (samu--fetch-view))))
+
 (defun samu--render ()
-  "Fill this samu buffer anew: a view or a task's buffer.
+  "Fill this samu buffer anew: a view, a task's or a habit's buffer."
+  (samu--draw (samu--fetch)))
+
+(defun samu--draw (data)
+  "Fill this samu buffer from DATA, what `samu--fetch' returned.
 Point stays on its task, and each window showing the buffer keeps
 where it starts, also when the buffer is filled from elsewhere."
   (let* ((windows (get-buffer-window-list nil nil t))
@@ -443,9 +466,9 @@ where it starts, also when the buffer is filled from elsewhere."
                          windows)))
     (when (and windows (not (eq (window-buffer) (current-buffer))))
       (goto-char (window-point (car windows))))
-    (cond (samu--habit-id (samu--render-habit))
-          (samu--task-id (samu--render-task))
-          (t (samu--render-view)))
+    (cond (samu--habit-id (samu--draw-habit data))
+          (samu--task-id (samu--draw-task data))
+          (t (samu--draw-view data)))
     (pcase-dolist (`(,window ,start ,id) starts)
       (set-window-start window (or (samu--line-of id) (min start (point-max))) t)
       (set-window-point window (point)))))
@@ -1864,24 +1887,31 @@ On an entry in a habit's buffer, that entry."
                                  (samu--habit-rate (samu--get record 'year))))
     (samu--field "Relapse" (samu--get record 'last_fail))))
 
-(defun samu--insert-habit-fields (id)
-  "Insert the habit part of the task buffer of ID, from `samu habit show'."
-  (let ((record (condition-case nil
-                    (car (samu--call (list "habit" "show" id "--days" "1") nil t))
-                  (samu-error nil))))
-    (when record
-      (samu--insert-habit-facts record)
-      (samu--field "" (propertize "h s shows the history" 'face 'samu-meta)))))
+(defun samu--fetch-habit-facts (id)
+  "The record of `samu habit show' for the task buffer of ID, or nil."
+  (condition-case nil
+      (car (samu--call (list "habit" "show" id "--days" "1") nil t))
+    (samu-error nil)))
 
-(defun samu--render-habit ()
-  "Fill a habit's buffer from `samu habit show', point where it was."
+(defun samu--insert-habit-fields (record)
+  "Insert the habit part of a task's buffer, from RECORD of `samu habit show'."
+  (when record
+    (samu--insert-habit-facts record)
+    (samu--field "" (propertize "h s shows the history" 'face 'samu-meta))))
+
+(defun samu--fetch-habit ()
+  "The record of `samu habit show' a habit's buffer shows."
+  (let ((id samu--habit-id))
+    (or (car (samu--call (list "habit" "show" id "--days"
+                               (number-to-string (samu--habit-history-days)))
+                         nil t))
+        (user-error "Not a habit: %s" id))))
+
+(defun samu--draw-habit (record)
+  "Fill a habit's buffer from RECORD of `samu habit show', point where it was."
   (let* ((inhibit-read-only t)
          (pos (point))
          (id samu--habit-id)
-         (record (or (car (samu--call (list "habit" "show" id "--days"
-                                            (number-to-string (samu--habit-history-days)))
-                                      nil t))
-                     (user-error "Not a habit: %s" id)))
          (status (samu--get record 'status))
          (title (samu--text (samu--get record 'title))))
     (erase-buffer)
@@ -1918,7 +1948,7 @@ Interactively the habit here."
       (unless (derived-mode-p 'samu-habit-mode)
         (samu-habit-mode)
         (setq samu--habit-id id))
-      (samu--render-habit)
+      (samu--render)
       (goto-char (point-min)))
     (pop-to-buffer buffer)
     (samu--live-ensure)
@@ -1976,10 +2006,15 @@ Interactively the habit here."
   (insert "\n" (propertize text 'face 'samu-section) "\n"))
 
 (defun samu--note-format (note)
-  "Whether NOTE reads as \"org\" or \"markdown\", as samu-core decides (ADR 0058)."
-  (condition-case nil
-      (string-trim (samu--call-text '("render") note))
-    (samu-error "markdown")))
+  "Whether NOTE reads as \"org\" or \"markdown\", as samu-core decides (ADR 0058).
+Asked once for each text: what a text reads as does not change."
+  (or (gethash note samu--note-formats)
+      (let ((format (condition-case nil
+                        (string-trim (samu--call-text '("render") note))
+                      (samu-error nil))))
+        (if (member format '("org" "markdown"))
+            (puthash note format samu--note-formats)
+          "markdown"))))
 
 (defun samu--note-mode (format)
   "The major mode for a note in FORMAT."
@@ -2038,27 +2073,53 @@ Interactively the habit here."
   (samu--field "Estimate" (samu--get object 'estimate))
   (samu--field "Repeat" (samu--text (samu--get row 'next_repeat))))
 
-(defun samu--insert-task ()
-  "Fill the buffer of a task or project from the server."
+(defun samu--fetch-task ()
+  "What the buffer of a task or project shows, from the CLI, as a plist.
+Also asks for what drawing looks up: the format of the note and of
+each comment, and the tags the logbook names."
   (let* ((id samu--task-id)
          (shown (or (car (samu--call (list "show" id) nil t))
                     (user-error "Not found: %s" id)))
          (kind (samu--get shown 'kind))
          (object (samu--get shown 'object))
-         (row (and (equal kind "task")
-                   (cl-find id (samu--call (list "list" "--all" "--no-scope" "--search" id))
-                            :key (lambda (r) (samu--get r 'id)) :test #'equal)))
          (note (samu--text (samu--get object 'note)))
-         (below (samu--descendants id kind (samu--open-tasks))))
+         (below (samu--descendants id kind (samu--open-tasks)))
+         (comments (samu--call (list "comments" id) nil t)))
+    (unless (string-blank-p note) (samu--note-format note))
+    (dolist (c comments) (samu--note-format (samu--text (samu--get c 'body))))
+    (when samu--show-logbook (samu--tags))
+    (list :shown shown
+          :row (and (equal kind "task")
+                    (cl-find id (samu--call (list "list" "--all" "--no-scope" "--search" id))
+                             :key (lambda (r) (samu--get r 'id)) :test #'equal))
+          :below below
+          :habits (samu--habit-statuses below '("--no-scope"))
+          :habit (and (equal kind "task") (samu--get object 'habit)
+                      (samu--fetch-habit-facts id))
+          :reminders (samu--call (list "reminders" id) nil t)
+          :props (samu--call (list "prop" id) nil t)
+          :comments comments
+          :files (samu--call (list "attachments" id) nil t)
+          :log (and samu--show-logbook (samu--call (list "log" id) nil t)))))
+
+(defun samu--insert-task (data)
+  "Fill the buffer of a task or project from DATA of `samu--fetch-task'."
+  (let* ((id samu--task-id)
+         (shown (plist-get data :shown))
+         (kind (samu--get shown 'kind))
+         (object (samu--get shown 'object))
+         (row (plist-get data :row))
+         (note (samu--text (samu--get object 'note)))
+         (below (plist-get data :below)))
     (setq samu--task-object object
           samu--task-row row
           samu--rows below
-          samu--habits (samu--habit-statuses below '("--no-scope")))
+          samu--habits (plist-get data :habits))
     (rename-buffer (format "*samu: %s*" (samu--text (samu--get shown 'title))) t)
     (insert (propertize (samu--text (samu--get shown 'title)) 'face 'samu-title) "\n\n")
     (if (equal kind "task")
         (progn (samu--insert-task-fields row object)
-               (when (samu--get object 'habit) (samu--insert-habit-fields id)))
+               (samu--insert-habit-fields (plist-get data :habit)))
       (samu--field "Kind" (samu--get object 'kind))
       (samu--field "Status" (samu--get object 'status))
       (samu--field "Flagged" (and (samu--get object 'flagged) "⚑"))
@@ -2067,9 +2128,9 @@ Interactively the habit here."
       (samu--field "Last reviewed" (samu--get object 'last_reviewed)))
     (samu--field "Reminders"
                  (mapconcat (lambda (r) (samu--when-text (samu--get r 'when)))
-                            (samu--call (list "reminders" id) nil t) ", "))
+                            (plist-get data :reminders) ", "))
     (samu--field "ID" id)
-    (let ((props (samu--call (list "prop" id) nil t)))
+    (let ((props (plist-get data :props)))
       (when props
         (samu--heading "Properties")
         (dolist (p props)
@@ -2088,7 +2149,7 @@ Interactively the habit here."
     (when below
       (samu--heading "Subtasks")
       (samu--insert-rows below))
-    (let ((comments (samu--call (list "comments" id) nil t)))
+    (let ((comments (plist-get data :comments)))
       (when comments
         (samu--heading "Comments")
         (dolist (c comments)
@@ -2098,7 +2159,7 @@ Interactively the habit here."
                   "\n")
           (samu--insert-note (samu--text (samu--get c 'body)))
           (insert "\n"))))
-    (let ((files (samu--call (list "attachments" id) nil t)))
+    (let ((files (plist-get data :files)))
       (when files
         (samu--heading "Attachments")
         (dolist (a files)
@@ -2112,7 +2173,7 @@ Interactively the habit here."
     (if (not samu--show-logbook)
         (insert "\n" (propertize "Logbook: l shows it" 'face 'samu-meta) "\n")
       (samu--heading "Logbook")
-      (dolist (entry (samu--call (list "log" id) nil t))
+      (dolist (entry (plist-get data :log))
         (insert (propertize (samu--text (samu--when-text (samu--get entry 'at))) 'face 'samu-meta)
                 (format "  %s  %s" (samu--text (samu--get entry 'device))
                         (samu--text (samu--get entry 'kind)))
@@ -2128,12 +2189,12 @@ Interactively the habit here."
         ((and (stringp value) (samu--tag-path value)))
         (t (truncate-string-to-width (samu--text value) 40 nil nil "…"))))
 
-(defun samu--render-task ()
-  "Fill the task's buffer anew, point where it was."
+(defun samu--draw-task (data)
+  "Fill the task's buffer from DATA of `samu--fetch-task', point where it was."
   (let ((inhibit-read-only t)
         (pos (point)))
     (erase-buffer)
-    (samu--insert-task)
+    (samu--insert-task data)
     (goto-char (min pos (point-max)))))
 
 ;;;###autoload
@@ -2148,7 +2209,7 @@ Interactively the habit here."
         (samu-task-mode)
         (setq samu--task-id id)))
     (with-current-buffer buffer
-      (samu--render-task))
+      (samu--render))
     (if other-window
         (display-buffer buffer)
       (pop-to-buffer-same-window buffer))
@@ -2188,7 +2249,7 @@ Interactively the habit here."
   "Show or hide the logbook."
   (interactive)
   (setq samu--show-logbook (not samu--show-logbook))
-  (samu--render-task))
+  (samu--render))
 
 (defun samu-set-title (title)
   "Give the task here the TITLE."

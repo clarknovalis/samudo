@@ -37,6 +37,7 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
   (declare (indent 1))
   `(let ((samu-test--calls nil)
          (samu--cache nil)
+         (samu--note-formats (make-hash-table :test #'equal))
          (samu-profile nil)
          (samu-server nil)
          (samu-account nil)
@@ -578,6 +579,21 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
     (should (eq (lookup-key map "?") #'describe-mode))))
 
 ;;;; Following changes
+
+(ert-deftest samu-test-note-format-is-asked-once-for-each-text ()
+  (samu-test--with-cli '((("render") 0 "org\n" ""))
+    (should (equal (samu--note-format "* a") "org"))
+    (should (equal (samu--note-format "* a") "org"))
+    (should (equal (samu--note-format "* b") "org"))
+    (should (= (length (samu-test--called '("render"))) 2))
+    (samu--forget)
+    (samu--note-format "* a")
+    (should (= (length (samu-test--called '("render"))) 3)))
+  ;; a failure is not remembered
+  (samu-test--with-cli '((("render") 1 "" "samu: no"))
+    (should (equal (samu--note-format "x") "markdown"))
+    (should (equal (samu--note-format "x") "markdown"))
+    (should (= (length (samu-test--called '("render"))) 2))))
 
 (ert-deftest samu-test-live-command ()
   (let ((samu-executable "samu") (samu-server "http://127.0.0.1:1") (samu-account nil))
