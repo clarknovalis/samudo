@@ -21,6 +21,7 @@ mod config;
 mod export;
 mod export_org;
 mod forecast;
+mod full;
 mod grant;
 mod habits;
 mod import;
@@ -456,6 +457,15 @@ enum Command {
     Show {
         #[arg(add = ArgValueCompleter::new(complete::task))]
         id: String,
+        /// For a task or project, everything its view shows, in one
+        /// record: the object, its row as `samu list` has it, the open
+        /// tasks below, comments, attachments, reminders, properties and
+        /// habit, each as the command that shows it alone.
+        #[arg(long)]
+        full: bool,
+        /// With --full: the logbook too, as `samu log` has it.
+        #[arg(long, requires = "full")]
+        log: bool,
     },
     /// What changed after a change number (GET /changes).
     Changes {
@@ -2180,9 +2190,12 @@ fn run(args: Args) -> Result<()> {
         Command::OpenUri { uri, print, notify } => {
             props::open_uri(&config, args.format, &uri, print, notify)?;
         }
-        Command::Show { id } => {
+        Command::Show { id, full, log } => {
             let client = signed_in(&config)?;
             let id = resolve(&client, &id)?;
+            if full {
+                return full::show(&client, args.format, id, log);
+            }
             let answer = client.call("GET", &format!("/objects/{id}"), None)?;
             let object: AnyObject = serde_json::from_value(answer.json()?)?;
             if args.format == Format::Plain {

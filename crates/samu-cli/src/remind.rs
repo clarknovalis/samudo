@@ -116,15 +116,21 @@ pub(crate) fn create(reminder: &Reminder, hlc: samu_api::Hlc) -> Result<Change> 
 pub(crate) fn list(client: &Client, owner: Option<Id>) -> Result<Vec<Value>> {
     let page: ChangesPage =
         serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
+    Ok(records_in(&page.objects, owner))
+}
+
+/// The reminders among `objects`, all or those of one owner, as
+/// `samu reminders` shows them.
+pub(crate) fn records_in(objects: &[AnyObject], owner: Option<Id>) -> Vec<Value> {
     let title = |id: Id| -> Option<String> {
-        page.objects.iter().find_map(|o| match o {
+        objects.iter().find_map(|o| match o {
             AnyObject::Task(t) if t.id == id => Some(t.title.clone()),
             AnyObject::Project(p) if p.id == id => Some(p.title.clone()),
             _ => None,
         })
     };
     let mut records = Vec::new();
-    for object in &page.objects {
+    for object in objects {
         let AnyObject::Reminder(r) = object else {
             continue;
         };
@@ -133,7 +139,7 @@ pub(crate) fn list(client: &Client, owner: Option<Id>) -> Result<Vec<Value>> {
         }
         records.push(record(r, title(r.owner)));
     }
-    Ok(records)
+    records
 }
 
 /// One reminder for the output; `when` says it in a few words.

@@ -140,6 +140,9 @@ samu projects --stuck          # active, with no available task
 samu projects --review         # review due
 samu forecast                  # overdue, today, flagged, next days, later
 samu show 4f2a91c3             # one object, all fields
+samu show 4f2a91c3 --full      # a task or project with all its view shows:
+                               # row, tasks below, comments, files, reminders,
+                               # properties, habit; --log adds the logbook
 samu log 4f2a91c3              # its logbook
 samu logbook --since 1h --kind deleted,moved   # the account's
 samu prop 4f2a91c3             # its properties, inherited ones too

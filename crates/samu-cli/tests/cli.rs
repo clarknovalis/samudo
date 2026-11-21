@@ -408,10 +408,244 @@ fn prop_works_in_a_session_with_a_grant() {
     assert_eq!(by_key("site")["link"], "https://example.org/werkbank");
     assert_eq!(by_key("jira")["value"], "HAUS-12");
     assert!(by_key("jira")["link"].is_null(), "the template is unseen");
+    let full = json_out(&agent(&["show", &task, "--full", "--format", "json"], None));
+    assert_eq!(full[0]["props"], props);
     // The person's own session sees the template.
     let own = json_out(&server.samu(&["prop", &task, "--format", "json"], None));
     let jira = own.as_array().unwrap().iter().find(|p| p["key"] == "jira");
     assert_eq!(jira.unwrap()["link"], "https://jira.example.org/HAUS-12");
+}
+
+/// `samu show <id> --full`: every part is the record of the command that
+/// shows it alone, for a task with all of them and for a project.
+#[test]
+fn show_full_holds_what_the_single_commands_show() {
+    let server = signed_in_server();
+    let get = |args: &[&str]| json_out(&server.samu(args, None));
+    let made = |args: &[&str]| get(args)[0]["id"].as_str().unwrap().to_string();
+    let by_id = |records: &serde_json::Value, id: &str| {
+        records
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == id)
+            .cloned()
+            .unwrap_or_else(|| panic!("no {id} in {records:#}"))
+    };
+    let project = made(&["project", "add", "Haus", "--format", "json"]);
+    let task = made(&[
+        "add",
+        "Rinne",
+        "--project",
+        &project,
+        "--note",
+        "* Stand\nnoch offen",
+        "--format",
+        "json",
+    ]);
+    let child = made(&["add", "Leiter holen", "--parent", &task, "--format", "json"]);
+    let grandchild = made(&[
+        "add",
+        "Nachbarn fragen",
+        "--parent",
+        &child,
+        "--format",
+        "json",
+    ]);
+    let habit = made(&["add", "Laub fegen", "--parent", &task, "--format", "json"]);
+    let closed = made(&["add", "Angebot", "--parent", &task, "--format", "json"]);
+    made(&["add", "Etwas anderes", "--format", "json"]);
+    assert_eq!(
+        code(&server.samu(&["done", &closed, "--note", "kam per Post"], None)),
+        0
+    );
+    assert_eq!(
+        code(&server.samu(&["habit", "set", &habit, "1/d"], None)),
+        0
+    );
+    for (id, key, value) in [
+        (&project, "properties.jira", "HAUS-12"),
+        (&task, "properties.site", "https://example.org/rinne"),
+    ] {
+        assert_eq!(code(&server.samu(&["set", id, key, value], None)), 0);
+    }
+    assert_eq!(
+        code(&server.samu(
+            &[
+                "settings",
+                "link",
+                "jira",
+                "https://jira.example.org/{value}"
+            ],
+            None
+        )),
+        0
+    );
+    let first = made(&["comment", &task, "Erster *Stand*", "--format", "json"]);
+    made(&[
+        "comment",
+        &task,
+        "* Zweiter\n** mit Org",
+        "--format",
+        "json",
+    ]);
+    let file = server.dir.join("rinne.png");
+    std::fs::write(&file, b"no real picture").unwrap();
+    let file = file.to_str().unwrap();
+    get(&["attach", &task, file, "--format", "json"]);
+    get(&[
+        "attach",
+        &task,
+        file,
+        "--to-comment",
+        &first,
+        "--format",
+        "json",
+    ]);
+    get(&[
+        "remind",
+        &task,
+        "--at",
+        "2030-01-02T07:30:00Z",
+        "--format",
+        "json",
+    ]);
+    get(&[
+        "remind",
+        &child,
+        "--at",
+        "2030-01-03T07:30:00Z",
+        "--format",
+        "json",
+    ]);
+
+    let full = get(&["show", &task, "--full", "--log", "--format", "json"]);
+    assert_eq!(full.as_array().unwrap().len(), 1);
+    let full = &full[0];
+    assert_eq!(full["shown"], get(&["show", &task, "--format", "json"])[0]);
+    let all = get(&[
+        "list",
+        "--all",
+        "--no-scope",
+        "--search",
+        &task,
+        "--format",
+        "json",
+    ]);
+    assert_eq!(full["row"], by_id(&all, &task));
+    assert_eq!(full["row"]["title"], "Rinne");
+
+    // Below: the open ones at every depth, not the closed, not a stranger.
+    let open = get(&["list", "--no-scope", "--format", "json"]);
+    let below = full["below"].as_array().unwrap();
+    let mut ids: Vec<&str> = below.iter().map(|r| r["id"].as_str().unwrap()).collect();
+    ids.sort_unstable();
+    let mut expected = [child.as_str(), grandchild.as_str(), habit.as_str()];
+    expected.sort_unstable();
+    assert_eq!(ids, expected);
+    for row in below {
+        assert_eq!(*row, by_id(&open, row["id"].as_str().unwrap()));
+    }
+    let habits = get(&["habit", "list", "--no-scope", "--format", "json"]);
+    assert_eq!(full["habits"], serde_json::json!([by_id(&habits, &habit)]));
+    assert!(full["habit"].is_null(), "the task itself is no habit");
+
+    // Comments carry what they read as; the rest is `samu comments`.
+    let mut comments = full["comments"].clone();
+    let formats: Vec<String> = comments
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .map(|c| {
+            let format = c.as_object_mut().unwrap().remove("format").unwrap();
+            format.as_str().unwrap().to_string()
+        })
+        .collect();
+    assert_eq!(comments, get(&["comments", &task, "--format", "json"]));
+    assert_eq!(comments.as_array().unwrap().len(), 2);
+    let read_as = |text: &str| {
+        stdout(&server.samu(&["render"], Some(text)))
+            .trim()
+            .to_string()
+    };
+    assert_eq!(
+        formats,
+        [read_as("Erster *Stand*"), read_as("* Zweiter\n** mit Org")]
+    );
+    assert_eq!(formats, ["markdown", "org"]);
+    assert_eq!(full["note_format"], read_as("* Stand\nnoch offen"));
+
+    let attachments = get(&["attachments", &task, "--format", "json"]);
+    assert_eq!(attachments.as_array().unwrap().len(), 2);
+    assert_eq!(full["attachments"], attachments);
+    let reminders = get(&["reminders", &task, "--format", "json"]);
+    assert_eq!(reminders.as_array().unwrap().len(), 1, "not the child's");
+    assert_eq!(full["reminders"], reminders);
+    let props = get(&["prop", &task, "--format", "json"]);
+    assert_eq!(props.as_array().unwrap().len(), 2, "{props:#}");
+    assert_eq!(full["props"], props);
+    assert!(
+        props
+            .to_string()
+            .contains("https://jira.example.org/HAUS-12"),
+        "{props:#}"
+    );
+    assert_eq!(full["log"], get(&["log", &task, "--format", "json"]));
+    // The logbook of a closed task, which has a row all the same.
+    let of_closed = get(&["show", &closed, "--full", "--log", "--format", "json"]);
+    let log = get(&["log", &closed, "--format", "json"]);
+    assert!(log.to_string().contains("kam per Post"), "{log:#}");
+    assert_eq!(of_closed[0]["log"], log);
+    assert_eq!(of_closed[0]["row"]["id"], closed.as_str());
+
+    // Without --log no logbook; a habit shows as `samu habit show`.
+    let of_habit = get(&["show", &habit, "--full", "--format", "json"]);
+    assert!(of_habit[0]["log"].is_null());
+    assert!(of_habit[0]["note_format"].is_null(), "no note, no format");
+    assert_eq!(
+        of_habit[0]["habit"],
+        get(&["habit", "show", &habit, "--days", "1", "--format", "json"])[0]
+    );
+    assert_eq!(of_habit[0]["below"], serde_json::json!([]));
+
+    // A project: no row, its open tasks below, its own properties.
+    let of_project = get(&["show", &project, "--full", "--format", "json"]);
+    let of_project = &of_project[0];
+    assert_eq!(of_project["shown"]["kind"], "project");
+    assert!(of_project["row"].is_null());
+    let mut ids: Vec<&str> = of_project["below"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["id"].as_str().unwrap())
+        .collect();
+    ids.sort_unstable();
+    let mut expected = [
+        task.as_str(),
+        child.as_str(),
+        grandchild.as_str(),
+        habit.as_str(),
+    ];
+    expected.sort_unstable();
+    assert_eq!(ids, expected);
+    assert_eq!(
+        of_project["props"],
+        get(&["prop", &project, "--format", "json"])
+    );
+
+    // Plain is readable JSON of the same record.
+    let plain: serde_json::Value =
+        serde_json::from_str(&stdout(&server.samu(&["show", &task, "--full"], None))).unwrap();
+    assert_eq!(plain["shown"]["id"], task.as_str());
+
+    let unknown = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b00";
+    assert_eq!(code(&server.samu(&["show", unknown, "--full"], None)), 3);
+    assert_eq!(
+        code(&server.samu(&["show", &first, "--full"], None)),
+        1,
+        "a comment has no such view"
+    );
+    assert_eq!(code(&server.samu(&["show", &task, "--log"], None)), 2);
 }
 
 #[test]

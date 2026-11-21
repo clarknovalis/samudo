@@ -123,7 +123,12 @@ fn author_value(author: Option<&Author>) -> Value {
 /// `samu comments <id>`: oldest first, with their attachments counted.
 pub(crate) fn comments(client: &Client, format: Format, owner: &str) -> Result<()> {
     let owner = resolve(client, owner)?;
-    let objects = objects(client)?;
+    let records = comment_records(&objects(client)?, owner);
+    emit(format, &records, &["short", "created", "author", "body"])
+}
+
+/// The comments of `owner` among `objects`, as `samu comments` shows them.
+pub(crate) fn comment_records(objects: &[AnyObject], owner: Id) -> Vec<Value> {
     let mut found: Vec<&Comment> = objects
         .iter()
         .filter_map(|o| match o {
@@ -132,7 +137,7 @@ pub(crate) fn comments(client: &Client, format: Format, owner: &str) -> Result<(
         })
         .collect();
     found.sort_by_key(|c| (c.created, c.id));
-    let records: Vec<Value> = found
+    found
         .iter()
         .map(|c| {
             let attachments = objects
@@ -150,8 +155,7 @@ pub(crate) fn comments(client: &Client, format: Format, owner: &str) -> Result<(
                 "attachments": attachments,
             })
         })
-        .collect();
-    emit(format, &records, &["short", "created", "author", "body"])
+        .collect()
 }
 
 /// A media type from a file name, for the common kinds of attachment.
@@ -264,7 +268,17 @@ pub(crate) fn attach(client: &Client, format: Format, attach: &Attach) -> Result
 /// `samu attachments <id>`: those of the object and of its comments.
 pub(crate) fn attachments(client: &Client, format: Format, owner: &str) -> Result<()> {
     let owner = resolve(client, owner)?;
-    let objects = objects(client)?;
+    let records = attachment_records(&objects(client)?, owner);
+    emit(
+        format,
+        &records,
+        &["short", "on", "name", "media_type", "size", "blob"],
+    )
+}
+
+/// The files of `owner` and of its comments among `objects`, as
+/// `samu attachments` shows them.
+pub(crate) fn attachment_records(objects: &[AnyObject], owner: Id) -> Vec<Value> {
     let comments: Vec<Id> = objects
         .iter()
         .filter_map(|o| match o {
@@ -280,7 +294,7 @@ pub(crate) fn attachments(client: &Client, format: Format, owner: &str) -> Resul
         })
         .collect();
     found.sort_by_key(|a| (a.created, a.id));
-    let records: Vec<Value> = found
+    found
         .iter()
         .map(|a| {
             json!({
@@ -297,12 +311,7 @@ pub(crate) fn attachments(client: &Client, format: Format, owner: &str) -> Resul
                 "created_by": author_value(a.created_by.as_ref()),
             })
         })
-        .collect();
-    emit(
-        format,
-        &records,
-        &["short", "on", "name", "media_type", "size", "blob"],
-    )
+        .collect()
 }
 
 /// `samu blob get`.

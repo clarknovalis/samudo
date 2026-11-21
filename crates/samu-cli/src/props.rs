@@ -98,19 +98,30 @@ fn rows_of(client: &Client, id: Id) -> Result<Vec<Row>> {
             .call("GET", &format!("/objects/{id}"), None)?
             .json()?,
     )?;
+    let statuses: Vec<TaskStatus> = if matches!(object, AnyObject::Task(_)) {
+        serde_json::from_value(client.call("GET", "/available?all=true", None)?.json()?)?
+    } else {
+        Vec::new()
+    };
+    rows(&object, &statuses)
+}
+
+/// The rows of a task or project; `statuses` hold what a task inherits.
+fn rows(object: &AnyObject, statuses: &[TaskStatus]) -> Result<Vec<Row>> {
     let (own, inherited): (BTreeMap<String, String>, BTreeMap<String, Inherited>) = match object {
-        AnyObject::Project(p) => (p.properties, BTreeMap::new()),
+        AnyObject::Project(p) => (p.properties.clone(), BTreeMap::new()),
         AnyObject::Task(t) => {
-            let statuses: Vec<TaskStatus> =
-                serde_json::from_value(client.call("GET", "/available?all=true", None)?.json()?)?;
             let inherited = statuses
-                .into_iter()
-                .find(|s| s.task.id == id)
-                .map(|s| s.inherited)
+                .iter()
+                .find(|s| s.task.id == t.id)
+                .map(|s| s.inherited.clone())
                 .unwrap_or_default();
-            (t.properties, inherited)
+            (t.properties.clone(), inherited)
         }
-        _ => bail!("{id} is neither a task nor a project"),
+        other => bail!(
+            "{} is neither a task nor a project",
+            other.id().map(|id| id.to_string()).unwrap_or_default()
+        ),
     };
     let mut rows: Vec<Row> = own
         .into_iter()
@@ -135,9 +146,22 @@ fn rows_of(client: &Client, id: Id) -> Result<Vec<Row>> {
 pub(crate) fn show(config: &Config, format: Format, id: &str) -> Result<()> {
     let client = signed_in(config)?;
     let id = resolve(&client, id)?;
-    let templates = templates(&client)?;
-    let records: Vec<Value> = rows_of(&client, id)?
-        .into_iter()
+    let records = records(rows_of(&client, id)?, &templates(&client)?);
+    emit(format, &records, &["key", "value", "from", "link"])
+}
+
+/// The properties of `object` as `samu prop` shows them, from what the
+/// caller already holds.
+pub(crate) fn records_of(
+    object: &AnyObject,
+    statuses: &[TaskStatus],
+    templates: &BTreeMap<String, String>,
+) -> Result<Vec<Value>> {
+    Ok(records(rows(object, statuses)?, templates))
+}
+
+fn records(rows: Vec<Row>, templates: &BTreeMap<String, String>) -> Vec<Value> {
+    rows.into_iter()
         .map(|row| {
             let link = link_for(&row.value, templates.get(&row.key).map(String::as_str));
             json!({
@@ -147,8 +171,7 @@ pub(crate) fn show(config: &Config, format: Format, id: &str) -> Result<()> {
                 "link": link,
             })
         })
-        .collect();
-    emit(format, &records, &["key", "value", "from", "link"])
+        .collect()
 }
 
 /// What opening a value runs: this device's command for the key, else

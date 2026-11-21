@@ -102,11 +102,9 @@ pub(crate) fn run(config: &Config, format: Format, command: HabitCommand) -> Res
         HabitCommand::Show { id, days } => {
             let id = resolve(&client, &id)?;
             let habit = fetch(&client, id, Some(days))?;
-            let mut r = record(&habit);
-            r["marks"] = json!(marks(&habit));
             emit(
                 format,
-                &[r],
+                &[shown(&habit)],
                 &[
                     "short", "today", "progress", "streak", "longest", "recent", "marks", "title",
                 ],
@@ -219,7 +217,7 @@ pub(crate) fn run(config: &Config, format: Format, command: HabitCommand) -> Res
 }
 
 /// `GET /habits/{id}`, with the history and entries of the last `days`.
-fn fetch(client: &Client, id: Id, days: Option<u32>) -> Result<HabitStatus> {
+pub(crate) fn fetch(client: &Client, id: Id, days: Option<u32>) -> Result<HabitStatus> {
     let mut path = format!("/habits/{id}");
     if let Some(days) = days {
         // The server's history starts where it was asked, so count back
@@ -332,7 +330,7 @@ fn progress(h: &HabitStatus) -> String {
     format!("{}/{}{unit} {per}", h.period.amount, h.period.target)
 }
 
-fn record(h: &HabitStatus) -> Value {
+pub(crate) fn record(h: &HabitStatus) -> Value {
     json!({
         "id": h.task.id,
         "short": short(&h.task.id),
@@ -346,6 +344,13 @@ fn record(h: &HabitStatus) -> Value {
         "last_fail": h.last_fail.map(|d| d.to_string()),
         "status": h,
     })
+}
+
+/// A habit as `samu habit show` shows it: with its history as marks.
+pub(crate) fn shown(h: &HabitStatus) -> Value {
+    let mut r = record(h);
+    r["marks"] = json!(marks(h));
+    r
 }
 
 /// The history as one mark per day, oldest first: `#` done, `+` partial,

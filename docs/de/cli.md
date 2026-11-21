@@ -143,6 +143,10 @@ samu projects --stuck          # aktiv, ohne verfügbare Aufgabe
 samu projects --review         # Review fällig
 samu forecast                  # überfällig, heute, markiert, nächste Tage, später
 samu show 4f2a91c3             # ein Objekt, alle Felder
+samu show 4f2a91c3 --full      # Aufgabe oder Projekt mit allem, was ihre
+                               # Ansicht zeigt: Zeile, Aufgaben darunter,
+                               # Kommentare, Dateien, Erinnerungen, Properties,
+                               # Habit; --log nimmt das Logbuch dazu
 samu log 4f2a91c3              # sein Logbuch
 samu logbook --since 1h --kind deleted,moved   # das des Kontos
 samu prop 4f2a91c3             # seine Properties, auch geerbte
