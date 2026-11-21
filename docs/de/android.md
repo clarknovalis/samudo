@@ -149,6 +149,16 @@ und Name) und öffnet sie.
 - **Die Aufgabenseite** ist bearbeitbar: Titel, Notiz, Start-, Fälligkeits-
   und Plandatum, Schätzung, Tags und Zustand als Chips, die Projektzeile
   verschiebt die Aufgabe, dazu Wiederholung und Erinnerungen.
+- **Checkliste:** auf der Aufgabenseite unter der Notiz, „CHECKLISTE“ mit
+  `erledigt/alle`. Der Haken hakt einen Punkt ab, ein Tipp auf den Text
+  bearbeitet ihn; ↑ und ↓ verschieben ihn, ✕ löscht ihn, „In Unteraufgabe
+  umwandeln“ macht eine Aufgabe daraus. Das Feld „Punkt hinzufügen …“ und
+  „+“ fügen am Ende an; mehrere dort eingefügte Zeilen werden mehrere
+  Punkte (siehe [Konzepte](concepts.md#checklisten)). „Alle in
+  Unteraufgaben“ und „Alle Unteraufgaben in Punkte“ wandeln die ganze Liste
+  um; was kein Punkt werden kann, bleibt und wird genannt. An einer
+  Unteraufgabe tut der Knopf „In Checkpunkt umwandeln“ das für sie allein.
+  Eine Zeile zeigt `☑ 2/5`. Es geht offline.
 - **Kommentare und Anhänge** unten: Text, ein **Foto** aus der Kamera-App,
   eine **Aufnahme** („● Aufnehmen“, fragt beim ersten Mal nach dem
   Mikrofon) oder eine beliebige **Datei**. Mit Text wird daraus ein

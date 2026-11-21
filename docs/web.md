@@ -128,6 +128,19 @@ it away.
 `]` (or ⤢, or a double click on its row) shows the task across the middle
 and right columns, the text in readable width.
 
+**Checklist:** below the note, titled "Checklist" with `done/all`
+once there are items. Each item is a line with a check box and a field;
+Enter in a field makes the next item below it, Backspace in an empty one
+deletes it and goes back, Alt+↑ / Alt+↓ or dragging the grip moves it,
+and pasting several lines splits them into items (see
+[Concepts](concepts.md#checklists)). "↳" turns an item into a subtask, ✕
+deletes it. The field "Add item …" at the end keeps the cursor for the
+next one. "↳ All into subtasks" turns the whole list into subtasks, and
+"↴ All subtasks into items" does the reverse for the plain subtasks; a
+subtask that cannot become an item stays and is named. On a subtask's own inspector, "Turn into a checklist item" does it for
+that one. A row in
+the list shows `☑ 2/5`. A scope's layout can fold the checklist away.
+
 Comments are rendered like the note and show their author, marked "Agent"
 when an agent wrote them. You can edit and delete what a session of your
 kind wrote. Below them a field takes text and files: paste, drop, choose,

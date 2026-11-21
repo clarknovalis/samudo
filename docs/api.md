@@ -75,6 +75,10 @@ is one of:
 itself and may send the same change twice. Changes to states and
 completion may carry a `note` for the logbook.
 
+The items of a task's checklist are objects of the kind `checklist_item`
+(`owner`, `text`, `checked`, `position`), written with the same changes;
+deleting a task deletes its items in the same change (ADR 0141).
+
 `hlc` is a hybrid logical clock stamp, `{"wall": <ms>, "counter": n,
 "device": "laptop"}`. The server decides **per field**: the later stamp
 wins. A stamp more than an hour ahead of the server's clock is taken as an

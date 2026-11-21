@@ -121,6 +121,38 @@ Import, ein Hook, ein älterer Client), kann eine Gruppe weiterhin allein
 schließen; `ist:versteckt` findet die offenen Aufgaben, die so versteckt
 liegen.
 
+## Checklisten
+
+Eine Einkaufs- oder Packliste besteht aus kurzen Zeilen zum Abhaken, und
+zwölf Lebensmittel sollen keine zwölf Aufgaben sein. Eine Aufgabe kann
+darum eine **Checkliste** tragen: Punkte mit Text und Haken, in einer
+Reihenfolge, die man bestimmt. Ein Punkt ist keine Aufgabe. Er hat keine
+Daten, keine Tags und keinen eigenen Ort, ist weder verfügbar noch nicht
+verfügbar und erscheint in keiner Liste und keiner Perspektive; er lebt in
+seiner Aufgabe und verschwindet mit ihr, wenn sie gelöscht wird. Haken
+zwei Geräte verschiedene Punkte ab, oder haken das eine ab, während das
+andere umbenennt, gewinnen beide. Checkboxen in einer Notiz bleiben, was
+sie waren: Text.
+
+- **Schnell tippen ist der Punkt.** Enter macht den nächsten Punkt,
+  Rücktaste in einem leeren entfernt ihn, und eine eingefügte Liste zerfällt
+  in Punkte: was eine Liste in Org, Markdown oder einer Notiz-App vor eine
+  Zeile setzt (`- `, `* `, `+ `, `1. `, `1) `, eine Checkbox), fällt weg,
+  `[x]` hakt den Punkt ab, leere Zeilen werden übersprungen und Einrückung
+  wird ignoriert. Es gibt eine Ebene.
+- **Fortschritt** steht neben der Aufgabe als `☑ 2/5`, aus den Punkten
+  gezählt.
+- **Punkte zu Unteraufgaben und zurück.** Ein Punkt kann eine Unteraufgabe
+  werden (ans Ende ihrer Geschwister, erledigt, wenn er abgehakt war), wenn
+  sich zeigt, dass er eine eigene Arbeit ist. Eine schlichte Unteraufgabe
+  kann ein Punkt werden. „Schlicht“ heißt: keine Kinder, keine Gewohnheit,
+  keine Wiederholung, nicht verworfen und nichts, was ein Punkt nicht
+  behalten kann: Notiz, Daten, Tags, Schätzung, Markierung, Priorität oder
+  Properties. Alles andere wird mit dem Grund abgelehnt, damit nichts
+  stillschweigend verloren geht. Dasselbe geht für die ganze Liste auf
+  einmal; Unteraufgaben, die etwas tragen, das ein Punkt nicht behalten
+  kann, bleiben und werden genannt.
+
 ## Abläufe und Zustände
 
 Ein Tag kann *exklusiv* sein: Dann ist er ein **Ablauf**, und seine Kinder

@@ -111,6 +111,33 @@ the task instead. What comes from outside (an import, a hook, an older
 client) can still close a group on its own; `is:hidden` finds the open
 tasks that lie hidden that way.
 
+## Checklists
+
+A shopping or packing list is a run of short lines to tick off, and twelve
+groceries should not be twelve tasks. A task can therefore carry a
+**checklist**: items with a text and a tick, in an order you set. An item
+is not a task. It has no dates, no tags and no place of its own, it is
+neither available nor unavailable, and it does not appear in lists or
+perspectives; it lives inside its task and goes with it when the task is
+deleted. Two devices ticking different items, or one ticking while the
+other renames, both win. Checkboxes in a note stay what they were: text.
+
+- **Typing is the point.** Enter makes the next item, Backspace on an
+  empty one removes it, and a pasted list falls apart into items: what an
+  Org, Markdown or note-app list puts in front of a line (`- `, `* `,
+  `+ `, `1. `, `1) `, a checkbox) is dropped, `[x]` ticks the item, blank
+  lines are skipped and indentation is ignored. There is one level.
+- **Progress** is shown beside the task as `☑ 2/5`, counted from the
+  items.
+- **Turning items into subtasks and back.** An item can become a subtask
+  (at the end of its siblings, completed if it was ticked) when it turns
+  out to be a job of its own. A plain subtask can become an item. "Plain"
+  means no children, no habit, no repetition, not dropped, and nothing an
+  item cannot keep: note, dates, tags, estimate, flag, priority or
+  properties. Anything else is refused with the reason, so nothing is
+  lost silently. The same works for the whole list at once; subtasks that
+  carry something an item cannot keep stay, and are named.
+
 ## Workflows and states
 
 A tag can be *exclusive*: then it is a **workflow** and its children are

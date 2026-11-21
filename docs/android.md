@@ -136,6 +136,15 @@ it.
 - **The task page** is editable: title, note, defer, due and planned dates,
   estimate, tags and state as chips, the project line moves the task, and
   repetition and reminders.
+- **Checklist:** on the task page, below the note, "CHECKLIST" with
+  `done/all`. Tap the check to tick an item, tap its text to edit it;
+  ↑ and ↓ move it, ✕ deletes it, "Turn into a subtask" makes a task of
+  it. The field "Add item …" and "+" add at the end; several lines pasted
+  there become several items (see [Concepts](concepts.md#checklists)).
+  "All into subtasks" and "All subtasks into items" convert the whole
+  list; what cannot become an item stays and is named. On a subtask the
+  button "Turn into a checklist item" does it for that one. A row shows
+  `☑ 2/5`. It works offline.
 - **Comments and attachments** at the bottom: text, a **photo** from the
   camera app, a **recording** ("● Record", asks for the microphone the
   first time) or any **file**. With text it becomes a comment with the

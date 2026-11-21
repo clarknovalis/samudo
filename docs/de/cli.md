@@ -198,6 +198,30 @@ done` fragt so nur nach offenen Aufgaben, die nicht selbst ausgewählt sind.
 `samu delete` auf einem Projekt verschiebt seine Aufgaben in die Inbox;
 `--tasks delete` löscht sie mit, `--tasks <projekt>` verschiebt sie dorthin.
 
+### Checklisten
+
+```sh
+samu checklist add 4f2a91c3 "Milch"         # ein Punkt
+printf -- '- [ ] Brot\n- [x] Butter\n' | samu checklist add 4f2a91c3 -
+samu checklist list 4f2a91c3                # Platz, Marke, Text
+samu checklist check 5b7e01d4               # ein Punkt, nach seiner ID
+samu checklist uncheck 5b7e01d4
+samu checklist edit 5b7e01d4 "Hafermilch"
+samu checklist move 5b7e01d4 1              # an Platz 1
+samu checklist rm 5b7e01d4
+samu checklist to-subtask 5b7e01d4          # der Punkt wird Unteraufgabe
+samu checklist from-subtask 9e01d2aa        # eine schlichte Unteraufgabe wird Punkt
+samu checklist to-subtasks 4f2a91c3         # die ganze Liste
+samu checklist from-subtasks 4f2a91c3       # jede schlichte Unteraufgabe
+```
+
+`add` liest einen Punkt je Zeile, aus dem Argument oder mit `-` von
+stdin; die Marker einer Org- oder Markdown-Liste fallen weg, `[x]` hakt
+den Punkt ab. `from-subtask` lehnt eine Unteraufgabe mit Notiz, Daten,
+Tags und Ähnlichem ab und nennt den Grund; `from-subtasks` wandelt die
+schlichten um und nennt die übrigen auf stderr. `samu show --full` trägt
+die Liste.
+
 ### Viele auf einmal
 
 ```sh

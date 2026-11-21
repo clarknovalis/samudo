@@ -77,6 +77,11 @@ ein Client die ID selbst und darf dieselbe Änderung zweimal senden.
 Änderungen an Zuständen und am Erledigen dürfen eine `note` fürs Logbuch
 tragen.
 
+Die Punkte der Checkliste einer Aufgabe sind Objekte der Art
+`checklist_item` (`owner`, `text`, `checked`, `position`), geschrieben mit
+den gleichen Änderungen; löscht man eine Aufgabe, gehen ihre Punkte in
+derselben Änderung mit (ADR 0141).
+
 `hlc` ist ein Stempel einer hybriden logischen Uhr, `{"wall": <ms>,
 "counter": n, "device": "laptop"}`. Der Server entscheidet **je Feld**: Der
 spätere Stempel gewinnt. Ein Stempel, der der Uhr des Servers mehr als eine

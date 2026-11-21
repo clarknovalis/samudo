@@ -75,3 +75,4 @@ items.
 - 2026-11-21: draft.
 - 2026-11-21: accepted. Built in the core, the CLI, the web UI and the Android app; the Emacs package, the user documentation and the bulk conversion in both directions in the app and the CLI follow.
 - 2026-11-21: converting a whole list in both directions (§5) in the core, the CLI, the web UI and the Android app.
+- 2026-11-21: user documentation (concepts, web UI, Android app, CLI, API; English and German).

@@ -193,6 +193,29 @@ picked too.
 `samu delete` on a project moves its tasks to the inbox; `--tasks delete`
 deletes them along with it, `--tasks <project>` moves them there.
 
+### Checklists
+
+```sh
+samu checklist add 4f2a91c3 "milk"          # one item
+printf -- '- [ ] bread\n- [x] butter\n' | samu checklist add 4f2a91c3 -
+samu checklist list 4f2a91c3                # place, mark, text
+samu checklist check 5b7e01d4               # an item, by its id
+samu checklist uncheck 5b7e01d4
+samu checklist edit 5b7e01d4 "oat milk"
+samu checklist move 5b7e01d4 1              # to place 1
+samu checklist rm 5b7e01d4
+samu checklist to-subtask 5b7e01d4          # the item becomes a subtask
+samu checklist from-subtask 9e01d2aa        # a plain subtask becomes an item
+samu checklist to-subtasks 4f2a91c3         # the whole list
+samu checklist from-subtasks 4f2a91c3       # every plain subtask
+```
+
+`add` reads one item per line, from the argument or from stdin with `-`;
+the markers of an Org or Markdown list are dropped and `[x]` ticks the
+item. `from-subtask` refuses a subtask with a note, dates, tags or the
+like and says why; `from-subtasks` converts the plain ones and names the
+others on stderr. `samu show --full` carries the list.
+
 ### Many at once
 
 ```sh

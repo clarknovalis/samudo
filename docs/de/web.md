@@ -135,6 +135,20 @@ wegklappen.
 `]` (oder ⤢, oder ein Doppelklick auf ihre Zeile) zeigt die Aufgabe über
 die mittlere und rechte Spalte, den Text in lesbarer Breite.
 
+**Checkliste:** unter der Notiz, überschrieben „Checkliste“ mit
+`erledigt/alle`, sobald es Punkte gibt. Jeder Punkt ist eine Zeile mit
+Checkbox und Feld; Enter in einem Feld macht darunter den nächsten Punkt,
+Rücktaste in einem leeren löscht ihn und springt zurück, Alt+↑ / Alt+↓ oder
+Ziehen am Griff verschiebt ihn, und mehrere eingefügte Zeilen zerfallen in
+Punkte (siehe [Konzepte](concepts.md#checklisten)). „↳“ macht aus einem
+Punkt eine Unteraufgabe, ✕ löscht ihn. Das Feld „Punkt hinzufügen …“ am
+Ende behält den Cursor für den nächsten. „↳ Alle in Unteraufgaben“ macht
+die ganze Liste zu Unteraufgaben, „↴ Alle Unteraufgaben in Punkte“ tut das
+Umgekehrte für die schlichten Unteraufgaben; eine, die kein Punkt werden
+kann, bleibt und wird genannt. Am Inspektor einer Unteraufgabe tut
+„In Checkpunkt umwandeln“ das für sie allein. Eine Zeile in der Liste
+zeigt `☑ 2/5`. Das Layout eines Scopes kann die Checkliste wegfalten.
+
 Kommentare werden wie die Notiz gerendert und zeigen ihren Autor, mit
 „Agent“ markiert, wenn ein Agent sie geschrieben hat. Was eine Sitzung
 deiner Art geschrieben hat, kannst du bearbeiten und löschen. Darunter
