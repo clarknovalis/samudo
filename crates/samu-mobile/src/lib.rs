@@ -18,6 +18,7 @@
 mod arrange;
 mod bar;
 mod bulk;
+mod checklist;
 mod clocking;
 mod close;
 mod edit;
@@ -32,6 +33,7 @@ mod views;
 
 pub use arrange::Arrange;
 pub use bar::{BarEntry, BarItem};
+pub use checklist::ChecklistRow;
 pub use clocking::{ClockRow, RunningClock};
 pub use close::{Closed, FieldBack};
 pub use edit::{RepeatEdit, TagOption, TaskEdit};
@@ -232,6 +234,9 @@ pub struct TaskRow {
     pub priority: Option<String>,
     /// The note is not empty (ADR 0053 §5).
     pub has_note: bool,
+    /// Ticked and all items of its checklist (ADR 0141); 0/0 without one.
+    pub checks_done: u32,
+    pub checks_all: u32,
     /// The first line of the note that says something, cut at 60
     /// characters (ADR 0130 §2).
     pub note_line: Option<String>,
@@ -578,7 +583,7 @@ pub struct TaskLayout {
 }
 
 /// The inspector's parts in its order (ADR 0072 §2), as on the wire.
-const INSPECTOR_PARTS: [&str; 19] = [
+const INSPECTOR_PARTS: [&str; 20] = [
     "properties",
     "availability",
     "state",
@@ -592,6 +597,7 @@ const INSPECTOR_PARTS: [&str; 19] = [
     "estimate",
     "tags",
     "note",
+    "checklist",
     "links",
     "reminders",
     "clock",
@@ -3161,6 +3167,7 @@ impl Samu {
             "estimate" => row.estimate.is_some(),
             "tags" => !row.tags.is_empty(),
             "note" => row.has_note,
+            "checklist" => objects.checklist_items.iter().any(|i| i.owner == task_id),
             "links" => objects.links.iter().any(|l| l.owner == task_id),
             "reminders" => objects.reminders.iter().any(|r| r.owner == task_id),
             "clock" => objects.clocks.iter().any(|c| c.owner == task_id),
@@ -4526,6 +4533,7 @@ fn row(
         .project
         .and_then(|p| objects.projects.iter().find(|x| x.id == p));
     let placed = placement(&task.tags, project, &objects.tags);
+    let checks = samu_core::checklist::progress(&objects.checklist_items, task.id);
     TaskRow {
         id: task.id.to_string(),
         title: task.title.clone(),
@@ -4547,6 +4555,8 @@ fn row(
         estimate: task.estimate.as_ref().map(|p| p.0.to_string()),
         priority: task.priority.and_then(priority_text),
         has_note: task.note.as_deref().is_some_and(|n| !n.trim().is_empty()),
+        checks_done: u32::try_from(checks.0).unwrap_or(u32::MAX),
+        checks_all: u32::try_from(checks.1).unwrap_or(u32::MAX),
         note_line: task.note.as_deref().and_then(note_line),
         repeat: task
             .schedule

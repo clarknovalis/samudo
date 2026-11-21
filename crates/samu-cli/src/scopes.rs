@@ -67,8 +67,8 @@ pub(crate) enum ScopeCommand {
         scope: String,
         /// The parts shown, comma separated: properties, availability,
         /// state, project, priority, defer, due, planned, repeat, series,
-        /// estimate, tags, note, links, reminders, clock, comments,
-        /// attachments, logbook.
+        /// estimate, tags, note, checklist, links, reminders, clock,
+        /// comments, attachments, logbook.
         #[arg(long, value_delimiter = ',', conflicts_with = "clear")]
         inspector: Option<Vec<String>>,
         /// How the note shows.
@@ -934,7 +934,7 @@ fn parts_of(names: &[String]) -> Result<Vec<InspectorPart>> {
             bail!(
                 "{name:?} is no part of the inspector: properties, availability, state, \
                  project, priority, defer, due, planned, repeat, series, estimate, tags, note, \
-                 links, reminders, clock, comments, attachments, logbook"
+                 checklist, links, reminders, clock, comments, attachments, logbook"
             );
         }
         if !parts.contains(&part) {

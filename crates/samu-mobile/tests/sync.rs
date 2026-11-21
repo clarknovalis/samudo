@@ -1775,7 +1775,10 @@ fn own_scope_and_the_inspector_layout_of_a_scope() {
         ["project", "due"],
         "folded with a value, named"
     );
-    assert_eq!(page.rest, 13, "series is a part too (ADR 0092 §3)");
+    assert_eq!(
+        page.rest, 14,
+        "series and checklist are parts too (ADR 0092 §3, ADR 0141)"
+    );
     assert!(page.note_rendered && !page.unfolded);
 
     samu.set_inspector_unfolded(true).unwrap();
@@ -5104,4 +5107,103 @@ fn a_voice_note_without_a_service_stays_as_recorded() {
     assert_eq!((file.transcript, file.transcript_error), (None, None));
     assert_eq!(stored(&other, &task)["title"], "Voice note 21.11. 10:00");
     assert!(samu.transcribe(file.id).is_err());
+}
+
+/// A checklist built offline: pasted lists split, ticking and moving go
+/// through the outbox, the count shows in the row, and an item and a
+/// subtask turn into each other (ADR 0141).
+#[test]
+fn a_checklist_is_made_offline_and_reaches_the_server() {
+    let server = Server::start();
+    let other = server.other_client();
+    let project = make_project(&other, "Reise");
+    let task = make_task(&other, "Packen", json!({"project": project}));
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    assert!(samu.checklist_add(task.clone(), "  \n".into()).is_err());
+    let ids = samu
+        .checklist_add(
+            task.clone(),
+            "- [ ] Pass\n* [x] Ladekabel\n3. Sonnenbrille".into(),
+        )
+        .unwrap();
+    assert_eq!(ids.len(), 3);
+    let rows = samu.checklist(task.clone()).unwrap();
+    let texts: Vec<&str> = rows.iter().map(|r| r.text.as_str()).collect();
+    assert_eq!(texts, ["Pass", "Ladekabel", "Sonnenbrille"]);
+    assert_eq!(
+        rows.iter().map(|r| r.checked).collect::<Vec<_>>(),
+        [false, true, false]
+    );
+    assert!(rows.iter().all(|r| r.pending));
+
+    samu.checklist_check(ids[0].clone(), true).unwrap();
+    samu.checklist_edit(ids[2].clone(), " Sonnenbrille! ".into())
+        .unwrap();
+    assert!(samu.checklist_edit(ids[2].clone(), " ".into()).is_err());
+    samu.checklist_move(ids[2].clone(), 0).unwrap();
+    let texts: Vec<String> = samu
+        .checklist(task.clone())
+        .unwrap()
+        .into_iter()
+        .map(|r| r.text)
+        .collect();
+    assert_eq!(texts, ["Sonnenbrille!", "Pass", "Ladekabel"]);
+
+    let row = samu.task(task.clone()).unwrap().row;
+    assert_eq!((row.checks_done, row.checks_all), (2, 3));
+
+    // An item becomes a subtask, ticked as it was; and back.
+    let sub = samu.checklist_to_subtask(ids[1].clone()).unwrap();
+    assert_eq!(samu.checklist(task.clone()).unwrap().len(), 2);
+    let sub_row = samu.task(sub.clone()).unwrap().row;
+    assert_eq!(sub_row.title, "Ladekabel");
+    assert!(sub_row.done);
+    let back = samu.checklist_from_subtask(sub).unwrap();
+    assert_eq!(samu.checklist(task.clone()).unwrap().len(), 3);
+    // The restored item is the last one.
+    assert_eq!(
+        samu.checklist(task.clone()).unwrap().last().unwrap().id,
+        back
+    );
+    assert!(samu.checklist_from_subtask(task.clone()).is_err());
+
+    samu.checklist_remove(ids[0].clone()).unwrap();
+    samu.sync().unwrap();
+    assert!(
+        samu.checklist(task.clone())
+            .unwrap()
+            .iter()
+            .all(|r| !r.pending)
+    );
+
+    // On the server: the right kind, owner, order.
+    let on_server = stored(&other, &ids[2]);
+    assert_eq!(on_server["owner"], task.as_str());
+    assert_eq!(on_server["text"], "Sonnenbrille!");
+    assert_eq!(on_server["position"], 0);
+    assert_eq!(stored(&other, &back)["owner"], task.as_str());
+    let second = phone_again(&server);
+    second.sync().unwrap();
+    let texts: Vec<String> = second
+        .checklist(task)
+        .unwrap()
+        .into_iter()
+        .map(|r| r.text)
+        .collect();
+    assert_eq!(texts, ["Sonnenbrille!", "Ladekabel"]);
+}
+
+/// A second phone of the same account.
+fn phone_again(server: &Server) -> Arc<Samu> {
+    let samu = Samu::open(server.dir.join("phone2").display().to_string()).unwrap();
+    samu.login(
+        server.url.clone(),
+        "privat".into(),
+        PASSWORD.into(),
+        "pixel2".into(),
+    )
+    .unwrap();
+    samu
 }

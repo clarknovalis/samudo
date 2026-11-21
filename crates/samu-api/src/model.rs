@@ -648,6 +648,8 @@ pub enum InspectorPart {
     Estimate,
     Tags,
     Note,
+    /// The items of a checklist (ADR 0141).
+    Checklist,
     Links,
     Reminders,
     Clock,

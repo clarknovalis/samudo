@@ -275,6 +275,7 @@ fn kind_name(kind: ObjectKind) -> Option<&'static str> {
                 "template",
                 "perspective",
                 "habit_entry",
+                "checklist_item",
             ]
             .into_iter()
             .find(|known| *known == name)
@@ -600,6 +601,37 @@ mod tests {
         assert_eq!(o.tasks[0].properties["ort"], "Keller");
         apply(&mut o, &set(1, "properties.ort", Value::Null)).unwrap();
         assert!(o.tasks[0].properties.is_empty());
+    }
+
+    /// ADR 0141: a checklist item is created, set and deleted like any
+    /// object; the phone lays its outbox over the mirror this way.
+    #[test]
+    fn a_checklist_item_is_created_set_and_deleted() {
+        let mut o = world();
+        let item = json!({"id": id(70), "created": "2026-11-08T08:00:00Z",
+            "modified": "2026-11-08T08:00:00Z", "owner": id(1), "text": "Pass", "position": 0});
+        apply(
+            &mut o,
+            &Change::Create {
+                object: id(70),
+                kind: ObjectKind::ChecklistItem,
+                value: item,
+                hlc: hlc(),
+            },
+        )
+        .unwrap();
+        assert_eq!(o.checklist_items.len(), 1);
+        apply(&mut o, &set(70, "checked", json!(true))).unwrap();
+        assert!(o.checklist_items[0].checked);
+        apply(
+            &mut o,
+            &Change::Delete {
+                object: id(70),
+                hlc: hlc(),
+            },
+        )
+        .unwrap();
+        assert!(o.checklist_items.is_empty());
     }
 
     /// ADR 0054 §3: the templates of the settings are written per key.
