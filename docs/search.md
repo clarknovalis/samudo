@@ -7,8 +7,9 @@ English form, and both are understood whatever language the interface
 speaks; this page uses the English ones (see
 [German and English](#german-and-english)).
 
-On the command line, `samu list --search <words>` takes free text only;
-chips go into scopes (`samu scope filter`) and perspectives
+On the command line, `samu list --search <words>` takes free text only
+and refuses a chip (exit 2); in double quotes (`--search '"#bath"'`) a
+chip is searched for as text. Chips go into scopes (`samu scope filter`) and perspectives
 (`samu perspective add`), and `samu list --perspective <name>` shows one.
 
 ## Free text

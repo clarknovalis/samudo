@@ -206,8 +206,10 @@ enum Command {
         /// its project (ADR 0062 §3); a project in the text wins.
         #[arg(long, conflicts_with = "literal", add = ArgValueCompleter::new(complete::task))]
         parent: Option<String>,
+        /// The note; `-` reads it from stdin.
         #[arg(long)]
         note: Option<String>,
+        /// Flagged.
         #[arg(long)]
         flag: bool,
         /// Show what would be made; write nothing.
@@ -512,7 +514,9 @@ enum Command {
         #[arg(long)]
         flagged: bool,
         /// Only tasks with every word in title, note or id; `-word` leaves
-        /// out what has it, "a phrase" in quotes is one word.
+        /// out what has it, "a phrase" in quotes is one word. Words only:
+        /// a chip of the search language (`#project`, `is:flagged`) is
+        /// refused (exit 2) unless it stands in quotes.
         #[arg(long, allow_hyphen_values = true)]
         search: Option<String>,
         /// Through this scope instead of the one chosen here (ADR 0035).
@@ -1197,6 +1201,54 @@ fn narrow(
     Ok(())
 }
 
+/// A word of `samu list --search` that the search language reads as a
+/// chip. `--search` meets words against title, note and id only, so
+/// `#project` or `is:flagged` found nothing and said nothing. Exit code
+/// [`exit::USAGE`].
+#[derive(Debug)]
+struct ChipInSearch(String);
+
+impl std::fmt::Display for ChipInSearch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:?} is a chip of the search language, and --search takes words only: \
+             use --project, --tag, --flagged or --perspective, \
+             or put it in double quotes to search for the text itself",
+            self.0
+        )
+    }
+}
+
+impl std::error::Error for ChipInSearch {}
+
+/// Refuses a search with a chip in it ([`ChipInSearch`]). A word in
+/// quotes is text, and so is `-word`.
+fn words_only(client: &Client, search: &str) -> Result<()> {
+    let snapshot = scopes::snapshot(client)?;
+    for word in samu_core::query::split_marked(search) {
+        if word.quoted {
+            continue;
+        }
+        match samu_core::query::parse_chip(&word.text, &snapshot.core()) {
+            Err(samu_core::query::ParseError::Free(_)) => {}
+            // A chip, or one with a name nothing has: not a word either way.
+            Ok(_) | Err(_) => return Err(ChipInSearch(word.text).into()),
+        }
+    }
+    Ok(())
+}
+
+/// The note of `samu add --note`: the argument, or stdin for `-`.
+fn note_of(text: &str) -> Result<String> {
+    if text != "-" {
+        return Ok(text.to_string());
+    }
+    let mut note = String::new();
+    std::io::stdin().read_to_string(&mut note)?;
+    Ok(note.trim_end_matches(['\r', '\n']).to_string())
+}
+
 /// The sections of a block perspective (ADR 0116 §7): in plain a heading
 /// before each block's rows, in tsv the heading as the first column, in
 /// json and jsonl the sections with their tasks.
@@ -1866,6 +1918,7 @@ fn run(args: Args) -> Result<()> {
             lines: false,
         } => {
             let client = signed_in(&config)?;
+            let note = note.as_deref().map(note_of).transpose()?;
             let project = project.map(|p| resolve_project(&client, &p)).transpose()?;
             let parent = parent.map(|p| resolve(&client, &p)).transpose()?;
             let mut text = title.join(" ");
@@ -1939,6 +1992,7 @@ fn run(args: Args) -> Result<()> {
             ..
         } => {
             let client = signed_in(&config)?;
+            let note = note.as_deref().map(note_of).transpose()?;
             let project = project.map(|p| resolve_project(&client, &p)).transpose()?;
             let id = Id::new();
             let now = jiff::Timestamp::now().to_string();
@@ -2256,6 +2310,9 @@ fn run(args: Args) -> Result<()> {
             columns,
         } => {
             let client = signed_in(&config)?;
+            if let Some(search) = search.as_deref() {
+                words_only(&client, search)?;
+            }
             let mut query = vec![];
             let mut columns = columns.as_deref().map(table::parse).transpose()?;
             let scoped = scopes::query_scope(&client, &config, scope.as_deref(), no_scope)?;
@@ -2691,6 +2748,9 @@ fn exit_code(error: &anyhow::Error) -> u8 {
     }
     // An account the profile in use does not have.
     if error.downcast_ref::<config::AccountMismatch>().is_some() {
+        return exit::USAGE;
+    }
+    if error.downcast_ref::<ChipInSearch>().is_some() {
         return exit::USAGE;
     }
     if error.downcast_ref::<close::NeedsChoice>().is_some() {

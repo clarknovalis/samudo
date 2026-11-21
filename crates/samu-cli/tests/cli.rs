@@ -1213,6 +1213,79 @@ fn add_under_a_task() {
 /// reason in words, and filters by tag (and below), flag and search; a
 /// project may be named by title.
 #[test]
+fn list_search_refuses_a_chip() {
+    let server = signed_in_server();
+    assert_eq!(
+        code(&server.samu(&["project", "add", "Neues Bad"], None)),
+        0
+    );
+    assert_eq!(code(&server.samu(&["tag", "add", "ort"], None)), 0);
+    assert_eq!(
+        code(&server.samu(&["add", "Fliesen aussuchen #neues @ort !"], None)),
+        0
+    );
+    let titles = |args: &[&str]| -> Vec<String> {
+        json_out(&server.samu(&[args, &["--format", "json"]].concat(), None))
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["title"].as_str().unwrap().to_string())
+            .collect()
+    };
+    // The probe that must find something: words do.
+    assert_eq!(
+        titles(&["list", "--search", "fliesen"]),
+        ["Fliesen aussuchen"]
+    );
+    // A chip is no word: refused, where it used to find nothing in silence.
+    for chip in [
+        "#neues",
+        "is:flagged",
+        "@ort",
+        "#nirgends",
+        "fliesen ist:markiert",
+    ] {
+        let refused = server.samu(&["list", "--search", chip], None);
+        assert_eq!(code(&refused), 2, "{chip}");
+        assert!(stdout(&refused).is_empty(), "{chip}");
+        let said = String::from_utf8_lossy(&refused.stderr).to_string();
+        assert!(said.contains("--search takes words only"), "{chip}: {said}");
+    }
+    // In quotes it is text again, and finds what has it.
+    assert!(titles(&["list", "--search", "\"#neues\""]).is_empty());
+    assert_eq!(
+        code(&server.samu(&["add", "--literal", "Antwort auf #neues schreiben"], None)),
+        0
+    );
+    assert_eq!(
+        titles(&["list", "--search", "\"#neues\""]),
+        ["Antwort auf #neues schreiben"]
+    );
+}
+
+#[test]
+fn add_reads_the_note_from_stdin() {
+    let server = signed_in_server();
+    // `--note -` reads the note from stdin, as `samu comment <id> -` does.
+    for (title, more) in [
+        ("Notiz gelesen", &[][..]),
+        ("Notiz wörtlich", &["--literal"][..]),
+    ] {
+        let args = [&["add", title, "--note", "-", "--format", "json"], more].concat();
+        let made = json_out(&server.samu(&args, Some("aus der Pipe\nzweite Zeile\n")));
+        let id = made[0]["id"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{made}"))
+            .to_string();
+        let shown = json_out(&server.samu(&["show", &id, "--format", "json"], None));
+        assert_eq!(
+            shown[0]["object"]["note"], "aus der Pipe\nzweite Zeile",
+            "{title}"
+        );
+    }
+}
+
+#[test]
 fn list_shows_more_and_filters() {
     let server = signed_in_server();
     let id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6b79";

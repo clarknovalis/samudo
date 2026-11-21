@@ -115,6 +115,7 @@ samu add "Call the tiler #Bathroom @phone d:fri ~15m"
 samu add "Buy milk" --dry-run          # show, write nothing
 samu add --literal "#hashtag in a title"  # the text as the title, word for word
 samu add "Sub-step" --parent 4f2a91c3
+samu add "Read the log" --note - < log.txt   # the note from stdin
 samu add "Draft /weekly"               # with a template
 samu add --lines - < list.txt          # a task per line, indented ones below
 ```

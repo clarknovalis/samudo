@@ -7,8 +7,9 @@ eine deutsche und eine englische Form, und beide werden verstanden, gleich
 welche Sprache die Oberfläche spricht (siehe
 [Deutsch und Englisch](#deutsch-und-englisch)).
 
-Auf der Kommandozeile nimmt `samu list --search <wörter>` nur freien Text;
-Chips gehören in Scopes (`samu scope filter`) und Perspektiven
+Auf der Kommandozeile nimmt `samu list --search <wörter>` nur freien Text
+und lehnt einen Chip ab (Exit 2); in doppelten Anführungszeichen
+(`--search '"#bad"'`) wird er als Text gesucht. Chips gehören in Scopes (`samu scope filter`) und Perspektiven
 (`samu perspective add`), und `samu list --perspective <name>` zeigt eine.
 
 ## Freier Text

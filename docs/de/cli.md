@@ -117,6 +117,7 @@ samu add "Fliesenleger anrufen #Bad @telefon d:fr ~15m"
 samu add "Milch kaufen" --dry-run         # zeigen, nichts schreiben
 samu add --literal "#hashtag im Titel"    # der Text als Titel, wörtlich
 samu add "Teilschritt" --parent 4f2a91c3
+samu add "Log lesen" --note - < log.txt   # die Notiz von stdin
 samu add "Entwurf /woche"                 # mit einer Vorlage
 samu add --lines - < liste.txt            # eine Aufgabe je Zeile, eingerückte darunter
 ```
