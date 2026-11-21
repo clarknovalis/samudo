@@ -538,14 +538,13 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
 
 (ert-deftest samu-test-task-buffer-shows-fields-note-and-children ()
   (samu-test--with-cli
-      `((("show") 0 "[{\"id\":\"x\",\"kind\":\"task\",\"title\":\"Milch\",\"object\":{\"id\":\"x\",\"title\":\"Milch\",\"note\":\"eine Notiz\",\"priority\":\"A\",\"due\":{\"date\":\"2026-11-12\"}}}]" "")
-        (("list" "--all") 0 "[{\"id\":\"x\",\"title\":\"Milch\",\"project\":\"Haushalt\",\"state\":\"Aufgabe\",\"available\":true,\"tags\":\"@agenda\",\"status\":{\"task\":{\"id\":\"x\"}}}]" "")
-        (("list" "--no-scope") 0 "[{\"id\":\"k\",\"title\":\"Kind\",\"available\":true,\"status\":{\"task\":{\"id\":\"k\",\"parent\":\"x\"}}}]" "")
-        (("render") 0 "markdown\n" "")
-        (("comments") 0 "[{\"author\":\"test\",\"created\":\"2026-11-12T08:30:00Z\",\"body\":\"Hallo\"}]" ""))
+      `((("show") 0 "[{\"shown\":{\"id\":\"x\",\"kind\":\"task\",\"title\":\"Milch\",\"object\":{\"id\":\"x\",\"title\":\"Milch\",\"note\":\"eine Notiz\",\"priority\":\"A\",\"due\":{\"date\":\"2026-11-12\"}}},\"note_format\":\"markdown\",\"row\":{\"id\":\"x\",\"title\":\"Milch\",\"project\":\"Haushalt\",\"state\":\"Aufgabe\",\"available\":true,\"tags\":\"@agenda\",\"status\":{\"task\":{\"id\":\"x\"}}},\"below\":[{\"id\":\"k\",\"title\":\"Kind\",\"available\":true,\"status\":{\"task\":{\"id\":\"k\",\"parent\":\"x\"}}}],\"habits\":[],\"habit\":null,\"reminders\":[],\"props\":[],\"comments\":[{\"author\":\"test\",\"created\":\"2026-11-12T08:30:00Z\",\"body\":\"Hallo\",\"format\":\"markdown\"}],\"attachments\":[],\"log\":null}]" ""))
     (with-current-buffer (samu-show "x")
       (unwind-protect
           (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+            ;; one call fills it, and what the texts read as came with it
+            (should (equal (mapcar #'car samu-test--calls)
+                           '(("show" "x" "--full" "--format" "json"))))
             (should (string-match-p "\\`Milch\n" text))
             (should (string-match-p "^Where +#Haushalt$" text))
             (should (string-match-p "^State +Aufgabe$" text))
@@ -658,9 +657,8 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
 (defconst samu-test--script
   "sleep 0.2
 case \"$1\" in
-  show) echo '[{\"kind\":\"task\",\"title\":\"Milch\",\"object\":{\"id\":\"t1\",\"title\":\"Milch\",\"note\":\"eine Notiz\"}}]' ;;
+  show) echo '[{\"shown\":{\"kind\":\"task\",\"title\":\"Milch\",\"object\":{\"id\":\"t1\",\"title\":\"Milch\",\"note\":\"eine Notiz\"}},\"note_format\":\"markdown\",\"row\":{\"id\":\"t1\",\"title\":\"Milch\",\"available\":true,\"project\":\"\",\"status\":{\"task\":{\"id\":\"t1\",\"title\":\"Milch\"}}},\"below\":[],\"comments\":[{\"author\":\"wer\",\"created\":\"2026-11-01T10:00:00Z\",\"body\":\"ein Kommentar\",\"format\":\"markdown\"}]}]' ;;
   list) echo '[{\"id\":\"t1\",\"short\":\"t1\",\"title\":\"Milch\",\"available\":true,\"project\":\"\",\"status\":{\"task\":{\"id\":\"t1\",\"title\":\"Milch\"}}}]' ;;
-  comments) echo '[{\"author\":\"wer\",\"created\":\"2026-11-01T10:00:00Z\",\"body\":\"ein Kommentar\"}]' ;;
   render) cat >/dev/null; echo markdown ;;
   *) echo '[]' ;;
 esac
@@ -766,11 +764,10 @@ SCRIPT is what it does after noting \"+ ARGS\"; it notes \"- ARGS\" at its end."
               (should (string-match-p "ein Kommentar" text))
               (should-not (string-match-p "Loading" text)))
             (should (equal (buffer-name) "*samu: Milch*"))
-            ;; each call once, and those of a round side by side
-            (should (= (samu-test--started "show") 1))
-            (should (= (samu-test--started "comments") 1))
-            (should (= (samu-test--started "render") 2))
-            (should (> (samu-test--most-at-once) 3))
+            ;; one call for all of it
+            (should (equal (samu-test--log-lines)
+                           '("+ show t1 --full --format json"
+                             "- show t1 --full --format json")))
             ;; drawing asked nothing more
             (should (zerop samu--running)))
         (kill-buffer buffer)))))
@@ -1124,18 +1121,21 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
 
 (ert-deftest samu-test-task-buffer-of-a-habit-shows-its-streak ()
   (samu-test--with-cli
-      `((("show") 0 "[{\"id\":\"d\",\"kind\":\"task\",\"title\":\"Dehnen\",\"object\":{\"id\":\"d\",\"title\":\"Dehnen\",\"habit\":{\"kind\":\"build\",\"times\":1,\"per\":\"day\"}}}]" "")
-        (("habit" "show") 0
-         ,(samu-test--json (list (samu-test--habit "d" "Dehnen" '((kind . "build") (times . 1) (per . "day"))
-                                                   :day "done" :met t :streak 4 :longest 7)))
+      `((("show") 0
+         ,(samu-test--json
+           `(((shown . ((id . "d") (kind . "task") (title . "Dehnen")
+                        (object . ((id . "d") (title . "Dehnen")
+                                   (habit . ((kind . "build") (times . 1) (per . "day")))))))
+              (habit . ,(samu-test--habit "d" "Dehnen" '((kind . "build") (times . 1) (per . "day"))
+                                          :day "done" :met t :streak 4 :longest 7)))))
          ""))
     (let ((samu-habit-streak-mark "*"))
       (cl-letf (((symbol-function 'samu--live-ensure) #'ignore))
         (with-current-buffer (samu-show "d")
           (unwind-protect
               (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-                (should (equal (car (samu-test--called '("habit")))
-                               '("habit" "show" "d" "--days" "1" "--format" "json")))
+                (should (equal (mapcar #'car samu-test--calls)
+                               '(("show" "d" "--full" "--format" "json"))))
                 (should (string-match-p "^Goal +daily$" text))
                 (should (string-match-p "^Today +✓ \\*4$" text))
                 (should (string-match-p "^Streak +4, longest 7$" text)))

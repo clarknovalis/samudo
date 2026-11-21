@@ -172,4 +172,5 @@ behält, was er zeigt, bis die Antworten da sind; solange steht ` …` in der
 Mode-Line, und ein neuer Puffer zeigt `Loading …`. Ein Puffer in keinem
 Fenster wird gar nicht aufgefrischt: er füllt sich, sobald man zu ihm
 zurückwechselt. Nur eine Taste, die etwas ändert, wartet auf ihren einen
-Aufruf, damit ihr Fehler sofort zu sehen ist.
+Aufruf, damit ihr Fehler sofort zu sehen ist. Der Puffer einer Aufgabe
+füllt sich aus einem einzigen Aufruf, `samu show --full`.

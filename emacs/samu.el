@@ -2115,12 +2115,6 @@ On an entry in a habit's buffer, that entry."
                                  (samu--habit-rate (samu--get record 'year))))
     (samu--field "Relapse" (samu--get record 'last_fail))))
 
-(defun samu--fetch-habit-facts (id)
-  "The record of `samu habit show' for the task buffer of ID, or nil."
-  (condition-case nil
-      (car (samu--call (list "habit" "show" id "--days" "1") nil t))
-    (samu-error nil)))
-
 (defun samu--insert-habit-fields (record)
   "Insert the habit part of a task's buffer, from RECORD of `samu habit show'."
   (when record
@@ -2244,6 +2238,11 @@ Asked once for each text: what a text reads as does not change."
             (puthash note format samu--note-formats)
           "markdown"))))
 
+(defun samu--note-format-is (note format)
+  "Remember that NOTE reads as FORMAT, as the CLI said with the note."
+  (when (member format '("org" "markdown"))
+    (puthash note format samu--note-formats)))
+
 (defun samu--note-mode (format)
   "The major mode for a note in FORMAT."
   (if (equal format "org")
@@ -2303,32 +2302,35 @@ Asked once for each text: what a text reads as does not change."
 
 (defun samu--fetch-task ()
   "What the buffer of a task or project shows, from the CLI, as a plist.
-Also asks for what drawing looks up: the format of the note and of
-each comment, and the tags the logbook names."
+One call, `samu show --full', gives all of it, and with it what the note
+and each comment read as.  Also asks for what drawing looks up: the tags
+the logbook names."
   (let* ((id samu--task-id)
-         (shown (or (car (samu--call (list "show" id) nil t))
-                    (user-error "Not found: %s" id)))
-         (kind (samu--get shown 'kind))
-         (object (samu--get shown 'object))
-         (note (samu--text (samu--get object 'note)))
-         (below (samu--descendants id kind (samu--open-tasks)))
-         (comments (samu--call (list "comments" id) nil t)))
-    (unless (string-blank-p note) (samu--note-format note))
-    (dolist (c comments) (samu--note-format (samu--text (samu--get c 'body))))
+         (full (or (car (samu--call (append (list "show" id "--full")
+                                            (and samu--show-logbook '("--log")))
+                                    nil t))
+                   (user-error "Not found: %s" id)))
+         (shown (samu--get full 'shown))
+         (comments (samu--get full 'comments))
+         (habits (samu--get full 'habits)))
+    (samu--note-format-is (samu--text (samu--get shown 'object 'note))
+                          (samu--get full 'note_format))
+    (dolist (c comments)
+      (samu--note-format-is (samu--text (samu--get c 'body)) (samu--get c 'format)))
     (when samu--show-logbook (samu--tags))
     (list :shown shown
-          :row (and (equal kind "task")
-                    (cl-find id (samu--call (list "list" "--all" "--no-scope" "--search" id))
-                             :key (lambda (r) (samu--get r 'id)) :test #'equal))
-          :below below
-          :habits (samu--habit-statuses below '("--no-scope"))
-          :habit (and (equal kind "task") (samu--get object 'habit)
-                      (samu--fetch-habit-facts id))
-          :reminders (samu--call (list "reminders" id) nil t)
-          :props (samu--call (list "prop" id) nil t)
+          :row (samu--get full 'row)
+          :below (samu--descendants id (samu--get shown 'kind) (samu--get full 'below))
+          :habits (and habits
+                       (let ((table (make-hash-table :test #'equal)))
+                         (dolist (record habits table)
+                           (puthash (samu--get record 'id) record table))))
+          :habit (samu--get full 'habit)
+          :reminders (samu--get full 'reminders)
+          :props (samu--get full 'props)
           :comments comments
-          :files (samu--call (list "attachments" id) nil t)
-          :log (and samu--show-logbook (samu--call (list "log" id) nil t)))))
+          :files (samu--get full 'attachments)
+          :log (samu--get full 'log))))
 
 (defun samu--insert-task (data)
   "Fill the buffer of a task or project from DATA of `samu--fetch-task'."

@@ -165,4 +165,5 @@ background, several calls side by side, and the buffer keeps what it shows
 until the answers are there; the mode line shows ` …` meanwhile, and a new
 buffer says `Loading …`. A buffer in no window is not refreshed at all: it
 fills when you switch back to it. Only a key that changes something waits,
-for its one call, so that its error shows at once.
+for its one call, so that its error shows at once. A task's buffer fills
+from a single call, `samu show --full`.
