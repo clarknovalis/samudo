@@ -224,6 +224,9 @@ fun AccountSection(tick: Int, back: () -> Unit) {
                             scope.launch {
                                 withContext(Dispatchers.IO) { runCatching { Store.remove(context, line.slot) } }
                                 reload++
+                                // The main screen counts the accounts too: the line
+                                // under its title goes with the last other one.
+                                redrawApp()
                             }
                             Unit
                         }
