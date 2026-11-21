@@ -6,10 +6,10 @@
 //! their own, made and listed over the ordinary routes. When they go off is
 //! computed by samu-core on the phone; this lists what is set.
 
+use crate::client::Client;
 use anyhow::{Result, bail};
 use clap::{Args, ValueEnum};
 use samu_api::{AnyObject, Change, ChangesPage, Id, ObjectKind, Reminder, ReminderAnchor};
-use samu_client::Client;
 use serde_json::{Value, json};
 
 /// What a reminder is relative to, on the command line.

@@ -10,9 +10,9 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::client::Client;
 use anyhow::{Context, Result, bail};
 use samu_api::{EXPORT_BLOBS, Export};
-use samu_client::Client;
 use sha2::{Digest, Sha256};
 
 use crate::export_org;

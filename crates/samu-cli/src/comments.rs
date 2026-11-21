@@ -10,13 +10,13 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use crate::client::Client;
 use anyhow::{Context, Result, bail};
 use clap::{Args, Subcommand};
 use samu_api::{
     AnyObject, Attachment, Author, AuthorKind, Blob, Change, ChangesPage, Comment, Id, ObjectKind,
     TranscriptState,
 };
-use samu_client::Client;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 

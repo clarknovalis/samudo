@@ -5,6 +5,7 @@
 //! `samu project …` and `samu folder …`: make and rename them (ADR 0036
 //! §7). Deleting goes through `samu delete`, which the server composes.
 
+use crate::client::Client;
 use anyhow::{Result, bail};
 use clap::{Subcommand, ValueEnum};
 use clap_complete::engine::ArgValueCompleter;
@@ -12,7 +13,7 @@ use samu_api::{
     AnyObject, Change, ChangesPage, Folder, Id, ObjectKind, Project, Tag, ToProjectRequest,
     ToProjectResponse,
 };
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 use serde_json::{Value, json};
 
 use crate::config::Config;

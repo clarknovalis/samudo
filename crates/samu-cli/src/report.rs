@@ -5,12 +5,12 @@
 //! `samu report` (ADR 0080 §6): what was done, what was worked on and the
 //! time, as `GET /report` computes it. TSV is the way into a spreadsheet.
 
+use crate::client::Client;
 use anyhow::{Result, anyhow, bail};
 use clap::{Args, ValueEnum};
 use jiff::ToSpan;
 use jiff::civil::Date;
 use samu_api::{Report, ReportList, ReportReason, SessionInfo};
-use samu_client::Client;
 use serde_json::{Value, json};
 
 use crate::clock::{By, by_name, length, report_records, titles};

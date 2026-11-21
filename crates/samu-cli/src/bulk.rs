@@ -354,7 +354,7 @@ pub(crate) fn run(config: &Config, format: Format, command: BulkCommand) -> Resu
 /// `POST /objects/{id}/close` (ADR 0128): with open tasks below any of
 /// them and no `children`, nothing at all is written.
 fn close_all(
-    client: &samu_client::Client,
+    client: &crate::client::Client,
     format: Format,
     snapshot: &Snapshot,
     picked: &[&Task],
@@ -486,7 +486,7 @@ fn find_task<'a>(snapshot: &'a Snapshot, reference: &str) -> Result<&'a Task> {
     }
 }
 
-fn target_project(client: &samu_client::Client, to: &str) -> Result<Option<Id>> {
+fn target_project(client: &crate::client::Client, to: &str) -> Result<Option<Id>> {
     if to.eq_ignore_ascii_case("inbox") {
         Ok(None)
     } else {

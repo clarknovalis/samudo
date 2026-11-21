@@ -13,10 +13,11 @@ use anyhow::{Context, Result, anyhow, bail};
 use samu_api::{AnyObject, Change, ChangesPage, Id, Inherited, TaskStatus};
 use serde_json::{Value, json};
 
+use crate::client::Client;
 use crate::config::Config;
 use crate::output::{Format, emit};
 use crate::{forecast, placeholder, resolve, short, signed_in, write};
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 
 /// The scheme the web hands a click to (ADR 0054 §6).
 pub(crate) const SCHEME: &str = "samu-open";

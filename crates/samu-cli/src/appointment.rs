@@ -8,6 +8,7 @@
 //! server (or the replica) turns it into changes, a repetition included.
 //! The server writes them back to the calendar at once.
 
+use crate::client::Client;
 use anyhow::{Result, anyhow, bail};
 use clap::{Subcommand, ValueEnum};
 use jiff::civil::{Date, DateTime};
@@ -16,7 +17,7 @@ use samu_api::{
     AnyObject, Appointment, AppointmentEdit, AppointmentEditResponse, AppointmentPatch,
     AppointmentStatus, Change, ChangeOutcome, ChangesPage, EditRange, Id, ObjectKind, When,
 };
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 use serde_json::{Value, json};
 
 use crate::config::Config;

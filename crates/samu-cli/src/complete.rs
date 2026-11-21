@@ -19,8 +19,8 @@ use std::time::Duration;
 use clap_complete::engine::CompletionCandidate;
 use samu_api::{AnyObject, ChangesPage, ProjectStatus, TagStatus};
 
+use crate::client::Client;
 use crate::config::Config;
-use samu_client::Client;
 
 /// What the candidates are drawn from.
 #[derive(Debug, Default)]

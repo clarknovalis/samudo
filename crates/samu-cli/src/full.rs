@@ -17,9 +17,10 @@ use samu_api::{
 };
 use serde_json::{Value, json};
 
+use crate::client::Client;
 use crate::output::{Format, emit};
 use crate::{Names, checklist, comments, habits, object_record, props, remind, status_record};
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 
 /// The open tasks below a task, or in a project, in the order of `statuses`.
 fn below<'a>(object: &AnyObject, statuses: &'a [TaskStatus]) -> Vec<&'a TaskStatus> {

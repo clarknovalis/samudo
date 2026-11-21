@@ -10,10 +10,11 @@
 
 use std::collections::{HashMap, HashSet};
 
+use crate::client::Client;
 use anyhow::Result;
 use anyhow::bail;
 use samu_api::{AnyObject, Change, ChangesPage, Id, Link, LinkKind, ObjectKind, Task};
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 use serde_json::{Value, json};
 
 use crate::output::{Format, emit};

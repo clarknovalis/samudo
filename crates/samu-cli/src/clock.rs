@@ -7,13 +7,14 @@
 //! and that a clock stops with its task, the server sees to; the report is
 //! `GET /clocks/report`, computed by samu-core.
 
+use crate::client::Client;
 use anyhow::{Result, bail};
 use clap::{Subcommand, ValueEnum};
 use samu_api::{
     AnyObject, CaptureResponse, Change, ChangesPage, Clock, ClockReport, ClockReportBy, Id,
     ObjectKind,
 };
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 use serde_json::{Value, json};
 
 use crate::config::Config;

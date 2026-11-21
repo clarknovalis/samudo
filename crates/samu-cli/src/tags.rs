@@ -14,10 +14,11 @@ use clap_complete::engine::ArgValueCompleter;
 use samu_api::{AnyObject, Change, ChangesPage, Id, ObjectKind, Project, Tag, TagStatus, Task};
 use serde_json::{Value, json};
 
+use crate::client::Client;
 use crate::config::Config;
 use crate::output::{Format, emit};
 use crate::{placeholder, short, signed_in, write};
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum TagCommand {

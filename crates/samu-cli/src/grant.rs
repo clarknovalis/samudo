@@ -5,9 +5,10 @@
 //! `samu login --only`: the folders and projects a restricted session may
 //! reach (ADR 0095 §8), named as in `samu folder list` and `samu projects`.
 
+use crate::client::Client;
 use anyhow::{Result, bail};
 use samu_api::{AnyObject, ChangesPage, Folder, Id, Project};
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 
 use crate::short;
 

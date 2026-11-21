@@ -10,6 +10,7 @@
 //! server of one already there with `POST /calendars/{id}/discover`
 //! (ADR 0100 §1).
 
+use crate::client::Client;
 use anyhow::{Result, bail};
 use clap::{Subcommand, ValueEnum};
 use samu_api::{
@@ -17,7 +18,7 @@ use samu_api::{
     CalendarKind, CalendarSource, Change, ChangesPage, DeleteRequest, DiscoveredCalendar, Id,
     ObjectKind, When,
 };
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 use serde_json::{Value, json};
 
 use crate::config::Config;

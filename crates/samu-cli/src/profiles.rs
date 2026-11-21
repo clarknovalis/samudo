@@ -4,9 +4,9 @@
 
 //! `samu profile`: the accounts of this computer (ADR 0086 §5).
 
+use crate::client::Client;
 use anyhow::Result;
 use clap::Subcommand;
-use samu_client::Client;
 use serde_json::json;
 
 use crate::config::Config;

@@ -5698,3 +5698,107 @@ fn a_checklist_is_typed_ticked_moved_and_converted() {
     assert_eq!(comments.as_array().unwrap().len(), 1, "{comments}");
     assert_eq!(list(&server).as_array().unwrap().len(), 3);
 }
+
+/// Stands before a server and counts the requests for the whole account
+/// that pass. Every request of `samu` is a connection of its own.
+struct Counting {
+    url: String,
+    whole: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+
+impl Counting {
+    fn before(server: &Server) -> Self {
+        use std::io::Read;
+        use std::net::{Shutdown, TcpListener, TcpStream};
+        use std::sync::atomic::Ordering;
+
+        let upstream = server.url.trim_start_matches("http://").to_string();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let whole = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counted = whole.clone();
+        // Ends with the test process; nothing waits for it.
+        std::thread::spawn(move || {
+            for client in listener.incoming() {
+                let Ok(mut client) = client else { continue };
+                let Ok(mut server) = TcpStream::connect(&upstream) else {
+                    continue;
+                };
+                // The request line arrives with the first bytes.
+                let mut first = [0_u8; 512];
+                let Ok(read) = client.read(&mut first) else {
+                    continue;
+                };
+                if first[..read].starts_with(b"GET /changes?after=0 ") {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                }
+                if server.write_all(&first[..read]).is_err() {
+                    continue;
+                }
+                let (Ok(mut from_client), Ok(mut to_server)) =
+                    (client.try_clone(), server.try_clone())
+                else {
+                    continue;
+                };
+                std::thread::spawn(move || {
+                    let _ = std::io::copy(&mut from_client, &mut to_server);
+                    let _ = to_server.shutdown(Shutdown::Write);
+                });
+                let _ = std::io::copy(&mut server, &mut client);
+                let _ = client.shutdown(Shutdown::Both);
+            }
+        });
+        Self { url, whole }
+    }
+
+    /// Runs `samu` through here and says how often it fetched the account.
+    fn fetches(&self, server: &Server, args: &[&str]) -> (Output, usize) {
+        use std::sync::atomic::Ordering;
+        let before = self.whole.load(Ordering::SeqCst);
+        let output = run_samu(&self.url, &server.dir, args, None);
+        (output, self.whole.load(Ordering::SeqCst) - before)
+    }
+}
+
+/// A short id is resolved from the whole account, and most commands read
+/// it again: one run fetches it once, and again only after it wrote.
+#[test]
+fn a_command_fetches_the_account_once() {
+    let server = signed_in_server();
+    let task = json_out(&server.samu(&["add", "Hobeln", "--format", "json"], None))[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let short = &task[task.len() - 8..];
+    assert_eq!(
+        code(&server.samu(&["comment", &task, "Erster Span"], None)),
+        0
+    );
+    let counting = Counting::before(&server);
+
+    // The probe that must find something: by its full id, `show` needs
+    // one object and no account; by a short one it needs the account.
+    let (shown, fetched) = counting.fetches(&server, &["show", &task, "--format", "json"]);
+    assert_eq!(code(&shown), 0);
+    assert_eq!(fetched, 0);
+    let (shown, fetched) = counting.fetches(&server, &["show", short, "--format", "json"]);
+    assert_eq!(json_out(&shown)[0]["id"], task.as_str());
+    assert_eq!(fetched, 1);
+
+    for command in ["comments", "reminders", "attachments"] {
+        let (output, fetched) = counting.fetches(&server, &[command, short, "--format", "json"]);
+        assert_eq!(code(&output), 0, "{command}");
+        assert_eq!(fetched, 1, "{command}");
+    }
+    let (comments, _) = counting.fetches(&server, &["comments", short, "--format", "json"]);
+    assert_eq!(json_out(&comments)[0]["body"], "Erster Span");
+
+    // What a run wrote, the next one sees: nothing is kept between runs.
+    assert_eq!(
+        code(&server.samu(&["comment", short, "Zweiter Span"], None)),
+        0
+    );
+    let (comments, fetched) = counting.fetches(&server, &["comments", short, "--format", "json"]);
+    assert_eq!(json_out(&comments).as_array().unwrap().len(), 2);
+    assert_eq!(fetched, 1);
+}

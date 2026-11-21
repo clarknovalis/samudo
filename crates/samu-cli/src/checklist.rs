@@ -8,13 +8,13 @@
 
 use std::io::Read;
 
+use crate::client::Client;
 use anyhow::{Result, bail};
 use clap::Subcommand;
 use samu_api::{
     AnyObject, Attachment, Change, ChangesPage, ChecklistItem, Clock, Comment, Id, Link, Reminder,
     Task,
 };
-use samu_client::Client;
 use samu_core::checklist;
 use serde_json::{Value, json};
 

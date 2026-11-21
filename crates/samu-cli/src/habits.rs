@@ -16,10 +16,10 @@ use samu_api::{
 };
 use serde_json::{Value, json};
 
+use crate::client::Client;
 use crate::config::Config;
 use crate::output::{Format, emit};
 use crate::{placeholder, print_capture, resolve, scopes, set_field, short, signed_in, write};
-use samu_client::Client;
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HabitCommand {

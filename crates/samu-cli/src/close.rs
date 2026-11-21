@@ -9,10 +9,10 @@
 use std::collections::HashSet;
 use std::fmt;
 
+use crate::client::Client;
 use anyhow::Result;
 use clap::ValueEnum;
 use samu_api::{ChildFate, CloseField, CloseRequest, CloseResponse, Id, Task};
-use samu_client::Client;
 
 use crate::short;
 

@@ -14,6 +14,7 @@ mod blockers;
 mod bulk;
 mod calendar;
 mod checklist;
+mod client;
 mod clock;
 mod close;
 mod comments;
@@ -55,9 +56,10 @@ use samu_api::{
 };
 use serde_json::{Value, json};
 
+use crate::client::Client;
 use crate::config::Config;
 use crate::output::{Format, emit};
-use samu_client::{Client, Error as Failure};
+use samu_client::Error as Failure;
 
 /// The exit codes (ADR 0019 §7).
 pub mod exit {

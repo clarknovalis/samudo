@@ -174,7 +174,7 @@ pub(crate) enum SettingsCommand {
 }
 
 pub(crate) fn settings_of(
-    client: &samu_client::Client,
+    client: &crate::client::Client,
 ) -> Result<(AccountSettings, Vec<samu_api::Tag>)> {
     let page: ChangesPage =
         serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
