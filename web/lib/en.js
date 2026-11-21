@@ -884,6 +884,8 @@ export const EN = {
   "Punkt hinzufügen …": "Add an item …",
   "Ziehen zum Verschieben (Alt+↑/↓)": "Drag to move (Alt+↑/↓)",
   "In Unteraufgabe umwandeln": "Turn into a subtask",
+  "Alle in Unteraufgaben umwandeln": "Turn all into subtasks",
+  "↳ Alle in Unteraufgaben": "↳ All into subtasks",
   "In Checkpunkt umwandeln": "Turn into a checklist item",
   "Balken": "Bars",
   "ohne Ordner": "no folder",

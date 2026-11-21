@@ -9,7 +9,7 @@
 
 import { api, change } from "./api.js";
 import { $, el, uuidv7 } from "./dom.js";
-import { fromSubtask, itemsOf, lines, progress, toSubtask } from "./checklist.js";
+import { allToSubtasks, fromSubtask, itemsOf, lines, progress, toSubtask } from "./checklist.js";
 import { state, update } from "./state.js";
 import { tr } from "./i18n.js";
 
@@ -66,7 +66,7 @@ function placing(order) {
 }
 
 // New items after `at` (an item id, or null for the end), from text.
-async function insertAfter(task, at, texts) {
+async function insertAfter(task, at, texts, then = null) {
   const list = itemsOf(state.checklist, task);
   const index = at ? list.findIndex((i) => i.id === at) + 1 : list.length;
   const fresh = texts.map((l) => {
@@ -74,7 +74,9 @@ async function insertAfter(task, at, texts) {
     return { id: value.id, isNew: true, value };
   });
   const order = [...list.slice(0, index), ...fresh, ...list.slice(index)];
-  if (await write(placing(order))) focus(fresh.at(-1).id);
+  // `then`: where the cursor goes instead of the last new item, as an id of
+  // `cl-…`; the adder keeps it to type the next one.
+  if (await write(placing(order))) focus(then ?? fresh.at(-1).id);
 }
 
 async function move(task, id, to) {
@@ -204,7 +206,7 @@ export function checklistBody(task) {
       if (event.key === "Enter" && !event.isComposing && text) {
         event.preventDefault();
         event.target.value = "";
-        insertAfter(task, null, lines(text)).then(() => $(`cl-add-${task}`)?.focus());
+        insertAfter(task, null, lines(text), `add-${task}`);
       }
     },
     onpaste: (event) => {
@@ -212,12 +214,21 @@ export function checklistBody(task) {
       const got = lines(pasted);
       if (!/\r?\n/.test(pasted.trim()) || got.length < 2) return;
       event.preventDefault();
-      insertAfter(task, null, got);
+      insertAfter(task, null, got, `add-${task}`);
     },
   });
   return el("div", { class: "checklist" }, [
     list.length ? el("ul", { class: "cl-items" }, list.map((item) => itemRow(task, item, list))) : null,
     adder,
+    list.length > 1
+      ? el("button", {
+          type: "button",
+          class: "cl-all",
+          title: tr("Alle in Unteraufgaben umwandeln"),
+          text: tr("↳ Alle in Unteraufgaben"),
+          onclick: () => write(allToSubtasks({ tasks: state.tasks, items: state.checklist, task, now: now(), hlc, newId: uuidv7 })),
+        })
+      : null,
   ]);
 }
 

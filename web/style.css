@@ -512,6 +512,9 @@ button.danger { background: var(--overdue-bg); border-color: var(--overdue); col
 
 #detail h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 #detail textarea { width: 100%; }
+/* The parts of the inspector set off from one another: a faint tint and a
+   stroke on the left, quiet enough to read as one page. */
+#detail section:has(> h4) { padding: 8px 10px 10px; background: var(--bg); border: 1px solid var(--rowline); border-left: 3px solid var(--border); border-radius: 6px; }
 .states .buttons, .actions, .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .states { display: grid; gap: 6px; }
 .states button { padding: 3px 10px; font-size: 13px; }
@@ -1396,3 +1399,5 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 .cl-add { width: 100%; box-sizing: border-box; }
 .cl-tool { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 4px; }
 .cl-tool:hover { color: var(--fg); }
+.cl-all { margin-top: 6px; background: none; border: 0; padding: 0; font-size: 12px; color: var(--muted); cursor: pointer; }
+.cl-all:hover { color: var(--fg); }

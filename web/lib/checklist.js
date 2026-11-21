@@ -93,6 +93,19 @@ export function toSubtask({ tasks, items, item, id, now, hlc }) {
   ];
 }
 
+// All items of `task` as subtasks, in their order: each is placed after the
+// ones made before it, which `toSubtask` alone would not see.
+export function allToSubtasks({ tasks, items, task, now, hlc, newId }) {
+  const known = [...tasks];
+  const changes = [];
+  for (const it of itemsOf(items, task)) {
+    const made = toSubtask({ tasks: known, items, item: it.id, id: newId(), now, hlc });
+    known.push(made[0].value);
+    changes.push(...made);
+  }
+  return changes;
+}
+
 // The changes that make the plain subtask `task` an item `id` of its
 // parent, last, ticked when completed; the subtask goes. Throws an Error
 // with the reason when it is no plain subtask.

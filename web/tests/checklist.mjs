@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 
 const root = new URL("../../", import.meta.url);
-const { lines, itemsOf, progress, toSubtask, fromSubtask, carries } = await import(
+const { lines, itemsOf, progress, toSubtask, fromSubtask, carries, allToSubtasks } = await import(
   new URL("web/lib/checklist.js", root)
 );
 
@@ -60,6 +60,13 @@ assert.deepEqual(
 assert.deepEqual([to[1].op, to[1].object], ["delete", "b"]);
 assert.equal(toSubtask({ tasks, items, item: "a", id: "x", now, hlc })[0].value.completed_at, undefined);
 assert.throws(() => toSubtask({ tasks, items, item: "zz", id: "x", now, hlc }));
+
+// All items at once: in order, each after the one before it.
+let ids = 0;
+const all = allToSubtasks({ tasks, items, task: "T", now, hlc, newId: () => `n${++ids}` });
+assert.deepEqual(all.filter((c) => c.op === "create").map((c) => [c.value.title, c.value.position]), [["ia", 5], ["ib", 6]]);
+assert.deepEqual(all.filter((c) => c.op === "delete").map((c) => c.object), ["a", "b"]);
+assert.deepEqual(allToSubtasks({ tasks, items, task: "none", now, hlc, newId: () => "x" }), []);
 
 // A plain subtask becomes the last item and goes.
 const from = fromSubtask({ tasks, items, task: "s1", id: "it", now, hlc });
