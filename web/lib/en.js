@@ -1091,4 +1091,10 @@ export const EN = {
   "1 Projekt nutzt diesen Ablauf.": "1 project uses this workflow.",
   "{n} Projekte nutzen diesen Ablauf.": "{n} projects use this workflow.",
   "Beim Wechsel in diesen Zustand nach einer Notiz fragen": "Ask for a note on entering this state",
+  "Transkript läuft …": "Transcribing …",
+  "Kein Transkript:": "No transcript:",
+  "Erneut versuchen": "Try again",
+  "Nichts gesprochen.": "Nothing was said.",
+  "Transkribieren": "Transcribe",
+  "Neu transkribieren": "Transcribe again",
 };

@@ -18,6 +18,7 @@ import { info } from "./message.js";
 import { state, update } from "./state.js";
 import { stamp } from "./words.js";
 import { tr } from "./i18n.js";
+import { transcriptParts } from "./transcript.js";
 
 // The largest file the server keeps (ADR 0039 §4).
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -104,6 +105,30 @@ function deleteButton(object) {
   });
 }
 
+function transcriptView(a) {
+  const parts = transcriptParts(a, Boolean(state.session?.transcribe));
+  if (!parts) return null;
+  return el("div", { class: "transcript" }, [
+    parts.text ? el("p", { text: parts.text }) : null,
+    parts.note ? el("span", { class: "quiet", text: parts.note }) : null,
+    parts.ask
+      ? el("button", {
+          type: "button",
+          class: "link",
+          text: parts.ask,
+          onclick: async () => {
+            try {
+              await api.transcribe(a.id);
+              update({ message: null });
+            } catch (error) {
+              update({ message: error.message });
+            }
+          },
+        })
+      : null,
+  ]);
+}
+
 // A picture as a preview, sound and film with a player, anything else as
 // a download. The cookie gets <img> and <audio> through (ADR 0039 §4).
 function attachmentView(a) {
@@ -119,6 +144,7 @@ function attachmentView(a) {
   }
   return el("li", { class: "attachment" }, [
     view,
+    transcriptView(a),
     el("div", { class: "line" }, [
       el("a", { href: url, download: a.name, text: a.name }),
       el("span", { class: "quiet", text: sizeText(a.size) }),

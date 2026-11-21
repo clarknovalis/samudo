@@ -69,6 +69,7 @@ web-check:
 	@command -v node >/dev/null 2>&1 || { echo "web-check: node is missing: apt install nodejs (ADR 0103 §2)" >&2; exit 1; }
 	node web/tests/offers.mjs
 	node web/tests/author.mjs
+	node web/tests/transcript.mjs
 	node web/tests/i18n.mjs
 	node web/tests/table.mjs
 	node web/tests/clicks.mjs

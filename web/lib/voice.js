@@ -5,6 +5,8 @@
 // A voice note into the inbox with one button (ADR 0063 §1–§3): press to
 // record, press again to stop; then a task „Sprachnotiz T.M. HH:MM“ goes
 // in over POST /capture with the recording attached. Esc throws it away.
+// The task is marked as a voice note and its attachment asks for the
+// transcript, which then becomes title and note (ADR 0140 §4).
 
 import { api, change } from "./api.js";
 import { attachmentFor } from "./comments.js";
@@ -88,7 +90,10 @@ async function save(blob, started) {
   try {
     const attachment = await attachmentFor(null, file);
     const answer = await api.capture(voiceTitle(started), null, false, state.scope);
-    await api.write([change.create("attachment", { ...attachment, owner: answer.task.id })]);
+    await api.write([
+      change.set(answer.task.id, "properties.source", "voice"),
+      change.create("attachment", { ...attachment, owner: answer.task.id, transcript_state: "pending" }),
+    ]);
     update({ message: info(tr("„{title}“ angelegt.", { title: answer.task.title })) });
   } catch (error) {
     update({ message: `${tr("Sprachnotiz nicht gespeichert:")} ${error.message}` });

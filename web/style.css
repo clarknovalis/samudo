@@ -534,6 +534,8 @@ button.danger { background: var(--overdue-bg); border-color: var(--overdue); col
 .comment .head .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .comment .body { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .comment .attachments { margin: 6px 0 0; }
+.attachment .transcript { margin: 4px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.attachment .transcript p { margin: 0; white-space: pre-wrap; flex-basis: 100%; }
 /* Notes and comments rendered (ADR 0058) */
 .note-view { position: relative; min-height: 1.6em; padding-right: 26px; }
 .note-view .edit-toggle { position: absolute; top: 0; right: 0; border: 0; background: none; padding: 2px; color: var(--faint); opacity: .55; border-radius: 6px; line-height: 0; }

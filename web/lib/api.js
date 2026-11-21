@@ -202,6 +202,9 @@ export const api = {
     request(`/blobs/${hash}`, { method: "PUT", headers: { "Content-Type": type }, body }),
   // Where <img>, <audio> and a download find a file; the cookie gets
   // them through.
+  // Asks for the transcript of an audio attachment (ADR 0140 §3); the
+  // text comes later, with the changes.
+  transcribe: (id) => post(`/attachments/${encodeURIComponent(id)}/transcribe`, {}),
   blobUrl: (hash) => `/blobs/${encodeURIComponent(hash)}`,
   // Deletes with what hangs on it (ADR 0036); with `preview`, the counts.
   async deleteObject(id, body) {
