@@ -94,6 +94,10 @@ pub enum ChecklistError {
     Dropped,
     #[error("the task has {0}, which a checklist item cannot keep")]
     Carries(&'static str),
+    #[error("the task has no checklist items")]
+    NoItems,
+    #[error("the task has no subtask that a checklist item could take over")]
+    NoPlainSubtasks,
     #[error("the object does not serialize: {0}")]
     Shape(String),
 }
@@ -245,6 +249,92 @@ pub fn from_subtask(
             hlc: placeholder(),
         },
     ])
+}
+
+/// What a bulk conversion of subtasks into items did.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Bulk {
+    /// The batch: for each converted subtask a create and a delete.
+    pub changes: Vec<Change>,
+    /// The subtasks that stay, and why.
+    pub skipped: Vec<(Id, ChecklistError)>,
+}
+
+/// The changes that make every item of `owner` a subtask, in the order of
+/// the list, each after the one before. `id` makes the new ids.
+///
+/// # Errors
+///
+/// When the task has no items, or one does not serialize.
+pub fn all_to_subtasks(
+    tasks: &[Task],
+    items: &[ChecklistItem],
+    owner: Id,
+    now: Timestamp,
+    mut id: impl FnMut() -> Id,
+) -> Result<Vec<Change>, ChecklistError> {
+    let mut mine: Vec<&ChecklistItem> = items.iter().filter(|i| i.owner == owner).collect();
+    if mine.is_empty() {
+        return Err(ChecklistError::NoItems);
+    }
+    mine.sort_by_key(|i| (i.position, i.id));
+    let mut tasks = tasks.to_vec();
+    let mut changes = Vec::new();
+    for item in mine {
+        let made = to_subtask(&tasks, items, item.id, id(), now)?;
+        if let Some(Change::Create { value, .. }) = made.first() {
+            let task: Task = serde_json::from_value(value.clone())
+                .map_err(|e| ChecklistError::Shape(e.to_string()))?;
+            tasks.push(task);
+        }
+        changes.extend(made);
+    }
+    Ok(changes)
+}
+
+/// The changes that make every plain subtask of `owner` an item, in the
+/// order of the subtasks, each after the one before. Those that carry
+/// something an item cannot keep stay and are named in `skipped`.
+///
+/// # Errors
+///
+/// When no subtask can be converted; the error is then the reason of the
+/// first one, or [`ChecklistError::NoPlainSubtasks`] without subtasks.
+pub fn all_from_subtasks(
+    tasks: &[Task],
+    items: &[ChecklistItem],
+    owner: Id,
+    now: Timestamp,
+    mut id: impl FnMut() -> Id,
+) -> Result<Bulk, ChecklistError> {
+    let mut subs: Vec<&Task> = tasks.iter().filter(|t| t.parent == Some(owner)).collect();
+    subs.sort_by_key(|t| (t.position, t.id));
+    let mut items = items.to_vec();
+    let mut bulk = Bulk {
+        changes: Vec::new(),
+        skipped: Vec::new(),
+    };
+    for sub in subs {
+        match from_subtask(tasks, &items, sub.id, id(), now) {
+            Ok(made) => {
+                if let Some(Change::Create { value, .. }) = made.first() {
+                    let item: ChecklistItem = serde_json::from_value(value.clone())
+                        .map_err(|e| ChecklistError::Shape(e.to_string()))?;
+                    items.push(item);
+                }
+                bulk.changes.extend(made);
+            }
+            Err(e) => bulk.skipped.push((sub.id, e)),
+        }
+    }
+    if bulk.changes.is_empty() {
+        return Err(bulk
+            .skipped
+            .into_iter()
+            .next()
+            .map_or(ChecklistError::NoPlainSubtasks, |(_, e)| e));
+    }
+    Ok(bulk)
 }
 
 /// How many of the items are ticked, as `(done, all)`.
@@ -404,6 +494,83 @@ mod tests {
         assert_eq!(
             from_subtask(&[task(1, None, 0), noted], &[], id(5), id(20), now()).unwrap_err(),
             ChecklistError::Carries("a note")
+        );
+    }
+
+    #[test]
+    fn all_items_become_subtasks_in_order() {
+        let tasks = [task(1, None, 0), task(2, Some(1), 5)];
+        let items = [
+            item(10, 1, 1, true),
+            item(11, 1, 0, false),
+            item(12, 9, 0, false),
+        ];
+        let mut n = 30;
+        let changes = all_to_subtasks(&tasks, &items, id(1), now(), || {
+            n += 1;
+            id(n)
+        })
+        .unwrap();
+        let mut created = Vec::new();
+        for c in &changes {
+            if let Change::Create { value, .. } = c {
+                let t: Task = serde_json::from_value(value.clone()).unwrap();
+                created.push((t.title, t.position, t.completed_at.is_some()));
+            }
+        }
+        assert_eq!(changes.len(), 4);
+        assert_eq!(created.len(), 2);
+        assert_eq!(created[0].0, "i11");
+        assert_eq!(created[1].0, "i10");
+        assert!(created[1].2 && !created[0].2);
+        assert!(5 < created[0].1 && created[0].1 < created[1].1);
+        assert_eq!(
+            all_to_subtasks(&tasks, &items, id(2), now(), || id(40)).unwrap_err(),
+            ChecklistError::NoItems
+        );
+    }
+
+    #[test]
+    fn plain_subtasks_become_items_and_the_rest_stays() {
+        let mut flagged = task(3, Some(1), 1);
+        flagged.flagged = true;
+        let tasks = [
+            task(1, None, 0),
+            task(2, Some(1), 0),
+            flagged,
+            task(4, Some(1), 2),
+        ];
+        let items = [item(10, 1, 7, false)];
+        let mut n = 30;
+        let bulk = all_from_subtasks(&tasks, &items, id(1), now(), || {
+            n += 1;
+            id(n)
+        })
+        .unwrap();
+        assert_eq!(bulk.changes.len(), 4);
+        assert_eq!(
+            bulk.skipped,
+            vec![(id(3), ChecklistError::Carries("a flag"))]
+        );
+        let mut positions = Vec::new();
+        for c in &bulk.changes {
+            if let Change::Create { value, .. } = c {
+                let i: ChecklistItem = serde_json::from_value(value.clone()).unwrap();
+                positions.push((i.text, i.position));
+            }
+        }
+        assert_eq!(positions[0].0, "t2");
+        assert_eq!(positions[1].0, "t4");
+        assert!(7 < positions[0].1 && positions[0].1 < positions[1].1);
+        // Nothing plain: the reason of the first one.
+        let only = [task(1, None, 0), tasks[2].clone()];
+        assert_eq!(
+            all_from_subtasks(&only, &[], id(1), now(), || id(40)).unwrap_err(),
+            ChecklistError::Carries("a flag")
+        );
+        assert_eq!(
+            all_from_subtasks(&[task(1, None, 0)], &[], id(1), now(), || id(40)).unwrap_err(),
+            ChecklistError::NoPlainSubtasks
         );
     }
 

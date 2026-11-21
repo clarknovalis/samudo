@@ -5625,6 +5625,27 @@ fn a_checklist_is_typed_ticked_moved_and_converted() {
     );
     assert_eq!(list(&server).as_array().unwrap().len(), 4);
 
+    // The whole list in both directions: the flagged subtask stays.
+    let out = server.samu(&["checklist", "to-subtasks", &task], None);
+    assert_eq!(code(&out), 0);
+    assert_eq!(list(&server).as_array().unwrap().len(), 0);
+    let out = server.samu(&["checklist", "from-subtasks", &task], None);
+    assert_eq!(code(&out), 0);
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("stays a subtask"),
+        "{out:?}"
+    );
+    let items = list(&server);
+    assert_eq!(items.as_array().unwrap().len(), 4);
+    let texts: Vec<&str> = items
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|i| i["text"].as_str().unwrap())
+        .collect();
+    assert!(!texts.contains(&"Wichtig"), "{texts:?}");
+
+    let eier = items[1]["short"].as_str().unwrap().to_owned();
     assert_eq!(code(&server.samu(&["checklist", "rm", &eier], None)), 0);
     assert_eq!(list(&server).as_array().unwrap().len(), 3);
 }

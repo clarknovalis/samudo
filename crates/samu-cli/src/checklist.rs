@@ -46,6 +46,11 @@ pub(crate) enum ChecklistCommand {
     /// Make a plain subtask an item of its parent's list; the subtask
     /// goes. A subtask with a note, dates, tags or the like is refused.
     FromSubtask { task: String },
+    /// Make every item of a task a subtask, in the order of the list.
+    ToSubtasks { task: String },
+    /// Make every plain subtask of a task an item. Those with a note,
+    /// dates, tags or the like stay and are named on stderr.
+    FromSubtasks { task: String },
 }
 
 /// The tasks and items of the account.
@@ -228,6 +233,37 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
                 &[json!({"id": item, "short": short(&item)})],
                 &["short"],
             )
+        }
+        ChecklistCommand::ToSubtasks { task } => {
+            let owner = resolve(&client, &task)?;
+            let all = objects(&client)?;
+            let changes = checklist::all_to_subtasks(
+                &all.tasks,
+                &all.items,
+                owner,
+                jiff::Timestamp::now(),
+                Id::new,
+            )?;
+            write(&client, &changes)?;
+            eprintln!("{} items made subtasks", changes.len() / 2);
+            Ok(())
+        }
+        ChecklistCommand::FromSubtasks { task } => {
+            let owner = resolve(&client, &task)?;
+            let all = objects(&client)?;
+            let bulk = checklist::all_from_subtasks(
+                &all.tasks,
+                &all.items,
+                owner,
+                jiff::Timestamp::now(),
+                Id::new,
+            )?;
+            write(&client, &bulk.changes)?;
+            eprintln!("{} subtasks made items", bulk.changes.len() / 2);
+            for (id, why) in &bulk.skipped {
+                eprintln!("{} stays a subtask: {why}", short(id));
+            }
+            Ok(())
         }
     }
 }
