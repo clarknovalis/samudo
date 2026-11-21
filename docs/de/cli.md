@@ -253,7 +253,16 @@ samu comments 4f2a91c3
 samu attach 4f2a91c3 foto.jpg
 samu attachments 4f2a91c3
 samu blob get <sha256> > datei
+samu attach 4f2a91c3 memo.m4a --transcribe
+samu transcribe 9c1d77e0
 ```
+
+`--transcribe` bittet zusammen mit dem Anhang um das Transkript einer
+Audiodatei; `samu transcribe` für einen Anhang, der schon da ist, über
+dessen ID. Beides braucht einen Server mit
+[Transkript-Dienst](self-hosting.md#transkripte). Der Text entsteht im
+Hintergrund und steht in `samu attachments` (`transcript`,
+`transcript_state`).
 
 Kommentare sind Org oder Markdown; `samu render` zeigt, wie ein Text
 gelesen wird.

@@ -101,6 +101,7 @@ Schreiben mit eigener Logik hat eigene Routen:
 | `POST /objects/{id}/delete` | löschen, mit dem, was daran hängt |
 | `POST /objects/{id}/close` | erledigen oder verwerfen; mit offenen Aufgaben darunter sagt `children` `ask` (nichts schreiben, antworten, wie viele offen sind), `close` oder `lift`; `preview` schreibt nie |
 | `PUT /blobs/{sha256}` | eine Datei hochladen; danach einen Anhang anlegen, der sie nennt |
+| `POST /attachments/{id}/transcribe` | um das Transkript eines Audio-Anhangs bitten; antwortet sofort mit dem Anhang, `transcript_state` `pending`. Der Text kommt mit den Änderungen, in `transcript`; ein Fehlschlag hinterlässt `failed` und `transcript_error`. 503 auf einem Server ohne [Transkript-Dienst](self-hosting.md#transkripte). Ein Anhang, der mit `transcript_state: "pending"` angelegt wird, bittet um dasselbe |
 | `POST /render` | eine Notiz oder ein Kommentar als Dokumentbaum |
 | `PUT /calendars/{id}/source`, `POST /calendars/{id}/refresh`, `POST /calendars/discover` | Kalenderquellen; eine Quelle kann Nutzer und Passwort von einem anderen Kalender auf demselben Host übernehmen (`credentials_from`) |
 | `POST /calendars/{id}/discover` | die übrigen Kalender auf dem Server eines CalDAV-Kalenders, mit dessen gespeichertem Nutzer und Passwort |

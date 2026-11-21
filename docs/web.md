@@ -23,7 +23,10 @@ and the task replaces the list ("‹ List" goes back).
 - **Search** (`/`): free text and chips, see [Search language](search.md).
 - **Voice note** ("● Voice note", `r`): records audio; pressing again
   files an inbox task "Voice note *date time*" with the recording
-  attached; Escape discards.
+  attached; Escape discards. On a server with a
+  [transcript service](self-hosting.md#transcripts) what you said then
+  becomes the title (its first line) and the note, unless you have
+  changed them in the meantime.
 - **Capture** ("+ Capture", `n`): the [quick capture](quick-capture.md)
   window. While you type, the server's preview shows as chips and warnings;
   inside `#…` and `@…` it suggests known projects and tags (↑ ↓, Tab or
@@ -129,6 +132,11 @@ Comments are rendered like the note and show their author, marked "Agent"
 when an agent wrote them. You can edit and delete what a session of your
 kind wrote. Below them a field takes text and files: paste, drop, choose,
 or record audio with "● Record".
+
+Under the player of a recording stands its transcript, once there is one.
+Where the server has a transcript service, "Transcribe" asks for it and
+"Transcribe again" for a new one; while the server is at it the line says
+so, and a failure shows its reason with "Try again".
 
 ### Selecting many
 

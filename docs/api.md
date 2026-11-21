@@ -98,6 +98,7 @@ Writes with logic of their own have their own routes:
 | `POST /objects/{id}/delete` | delete with what hangs on it |
 | `POST /objects/{id}/close` | complete or drop; with open tasks below `children` says `ask` (write nothing, answer how many are open), `close` or `lift`; `preview` never writes |
 | `PUT /blobs/{sha256}` | upload a file; then create an attachment that names it |
+| `POST /attachments/{id}/transcribe` | ask for the transcript of an audio attachment; answers at once with the attachment, `transcript_state` `pending`. The text arrives with the changes, in `transcript`; a failure leaves `failed` and `transcript_error`. 503 on a server without a [transcript service](self-hosting.md#transcripts). An attachment created with `transcript_state: "pending"` asks the same |
 | `POST /render` | a note or comment as a document tree |
 | `PUT /calendars/{id}/source`, `POST /calendars/{id}/refresh`, `POST /calendars/discover` | calendar sources; a source may take user and password from another calendar on the same host (`credentials_from`) |
 | `POST /calendars/{id}/discover` | the other calendars on the server of a CalDAV calendar, with its stored user and password |

@@ -154,7 +154,9 @@ und Name) und öffnet sie.
   Mikrofon) oder eine beliebige **Datei**. Mit Text wird daraus ein
   Kommentar mit den Dateien daran; ohne hängen die Dateien an der Aufgabe.
   Bilder zeigen eine Vorschau, Aufnahmen spielen ab, andere Dateien öffnen
-  in einer anderen App.
+  in einer anderen App. Unter einer Aufnahme steht ihr Transkript; auf
+  einem Server mit [Transkript-Dienst](self-hosting.md#transkripte) bittet
+  „Transkribieren“ darum.
 - **Uhr** („Zeit“): Summe gegen die Schätzung, Start/Stopp und die letzten
   Uhren. Eine laufende Uhr steht als dauerhafte Benachrichtigung mit Zeit
   und „Stopp“ da.
@@ -174,6 +176,34 @@ und Name) und öffnet sie.
   die Notiz, und jede Adresse mit `https://`, `mid:` oder `catastr:` ein
   Link. Ohne Sitzung wartet der geteilte Text, bis man sich anmeldet.
 - **`samu:<id>`-Links** in anderen Apps öffnen die Aufgabe.
+
+## Sprachnotizen
+
+Der runde Knopf „●“ neben „+ Erfassen“ öffnet die Aufnahme, ebenso
+„Sprachnotiz“ nach langem Druck auf das Symbol der App. Sie nimmt vom
+ersten Moment an auf (beim ersten Mal fragt sie nach dem Mikrofon).
+
+- **„■ Stopp und anlegen“** legt eine Aufgabe „Sprachnotiz *Datum
+  Uhrzeit*“ mit der Aufnahme in die Inbox, auch offline. Auf einem Server
+  mit [Transkript-Dienst](self-hosting.md#transkripte) wird das
+  Gesprochene danach zum Titel (die erste Zeile) und zur Notiz, wenn du
+  beides inzwischen nicht geändert hast. Der am Handy gewählte Scope
+  füllt auf, was er neuen Aufgaben mitgibt.
+- **„Aufnahme verwerfen“** behält nichts.
+- **„Weitergeben …“** stoppt und gibt die Aufnahme an eine andere App
+  deiner Wahl, für das, was doch keine Aufgabe ist; samudo behält davon
+  nichts.
+- Wer die Aufnahme verlässt, während sie läuft (Home, Bildschirm aus),
+  legt das Gesagte an; nichts geht verloren.
+- **An samudo geteiltes Audio** aus einer anderen App, etwa einem
+  Diktiergerät, wird genauso eine Sprachnotiz.
+- **Als digitaler Assistent:** unter Einstellungen → Apps → Standard-Apps
+  → Digitale Assistenz-App samudo wählen. Die Taste oder Geste, die den
+  Assistenten ruft (auf den meisten Handys ein langer Druck auf die
+  Seiten- oder Home-Taste), öffnet dann die Aufnahme, auch über dem
+  Sperrbildschirm, wo sonst nichts von der App zu sehen ist. Android
+  vergibt diese Rolle an eine App zur Zeit; sonst tut samudo nichts, was
+  ein Assistent tut.
 
 ## Widgets
 

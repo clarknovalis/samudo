@@ -52,8 +52,9 @@ Android gives the assistant role to one app at a time.
    - The server, not the app, calls the service, so that web, app and
      CLI share one way and no client holds a token for it.
 2. **The transcript is a field of the attachment**, `transcript`
-   (text, absent until there is one). It is shown under the player
-   and found by the search. This is a new version of `samu-api` with a
+   (text, absent until there is one). It is shown under the player.
+   The search does not look into attachments; what a voice note says
+   is found through its title and note (§4). This is a new version of `samu-api` with a
    fixture, and a migration.
 3. **`POST /attachments/{id}/transcribe`** with a session asks for the
    transcript of one audio attachment; CLI
@@ -149,4 +150,6 @@ Android gives the assistant role to one app at a time.
   attachment created with `pending`), §4 the property that marks a
   voice note and "not changed since" instead of "still the
   placeholder", which the server cannot tell in every language. §9
-  names catastr's connector.
+  names catastr's connector. §2 no longer says that the search finds
+  a transcript: the search does not read attachments, and that is not
+  wanted.

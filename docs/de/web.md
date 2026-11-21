@@ -23,7 +23,10 @@ die Aufgabe ersetzt die Liste („‹ Liste“ geht zurück).
 - **Suche** (`/`): freier Text und Chips, siehe [Suchsprache](search.md).
 - **Sprachnotiz** („● Sprachnotiz“, `r`): nimmt Ton auf; nochmal drücken
   legt eine Inbox-Aufgabe „Sprachnotiz *Datum Uhrzeit*“ mit der Aufnahme
-  als Anhang an; Escape verwirft.
+  als Anhang an; Escape verwirft. Auf einem Server mit
+  [Transkript-Dienst](self-hosting.md#transkripte) wird das Gesprochene
+  danach zum Titel (die erste Zeile) und zur Notiz, wenn du beides
+  inzwischen nicht geändert hast.
 - **Erfassen** („+ Erfassen“, `n`): das Fenster der
   [Schnellerfassung](quick-capture.md). Beim Tippen erscheint die Vorschau
   des Servers als Chips und Warnungen; in `#…` und `@…` schlägt es bekannte
@@ -137,6 +140,12 @@ Kommentare werden wie die Notiz gerendert und zeigen ihren Autor, mit
 deiner Art geschrieben hat, kannst du bearbeiten und löschen. Darunter
 nimmt ein Feld Text und Dateien: einfügen, hineinziehen, auswählen oder
 mit „● Aufnehmen“ Ton aufnehmen.
+
+Unter dem Player einer Aufnahme steht ihr Transkript, sobald es eines
+gibt. Hat der Server einen Transkript-Dienst, bittet „Transkribieren“
+darum und „Neu transkribieren“ um ein neues; solange der Server daran
+arbeitet, steht das da, und ein Fehlschlag zeigt seinen Grund mit
+„Erneut versuchen“.
 
 ### Viele auswählen
 

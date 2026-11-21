@@ -94,6 +94,10 @@ direkt erreicht wird: Dann könnte jeder diese Header mitschicken.
 | `--registration` | `SAMU_REGISTRATION` | `off` | wer über HTTP ein Konto anlegen darf: `off`, `demo` oder `open`; siehe [Registrierung](#registrierung) |
 | `--registration-max` | `SAMU_REGISTRATION_MAX` | 100 | registrierte Konten gleichzeitig |
 | `--demo-account-days` | `SAMU_DEMO_ACCOUNT_DAYS` | 7 | Tage nach der letzten Benutzung, nach denen ein registriertes Demo-Konto gelöscht wird |
+| `--transcribe-url` | `SAMU_TRANSCRIBE_URL` | keine | wohin Aufnahmen für ein Transkript geschickt werden; siehe [Transkripte](#transkripte) |
+| `--transcribe-model` | `SAMU_TRANSCRIBE_MODEL` | `whisper-1` | das Modell, nach dem der Dienst gefragt wird |
+| `--transcribe-token-file` | `SAMU_TRANSCRIBE_TOKEN_FILE` | keine | eine Datei mit dem Bearer-Token des Dienstes |
+| `--transcribe-language` | `SAMU_TRANSCRIBE_LANGUAGE` | erkannt | die gesprochene Sprache, etwa `de` |
 
 ## Konten
 
@@ -194,6 +198,36 @@ der Datenbank des Kontos. Der Schlüssel ist `SAMU_SECRET_KEY`, 32 Bytes in
 Base64. Ohne ihn wird kein Kalender abgerufen. Ihn **getrennt** von den
 Datenbanken sichern: Wer beides hat, hat die Quellen; wer den Schlüssel
 verliert, setzt jede Quelle neu (`samu calendar source`).
+
+## Transkripte
+
+Eine Sprachnotiz ist eine Aufgabe mit einer Aufnahme. Mit einem
+Transkript-Dienst macht der Server aus dem Gesprochenen Titel und Notiz
+der Aufgabe und zeigt den Text unter jeder Aufnahme, für die er gefragt
+wird. samudo bringt kein Sprachmodell mit: man zeigt es auf einen Dienst.
+
+- **Ohne `SAMU_TRANSCRIBE_URL` verlässt keine Aufnahme den Server.**
+  Sprachnotizen behalten dann den Titel „Sprachnotiz *Datum Uhrzeit*“.
+  Mit ihr geht jede Aufnahme, die um ein Transkript bittet, an diese
+  Adresse; also einen Dienst wählen, dem man anvertraut, was man sagt.
+- Der Dienst muss das Format von OpenAIs
+  `POST /v1/audio/transcriptions` sprechen: ein Multipart-Formular mit
+  `file`, `model` und wahlweise `language`, beantwortet mit JSON, das
+  `text` enthält. `SAMU_TRANSCRIBE_URL` ist die ganze Adresse dieses
+  Endpunkts.
+- Selbst gehostete Dienste, die das tun:
+  - [speaches](https://github.com/speaches-ai/speaches) bedient diesen
+    Pfad, wie er ist; eines seiner Modelle in `SAMU_TRANSCRIBE_MODEL`
+    nennen.
+  - Der Server von [whisper.cpp](https://github.com/ggml-org/whisper.cpp),
+    gestartet mit `--inference-path /v1/audio/transcriptions --convert`.
+    `--convert` braucht `ffmpeg` daneben: die App nimmt AAC in MPEG-4 auf
+    und die Web-UI Opus in WebM, und whisper.cpp liest von sich aus
+    keines von beiden.
+- Der Server schickt eine Aufnahme nach der anderen und wartet bis zu
+  15 Minuten auf die Antwort; ein kleiner Rechner reicht also. Ein
+  Fehlschlag bleibt mit seinem Grund am Anhang stehen und lässt sich neu
+  anfragen. Was beim Stoppen des Servers wartete, geht beim Start hinaus.
 
 ## Eine öffentliche Instanz
 

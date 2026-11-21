@@ -140,7 +140,10 @@ it.
   camera app, a **recording** ("● Record", asks for the microphone the
   first time) or any **file**. With text it becomes a comment with the
   files on it; without, the files hang on the task. Images preview,
-  recordings play, other files open in another app.
+  recordings play, other files open in another app. Under a recording
+  stands its transcript; on a server with a
+  [transcript service](self-hosting.md#transcripts) "Transcribe" asks
+  for it.
 - **Clock** ("Time"): total against the estimate, start/stop and the last
   clocks. A running clock shows as a permanent notification with the time
   and "Stop".
@@ -160,6 +163,32 @@ it.
   `https://`, `mid:` or `catastr:` address a link. Without a session the
   shared text waits until you sign in.
 - **`samu:<id>` links** in other apps open the task.
+
+## Voice notes
+
+The round button "●" beside "+ Capture" opens the recorder, and so does
+"Voice note" after a long press on the app's icon. It records from the
+first moment (it asks for the microphone the first time).
+
+- **"■ Stop and file"** makes a task "Voice note *date time*" in the
+  inbox with the recording on it, also offline. On a server with a
+  [transcript service](self-hosting.md#transcripts) what you said then
+  becomes the title (its first line) and the note, unless you have
+  changed them in the meantime. The scope chosen on the phone fills in
+  what it gives new tasks.
+- **"Discard"** keeps nothing.
+- **"Hand on …"** stops and gives the recording to another app you pick,
+  for what is not a task after all; samudo keeps nothing of it.
+- Leaving the recorder while it records (home, screen off) files what
+  was said, so nothing is lost.
+- **Audio shared to samudo** from another app, a recorder for example,
+  becomes a voice note the same way.
+- **As the digital assistant:** under Settings → Apps → Default apps →
+  Digital assistant app choose samudo. The key or gesture that calls
+  the assistant (a long press of the side or home key on most phones)
+  then opens the recorder, also over the lock screen, where nothing else
+  of the app shows. Android gives that role to one app at a time; samudo
+  does nothing else an assistant does.
 
 ## Widgets
 
