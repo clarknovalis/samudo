@@ -66,6 +66,7 @@
 
 (declare-function org-link-set-parameters "ol")
 (declare-function org-link-store-props "ol")
+(declare-function org-link-make-string "ol")
 (declare-function org-read-date "org")
 (declare-function evil-set-initial-state "evil-core")
 
@@ -315,7 +316,8 @@ status the task itself.  Waits for the CLI; signals `samu-error'."
 
 (defun samu-forecast-rows ()
   "The rows of the forecast as the server computes it, through the scope.
-Each has section, date, id, title and why; an appointment has no id."
+Each has section, section_kind, date, id, title and why.  An
+appointment of a calendar is among them, with \"termin\" as its why."
   (samu--call (append '("forecast") (samu--scope-args))))
 
 (defun samu-task (id)
@@ -483,12 +485,16 @@ signaled after FAIL."
 (defvar samu--cache nil
   "Projects, tags and templates as the CLI gave them, by kind.")
 
+(defvar samu--agenda nil
+  "The forecast `samu-org-agenda' reads from, as (TIME . ROWS).")
+
 (defvar samu--note-formats (make-hash-table :test #'equal)
   "The format of each note and comment asked for, by its text.")
 
 (defun samu--forget ()
   "Forget what completion offers, so the next use asks again."
-  (setq samu--cache nil)
+  (setq samu--cache nil
+        samu--agenda nil)
   (clrhash samu--note-formats))
 
 (defun samu--cached (kind args)
@@ -797,6 +803,7 @@ where it starts, also when the buffer is filled from elsewhere."
 That is this buffer and those in a window, on any frame.  The others
 are only noted as out of date: `samu--shown' fills them once a window
 shows them."
+  (setq samu--agenda nil)
   (let ((here (current-buffer)))
     (dolist (buffer (samu--live-buffers))
       (with-current-buffer buffer
@@ -2751,6 +2758,77 @@ Without `samu-web-url' or `samu-profile' it stays a `samu:' link."
                            :export #'samu-export-link
                            :store #'samu-store-link
                            :complete #'samu-complete-link))
+
+;;;; In the Org agenda
+
+(defconst samu--agenda-seconds 60
+  "How long `samu-org-agenda' keeps a forecast before it asks again.")
+
+(defun samu--agenda-rows ()
+  "The rows of the forecast, asked for at most once in a while.
+An agenda of a week asks for each of its days.  A failure of the CLI
+is kept as long, as no rows, so a week without network says so once."
+  (let ((now (float-time)))
+    (unless (and samu--agenda (< (- now (car samu--agenda)) samu--agenda-seconds))
+      (setq samu--agenda
+            (cons now (condition-case err
+                          (samu-forecast-rows)
+                        (samu-error (message "%s" (error-message-string err))
+                                    nil)))))
+    (cdr samu--agenda)))
+
+(defun samu--agenda-label (row overdue)
+  "What stands before the title of ROW in the agenda; OVERDUE names its date."
+  (let ((why (samu--text (samu--get row 'why))))
+    (cond (overdue (format "Overdue %s: " (samu--text (samu--get row 'date))))
+          ((equal why "fällig") "Due: ")
+          ((equal why "geplant") "Planned: ")
+          ((equal why "verfügbar ab") "From today: ")
+          (t ""))))
+
+(defun samu--agenda-entries (day today rows)
+  "The agenda's lines for DAY out of ROWS of the forecast; TODAY is today.
+Both are dates like \"2026-11-21\".  A task stands on the day the
+forecast gives it; what is overdue stands on TODAY.  Appointments and
+what is only flagged are left out."
+  (let ((seen nil) (entries nil))
+    (dolist (row rows)
+      (let* ((id (samu--get row 'id))
+             (kind (samu--get row 'section_kind))
+             (overdue (equal kind "overdue")))
+        (when (and id
+                   (not (member id seen))
+                   (not (member (samu--get row 'why) '("termin" "erledigt")))
+                   (if overdue
+                       (equal day today)
+                     (and (member kind '("day" "later"))
+                          (equal day (or (samu--get row 'day) (samu--get row 'date))))))
+          (push id seen)
+          (push (concat (samu--agenda-label row overdue)
+                        (org-link-make-string (concat "samu:" id)
+                                              (samu--text (samu--get row 'title))))
+                entries))))
+    (nreverse entries)))
+
+;;;###autoload
+(defun samu-org-agenda ()
+  "The tasks of samudo for a day of the Org agenda, each a `samu:' link.
+Put a line with %%(samu-org-agenda) below a heading of a file in
+`org-agenda-files'.  Nothing is written, and the day comes from the
+forecast as the server computes it, through `samu-scope': what is due,
+planned or available from that day, and on today what is overdue.  The
+forecast is asked for once a minute at most."
+  (require 'ol)
+  (with-no-warnings (defvar date))
+  (let ((today (format-time-string "%Y-%m-%d"))
+        (asked (bound-and-true-p date)))
+    (samu--agenda-entries
+     (if asked
+         ;; the diary's date is (MONTH DAY YEAR)
+         (format "%04d-%02d-%02d" (nth 2 asked) (nth 0 asked) (nth 1 asked))
+       today)
+     today
+     (samu--agenda-rows))))
 
 (provide 'samu)
 ;;; samu.el ends here

@@ -175,6 +175,28 @@ zurückwechselt. Nur eine Taste, die etwas ändert, wartet auf ihren einen
 Aufruf, damit ihr Fehler sofort zu sehen ist. Der Puffer einer Aufgabe
 füllt sich aus einem einzigen Aufruf, `samu show --full`.
 
+## In der Org-Agenda
+
+`samu-org-agenda` zeigt die Aufgaben von samudo in der Org-Agenda, nur
+lesend. Dies kommt unter eine Überschrift einer Datei in
+`org-agenda-files`:
+
+```org
+* samudo
+%%(samu-org-agenda)
+```
+
+Jeder Tag führt dann, was an ihm fällig, geplant oder ab ihm verfügbar
+ist, und heute zusätzlich das Überfällige, jeweils als `samu:`-Link, der
+die Aufgabe öffnet. Die Tage kommen aus dem Forecast, wie der Server ihn
+berechnet, durch `samu-scope`. Termine aus Kalendern und Aufgaben, die nur
+markiert sind, bleiben weg. Geschrieben wird nichts: Erledigen, Daten und
+das Übrige bleiben bei den Tasten der samu-Puffer.
+
+Der Forecast wird höchstens einmal in der Minute gefragt, und neu nach
+einer Änderung; die Agenda einer Woche ist ein Aufruf. Ohne Netz bleibt
+die Agenda leer und sagt das einmal.
+
 ## Aus eigenem Elisp
 
 Ein Name mit einem Strich ist für den Gebrauch von außen gedacht und

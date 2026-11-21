@@ -1309,3 +1309,52 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
         (samu--after-action nil)
         (should (= acted 1))
         (should (= (length filled) 2))))))
+
+;;;; In the Org agenda
+
+(defconst samu-test--forecast
+  "[{\"section_kind\":\"overdue\",\"day\":null,\"date\":\"2026-11-18\",\"why\":\"fällig\",\"id\":\"o1\",\"title\":\"Tax\"},
+    {\"section_kind\":\"day\",\"day\":\"2026-11-21\",\"date\":\"09:00\",\"why\":\"termin\",\"id\":\"a1\",\"title\":\"Dentist\"},
+    {\"section_kind\":\"day\",\"day\":\"2026-11-21\",\"date\":\"2026-11-21\",\"why\":\"geplant\",\"id\":\"t1\",\"title\":\"Milk [2 l] now\"},
+    {\"section_kind\":\"flagged\",\"day\":null,\"date\":\"\",\"why\":\"markiert\",\"id\":\"f1\",\"title\":\"Flag\"},
+    {\"section_kind\":\"day\",\"day\":\"2026-11-23\",\"date\":\"2026-11-23\",\"why\":\"fällig\",\"id\":\"t2\",\"title\":\"Shelf\"},
+    {\"section_kind\":\"later\",\"day\":null,\"date\":\"2026-12-01\",\"why\":\"fällig\",\"id\":\"t3\",\"title\":\"Report\"}]"
+  "A forecast: overdue, an appointment, two days, flagged, later.")
+
+(ert-deftest samu-test-agenda-entries-of-a-day ()
+  (require 'ol)
+  (let ((rows (samu--parse samu-test--forecast)))
+    (should (equal (samu--agenda-entries "2026-11-21" "2026-11-21" rows)
+                   '("Overdue 2026-11-18: [[samu:o1][Tax]]"
+                     "Planned: [[samu:t1][Milk [2 l] now]]")))
+    (should (equal (samu--agenda-entries "2026-11-23" "2026-11-21" rows)
+                   '("Due: [[samu:t2][Shelf]]")))
+    ;; beyond the days the forecast lists one by one
+    (should (equal (samu--agenda-entries "2026-12-01" "2026-11-21" rows)
+                   '("Due: [[samu:t3][Report]]")))
+    (should (null (samu--agenda-entries "2026-11-22" "2026-11-21" rows)))))
+
+(ert-deftest samu-test-agenda-asks-once-for-a-week ()
+  (samu-test--with-cli `((("forecast") 0 ,samu-test--forecast ""))
+    (let ((samu--agenda nil))
+      (with-no-warnings (defvar date))
+      (dolist (day '(21 22 23))
+        (let ((date (list 11 day 2026)))
+          (samu-org-agenda)))
+      (let ((date '(11 23 2026)))
+        (should (equal (samu-org-agenda) '("Due: [[samu:t2][Shelf]]"))))
+      (should (= (length (samu-test--called '("forecast"))) 1))
+      ;; a change here or from elsewhere asks again
+      (cl-letf (((symbol-function 'samu--live-buffers) (lambda () nil)))
+        (samu--refresh-all))
+      (let ((date '(11 23 2026))) (samu-org-agenda))
+      (should (= (length (samu-test--called '("forecast"))) 2)))))
+
+(ert-deftest samu-test-agenda-without-network-is-empty-and-says-so-once ()
+  (samu-test--with-cli '((("forecast") 1 "" "samu: no network"))
+    (let ((samu--agenda nil))
+      (with-no-warnings (defvar date))
+      (dolist (day '(21 22))
+        (let ((date (list 11 day 2026)))
+          (should (null (samu-org-agenda)))))
+      (should (= (length (samu-test--called '("forecast"))) 1)))))

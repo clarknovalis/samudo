@@ -168,6 +168,27 @@ fills when you switch back to it. Only a key that changes something waits,
 for its one call, so that its error shows at once. A task's buffer fills
 from a single call, `samu show --full`.
 
+## In the Org agenda
+
+`samu-org-agenda` shows samudo's tasks in the Org agenda, read-only. Put
+this below a heading of a file in `org-agenda-files`:
+
+```org
+* samudo
+%%(samu-org-agenda)
+```
+
+Each day then lists what is due, planned or available from that day, and
+today also what is overdue, each as a `samu:` link that opens the task.
+The days come from the forecast as the server computes it, through
+`samu-scope`. Appointments of calendars and tasks that are only flagged
+are left out. Nothing is written: done, dates and the rest stay with the
+keys of the samu buffers.
+
+The forecast is asked for once a minute at most, and again after a change;
+a week's agenda is one call. Without network the agenda stays empty and
+says so once.
+
 ## From your own Elisp
 
 A name with one dash is meant to be used from outside and stays; a name
