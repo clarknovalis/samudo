@@ -605,6 +605,10 @@ Only this asks the CLI, drawing does not."
         (samu--task-id (samu--fetch-task))
         (t (samu--fetch-view))))
 
+(defvar-local samu--stale nil
+  "Non-nil when this buffer is out of date and in no window.
+It fills anew once a window shows it.")
+
 (defvar-local samu--fetching nil
   "Non-nil while this buffer waits for the CLI to be filled anew.
 `again' when it was asked to fill anew once more meanwhile.")
@@ -613,6 +617,7 @@ Only this asks the CLI, drawing does not."
   "Fill this samu buffer anew: a view, a task's or a habit's buffer.
 Emacs does not wait: the buffer keeps what it shows until the CLI
 has answered.  Asked again meanwhile, it fills once more afterwards."
+  (setq samu--stale nil)
   (if samu--fetching
       (setq samu--fetching 'again)
     (let ((buffer (current-buffer)))
@@ -701,14 +706,24 @@ where it starts, also when the buffer is filled from elsewhere."
           (t (samu-next-task 1)))))
 
 (defun samu--refresh-all ()
-  "Fill every samu buffer anew."
-  (dolist (buffer (buffer-list))
-    (with-current-buffer buffer
-      (when (and (derived-mode-p 'samu-list-mode)
-                 (or samu--view samu--task-id samu--habit-id))
-        (condition-case err
-            (samu--render)
-          (samu-error (message "%s" (error-message-string err))))))))
+  "Fill the samu buffers anew that are to be seen.
+That is this buffer and those in a window, on any frame.  The others
+are only noted as out of date: `samu--shown' fills them once a window
+shows them."
+  (let ((here (current-buffer)))
+    (dolist (buffer (samu--live-buffers))
+      (with-current-buffer buffer
+        (if (or (eq buffer here) (get-buffer-window buffer t))
+            (condition-case err
+                (samu--render)
+              (samu-error (message "%s" (samu--error-text err))))
+          (setq samu--stale t))))))
+
+(defun samu--shown (window)
+  "WINDOW now shows this buffer: fill it anew if it is out of date."
+  (when (window-live-p window)
+    (with-current-buffer (window-buffer window)
+      (when samu--stale (samu--render)))))
 
 ;;;; The list mode
 
@@ -780,6 +795,7 @@ where it starts, also when the buffer is filled from elsewhere."
 \\{samu-list-mode-map}"
   (setq truncate-lines t)
   (setq-local revert-buffer-function (lambda (&rest _) (samu-refresh)))
+  (add-hook 'window-buffer-change-functions #'samu--shown nil t)
   (add-hook 'kill-buffer-hook #'samu--live-after-kill nil t))
 
 (with-eval-after-load 'evil

@@ -598,6 +598,54 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
     (should (equal (samu--note-format "x") "markdown"))
     (should (= (length (samu-test--called '("render"))) 2))))
 
+(ert-deftest samu-test-a-buffer-in-no-window-fills-once-it-is-shown ()
+  (let ((rows (list (samu-test--row "t1" "Milch")))
+        (seen (generate-new-buffer "*samu-test-seen*"))
+        (buried (generate-new-buffer "*samu-test-buried*"))
+        (fetched nil))
+    (unwind-protect
+        (samu-test--with-cli nil
+          (dolist (buffer (list seen buried))
+            (with-current-buffer buffer
+              (samu-list-mode)
+              (setq samu--view (list :title "T"
+                                     :fetch (lambda ()
+                                              (push (buffer-name) fetched)
+                                              (list (cons nil rows)))))
+              (samu--render)))
+          (setq fetched nil
+                rows (list (samu-test--row "t2" "Brot")))
+          ;; from a third buffer: the one in a window fills, the other waits
+          (set-window-buffer (selected-window) seen)
+          (with-temp-buffer (samu--refresh-all))
+          (should (equal fetched '("*samu-test-seen*")))
+          (should (string-match-p "Brot" (with-current-buffer seen (buffer-string))))
+          (should (string-match-p "Milch" (with-current-buffer buried (buffer-string))))
+          (should (buffer-local-value 'samu--stale buried))
+          (should-not (buffer-local-value 'samu--stale seen))
+          ;; shown, it fills, once
+          (should (memq #'samu--shown
+                        (buffer-local-value 'window-buffer-change-functions buried)))
+          (set-window-buffer (selected-window) buried)
+          (samu--shown (selected-window))
+          (samu--shown (selected-window))
+          (should (equal fetched '("*samu-test-buried*" "*samu-test-seen*")))
+          (should (string-match-p "Brot" (with-current-buffer buried (buffer-string))))
+          (should-not (buffer-local-value 'samu--stale buried)))
+      (kill-buffer seen)
+      (kill-buffer buried))))
+
+(ert-deftest samu-test-the-buffer-acted-in-fills-also-in-no-window ()
+  (let ((fetched 0))
+    (samu-test--with-cli nil
+      (with-temp-buffer
+        (samu-list-mode)
+        (setq samu--view (list :title "T" :fetch (lambda () (cl-incf fetched) nil)))
+        (should-not (get-buffer-window (current-buffer) t))
+        (samu--after-action nil)
+        (should (= fetched 1))
+        (should-not samu--stale)))))
+
 ;;;; Asking without waiting
 
 ;; These tests run a real process: a shell script in place of the CLI
