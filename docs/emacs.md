@@ -167,3 +167,32 @@ buffer says `Loading …`. A buffer in no window is not refreshed at all: it
 fills when you switch back to it. Only a key that changes something waits,
 for its one call, so that its error shows at once. A task's buffer fills
 from a single call, `samu show --full`.
+
+## From your own Elisp
+
+A name with one dash is meant to be used from outside and stays; a name
+with two (`samu--…`) may change with any version. The functions wait for
+the command line and signal `samu-error` when it fails.
+
+| Function | Gives |
+|---|---|
+| `(samu-tasks ARGS…)` | the rows of `samu list` with these arguments, through the scope: `(samu-tasks "--available")` |
+| `(samu-forecast-rows)` | the rows of the forecast, each with `section`, `date`, `title`, `why` |
+| `(samu-task ID)` | one task or project as `samu show` prints it, or nil |
+| `(samu-add TEXT :parent ID :note NOTE :literal t)` | captures a line of quick capture and returns the record; with `:literal` the text is the title, word for word, and `:parent` is refused |
+| `(samu-id-at-point)` | the id of the task on this line of a samu buffer |
+| `(samu-get OBJECT KEYS…)` | a value inside what the others return: `(samu-get row 'status 'task 'due)` |
+
+Three hooks:
+
+- `samu-after-action-hook` runs after a command in Emacs wrote something.
+- `samu-after-refresh-hook` runs in a samu buffer each time it was filled
+  anew, also when the change came from elsewhere.
+- `samu-after-capture-functions` is called with the record of each task
+  captured in Emacs.
+
+```elisp
+(add-hook 'samu-after-capture-functions
+          (lambda (record)
+            (kill-new (concat "samu:" (samu-get record 'id)))))
+```

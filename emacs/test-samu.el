@@ -1265,3 +1265,47 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
   (should-not (featurep 'org))
   (dolist (face '(samu-section samu-state samu-priority samu-done samu-title))
     (should (facep (face-attribute face :inherit)))))
+
+;;;; For other packages
+
+(ert-deftest samu-test-tasks-go-through-the-scope ()
+  (samu-test--with-cli '((("list") 0 "[{\"id\":\"t1\",\"status\":{\"task\":{\"due\":\"2026-11-20\"}}}]" ""))
+    (let* ((samu-scope "Work")
+           (rows (samu-tasks "--available")))
+      (should (equal (samu-get (car rows) 'status 'task 'due) "2026-11-20"))
+      (should (equal (car (samu-test--called '("list")))
+                     '("list" "--available" "--scope" "Work" "--format" "json"))))))
+
+(ert-deftest samu-test-task-is-nil-when-there-is-none ()
+  (samu-test--with-cli '((("show" "t1") 0 "[{\"id\":\"t1\",\"kind\":\"task\"}]" "")
+                         (("show" "nope") 3 "" "samu: no such object"))
+    (should (equal (samu-get (samu-task "t1") 'kind) "task"))
+    (should (null (samu-task "nope")))))
+
+(ert-deftest samu-test-add-returns-the-record-and-tells-the-hooks ()
+  (samu-test--with-cli '((("add") 0 "[{\"id\":\"n1\",\"title\":\"Milk @home\"}]" ""))
+    (let* ((captured nil) (acted 0)
+           (samu-after-capture-functions (list (lambda (record) (push record captured))))
+           (samu-after-action-hook (list (lambda () (cl-incf acted))))
+           (record (samu-add "Milk @home" :note "why" :literal t)))
+      (should (equal (samu-get record 'id) "n1"))
+      (should (equal captured (list record)))
+      (should (= acted 1))
+      (should (equal (car (samu-test--called '("add")))
+                     '("add" "--note" "why" "--literal" "Milk @home"
+                       "--format" "json"))))))
+
+(ert-deftest samu-test-an-action-runs-its-hook-a-refresh-its-own ()
+  (samu-test--with-cli '((("list") 0 "[]" ""))
+    (let* ((acted 0) (filled nil)
+           (samu-after-action-hook (list (lambda () (cl-incf acted))))
+           (samu-after-refresh-hook (list (lambda () (push (buffer-name) filled)))))
+      (with-temp-buffer
+        (samu-list-mode)
+        (setq samu--view (list :title "T" :fetch (lambda () (list (cons nil (samu--list))))))
+        (samu--render)
+        (should (equal filled (list (buffer-name))))
+        (should (= acted 0))
+        (samu--after-action nil)
+        (should (= acted 1))
+        (should (= (length filled) 2))))))

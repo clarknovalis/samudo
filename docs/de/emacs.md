@@ -174,3 +174,34 @@ Fenster wird gar nicht aufgefrischt: er füllt sich, sobald man zu ihm
 zurückwechselt. Nur eine Taste, die etwas ändert, wartet auf ihren einen
 Aufruf, damit ihr Fehler sofort zu sehen ist. Der Puffer einer Aufgabe
 füllt sich aus einem einzigen Aufruf, `samu show --full`.
+
+## Aus eigenem Elisp
+
+Ein Name mit einem Strich ist für den Gebrauch von außen gedacht und
+bleibt; einer mit zweien (`samu--…`) kann sich mit jeder Version ändern.
+Die Funktionen warten auf die Kommandozeile und signalisieren
+`samu-error`, wenn sie scheitert.
+
+| Funktion | Liefert |
+|---|---|
+| `(samu-tasks ARGS…)` | die Zeilen von `samu list` mit diesen Argumenten, durch den Scope: `(samu-tasks "--available")` |
+| `(samu-forecast-rows)` | die Zeilen des Forecasts, jede mit `section`, `date`, `title`, `why` |
+| `(samu-task ID)` | eine Aufgabe oder ein Projekt, wie `samu show` es ausgibt, oder nil |
+| `(samu-add TEXT :parent ID :note NOTIZ :literal t)` | erfasst eine Zeile der Schnellerfassung und gibt den Datensatz zurück; mit `:literal` ist der Text der Titel, Wort für Wort, und `:parent` wird abgelehnt |
+| `(samu-id-at-point)` | die ID der Aufgabe in dieser Zeile eines samu-Puffers |
+| `(samu-get OBJEKT SCHLÜSSEL…)` | ein Wert in dem, was die anderen liefern: `(samu-get row 'status 'task 'due)` |
+
+Drei Hooks:
+
+- `samu-after-action-hook` läuft, nachdem ein Kommando in Emacs etwas
+  geschrieben hat.
+- `samu-after-refresh-hook` läuft in einem samu-Puffer jedes Mal, wenn er
+  neu gefüllt wurde, auch wenn die Änderung von woanders kam.
+- `samu-after-capture-functions` wird mit dem Datensatz jeder Aufgabe
+  aufgerufen, die in Emacs erfasst wurde.
+
+```elisp
+(add-hook 'samu-after-capture-functions
+          (lambda (record)
+            (kill-new (concat "samu:" (samu-get record 'id)))))
+```

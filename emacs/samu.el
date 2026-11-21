@@ -275,6 +275,75 @@ INPUT goes to stdin.  With NOT-FOUND-OK, exit code 3 returns nil."
         ((stringp value) value)
         (t (format "%s" value))))
 
+;;;; For other packages and your own configuration
+
+;; What has one dash is meant to be used from outside and stays; what
+;; has two may change with any version.
+
+(defcustom samu-after-action-hook nil
+  "Run after a command here wrote something: a task done, moved, captured.
+The server has it by then.  What others write does not run it; see
+`samu-after-refresh-hook' for that."
+  :type 'hook)
+
+(defcustom samu-after-refresh-hook nil
+  "Run in a samu buffer each time it was filled anew.
+That is after a command here, after `g', and when the server says
+something changed (`samu-live')."
+  :type 'hook)
+
+(defcustom samu-after-capture-functions nil
+  "Called with the record of each task captured here.
+The record is an alist as `samu add --format json' prints it; `samu-get'
+reads it: (samu-get record \='id), (samu-get record \='title)."
+  :type 'hook)
+
+(defun samu-get (object &rest keys)
+  "The value under KEYS, one after another, in OBJECT.
+OBJECT is what the functions here return: JSON of the CLI with objects
+as alists, arrays as lists, null and false as nil.
+\=(samu-get row \='status \='task \='due) is the due date of a row."
+  (apply #'samu--get object keys))
+
+(defun samu-tasks (&rest args)
+  "The tasks `samu list' prints with ARGS, strings, through the scope.
+Without ARGS the open tasks; (samu-tasks \"--available\") those to
+be done now, (samu-tasks \"--project\" \"House\") those of a project.
+Each is a row: id, short, title, project, available, why, and under
+status the task itself.  Waits for the CLI; signals `samu-error'."
+  (apply #'samu--list args))
+
+(defun samu-forecast-rows ()
+  "The rows of the forecast as the server computes it, through the scope.
+Each has section, date, id, title and why; an appointment has no id."
+  (samu--call (append '("forecast") (samu--scope-args))))
+
+(defun samu-task (id)
+  "The task, project or other object ID as `samu show' prints it, or nil.
+ID is a full id or a short one."
+  (car (samu--call (list "show" id) nil t)))
+
+(cl-defun samu-add (text &key parent note literal)
+  "Capture TEXT, a line of quick capture (ADR 0011); return the record.
+PARENT, an id, puts the task below that task.  NOTE is its note.  With
+LITERAL, TEXT is the title word for word: no mark in it is read, the
+task goes to the inbox, the record has only id and short, and PARENT
+is refused.
+Fills the samu buffers anew and runs `samu-after-capture-functions'."
+  (let ((record (car (samu--call (append '("add")
+                                         (and parent (list "--parent" parent))
+                                         (and note (list "--note" note))
+                                         (and literal '("--literal"))
+                                         (list text))))))
+    (samu--forget)
+    (samu--changed)
+    (run-hook-with-args 'samu-after-capture-functions record)
+    record))
+
+(defun samu-id-at-point ()
+  "The id of the task on this line of a samu buffer, or of the buffer's task."
+  (samu--id-at-point))
+
 ;;;; Asking without waiting
 
 ;; Writing waits for the CLI: one call, and its error belongs to the
@@ -672,7 +741,8 @@ filled shows the error.  Then fill again if asked to meanwhile."
         (unwind-protect
             (cond ((null err)
                    (setq samu--unfilled nil)
-                   (samu--draw data))
+                   (samu--draw data)
+                   (run-hooks 'samu-after-refresh-hook))
                   (samu--unfilled
                    (samu--placeholder (concat (error-message-string err)
                                               "\n\ng asks again"))))
@@ -1060,10 +1130,15 @@ In a project's own buffer, that project (ADR 0088 §3, §8)."
                           (append samu--rows (and samu--task-row (list samu--task-row))))
         (mapcar (lambda (id) `((id . ,id))) ids))))
 
+(defun samu--changed ()
+  "Something was written: fill the samu buffers anew and tell the hook."
+  (samu--refresh-all)
+  (run-hooks 'samu-after-action-hook))
+
 (defun samu--after-action (text)
   "Show TEXT, unmark and fill the samu buffers anew."
   (setq samu--marked nil)
-  (samu--refresh-all)
+  (samu--changed)
   (when text (message "%s" text)))
 
 (defun samu--bulk (command ids &rest args)
@@ -1479,11 +1554,8 @@ choose a template by its key first, like `samu-capture-template'."
     ;; Several lines pasted in make a task each (ADR 0129).
     (if (samu--several-p line)
         (samu-capture-lines line parent)
-      (let ((record (car (samu--call (append '("add") (and parent (list "--parent" parent))
-                                             (list (samu--capture-text line note)))))))
+      (let ((record (samu-add (samu--capture-text line note) :parent parent)))
         (deactivate-mark)
-        (samu--forget)
-        (samu--refresh-all)
         (message "Captured: %s  %s" (samu--get record 'title) (samu--get record 'short))
         (samu--report record)
         record))))
@@ -1516,7 +1588,9 @@ PARENT, an id, puts the top lines below that task."
                              text)))
     (deactivate-mark)
     (samu--forget)
-    (samu--refresh-all)
+    (samu--changed)
+    (dolist (record records)
+      (run-hook-with-args 'samu-after-capture-functions record))
     (message "Captured: %d tasks" (length records))
     records))
 
