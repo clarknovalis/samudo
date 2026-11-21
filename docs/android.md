@@ -189,6 +189,12 @@ first moment (it asks for the microphone the first time).
   then opens the recorder, also over the lock screen, where nothing else
   of the app shows. Android gives that role to one app at a time; samudo
   does nothing else an assistant does.
+- **On another key:** the shortcut "Voice note" is an app action, so
+  whatever can run an app action can open the recorder. On a Samsung
+  phone, for example: a routine in Modes and Routines that is started
+  manually and runs samudo's action "Voice note", chosen for the side
+  key's double press (Settings → Advanced features → Side button). The
+  assistant key then stays free for another app.
 
 ## Widgets
 

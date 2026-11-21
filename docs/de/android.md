@@ -204,6 +204,13 @@ ersten Moment an auf (beim ersten Mal fragt sie nach dem Mikrofon).
   Sperrbildschirm, wo sonst nichts von der App zu sehen ist. Android
   vergibt diese Rolle an eine App zur Zeit; sonst tut samudo nichts, was
   ein Assistent tut.
+- **Auf einer anderen Taste:** der Shortcut „Sprachnotiz“ ist eine
+  App-Aktion; was eine App-Aktion ausführen kann, öffnet also die
+  Aufnahme. Auf einem Samsung-Handy etwa: eine Routine in „Modi und
+  Routinen“, die manuell gestartet wird und samudos Aktion „Sprachnotiz“
+  ausführt, gewählt für den Doppeldruck der Seitentaste (Einstellungen →
+  Erweiterte Funktionen → Seitentaste). Die Assistenten-Taste bleibt
+  dann für eine andere App frei.
 
 ## Widgets
 
