@@ -4,11 +4,14 @@
 
 package de.samudo.app
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -23,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +43,7 @@ import kotlinx.coroutines.withContext
  * and add; a pasted list becomes one item per line. Hidden on a closed
  * task that has none.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChecklistPart(id: String, row: TaskRow, tick: Int, changed: () -> Unit, act: (Samu.() -> Unit) -> Unit) {
     val context = LocalContext.current
@@ -46,6 +51,11 @@ fun ChecklistPart(id: String, row: TaskRow, tick: Int, changed: () -> Unit, act:
     val t = LocalTokens.current
     var items by remember { mutableStateOf<List<ChecklistRow>>(emptyList()) }
     var adding by remember { mutableStateOf("") }
+    // The adder stays visible above the keyboard: on focus, and again when
+    // an added item pushes it down.
+    val adderView = remember { BringIntoViewRequester() }
+    var adderFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(items.size, adderFocused) { if (adderFocused) adderView.bringIntoView() }
     LaunchedEffect(tick, id) {
         items = withContext(Dispatchers.IO) { runCatching { Store.get(context).checklist(id) }.getOrDefault(emptyList()) }
     }
@@ -104,7 +114,8 @@ fun ChecklistPart(id: String, row: TaskRow, tick: Int, changed: () -> Unit, act:
                 OutlinedTextField(
                     adding, { adding = it },
                     placeholder = { Text(tr("Punkt hinzufügen …")) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).bringIntoViewRequester(adderView)
+                        .onFocusChanged { adderFocused = it.isFocused },
                 )
                 TextButton(
                     enabled = adding.isNotBlank(),

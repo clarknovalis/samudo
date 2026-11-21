@@ -663,7 +663,7 @@ fun TaskScreen(id: String, tick: Int, changed: () -> Unit, open: (String) -> Uni
     if (blocking) {
         BlockerPicker(id, onPick = { target -> act { runCatching { addBlocker(id, target) } }; blocking = false }, close = { blocking = false })
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         TextButton(onClick = back) { Text(tr("‹ Zurück")) }
         ProjectLine(row.place) { moving = true }
         if (e.descendants > 0u) Text(tr("Mit {descendants} Unteraufgaben; sie wandern beim Verschieben mit.", "descendants" to e.descendants), color = t.muted, fontSize = 12.sp)
