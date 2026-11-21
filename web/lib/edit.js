@@ -50,7 +50,7 @@ export function openEdit(ids, text = "") {
   $("edit-title").hidden = many;
   $("edit-title").value = many ? "" : task.title;
   $("edit-head").hidden = !many;
-  $("edit-head").textContent = many ? `${tasks.length} Aufgaben bearbeiten` : "";
+  $("edit-head").textContent = many ? tr("{count} Aufgaben bearbeiten", { count: tasks.length }) : "";
   const input = $("edit-input");
   input.value = text;
   input.focus();

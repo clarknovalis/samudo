@@ -779,7 +779,7 @@ function folderRow(folder, depth, total, plain = false) {
         type: "button",
         class: "fold",
         "aria-expanded": folded ? "false" : "true",
-        "aria-label": folded ? `${folder.title} aufklappen` : `${folder.title} zuklappen`,
+        "aria-label": folded ? tr("{title} aufklappen", { title: folder.title }) : tr("{title} zuklappen", { title: folder.title }),
         text: folded ? "▸" : "▾",
         onclick: () => toggleFold(folder.id),
       }),

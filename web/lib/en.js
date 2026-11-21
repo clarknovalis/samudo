@@ -1130,4 +1130,12 @@ export const EN = {
   "Nichts gesprochen.": "Nothing was said.",
   "Transkribieren": "Transcribe",
   "Neu transkribieren": "Transcribe again",
+  "markiert (f)": "flagged (f)",
+  "geclockt": "clocked",
+  "{title} aufklappen": "unfold {title}",
+  "{title} zuklappen": "fold {title}",
+  "{label} heute": "{label} today",
+  "{label} morgen": "{label} tomorrow",
+  "{label} leeren": "clear {label}",
+  "{count} Aufgaben bearbeiten": "Edit {count} tasks",
 };

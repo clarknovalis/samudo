@@ -336,10 +336,10 @@ function stateSelect() {
 function dateSelect() {
   const groups = DATE_FIELDS.map(([field, label]) =>
     el("optgroup", { label }, [
-      option(`${field} ${today()}`, `${label} heute`),
-      option(`${field} ${addDays(today(), 1)}`, `${label} morgen`),
+      option(`${field} ${today()}`, tr("{label} heute", { label })),
+      option(`${field} ${addDays(today(), 1)}`, tr("{label} morgen", { label })),
       option(`${field} pick`, tr("{label} am …", { label })),
-      option(`${field} none`, `${label} leeren`),
+      option(`${field} none`, tr("{label} leeren", { label })),
     ]),
   );
   return select(tr("Termin"), groups, (value) => {

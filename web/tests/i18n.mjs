@@ -81,6 +81,28 @@ for (const key of Object.keys(EN)) {
   if (!web.has(key)) complain(`i18n: English for ${JSON.stringify(key)}, which nothing uses`);
 }
 
+// A German text that goes around `tr`: a literal or template of several
+// words that holds a word the table translates on its own ("markiert
+// (f)", `${title} zuklappen`). A single bare word is a value, as the
+// search words in query.js are.
+const german = new Set(Object.keys(EN).filter((key) => /^\p{Ll}{5,}$/u.test(key) && EN[key] !== key));
+if (german.size === 0) complain("i18n: no single German word in en.js: the pattern is broken");
+for (const path of files(join(root, "web"), ".js", ["/tests/", "lib/en.js", "qrcode"])) {
+  readFileSync(path, "utf8")
+    .split("\n")
+    .forEach((line, at) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return;
+      const bare = line.replace(/\btr\(\s*"(?:[^"\\]|\\.)*"/g, "");
+      for (const m of bare.matchAll(/"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)) {
+        const text = (m[1] ?? m[2]).replace(/\$\{[^}]*\}/g, " ").trim();
+        if (m[1] !== undefined && !/[\s(]/.test(text)) continue;
+        for (const word of text.split(/[^\p{L}]+/u)) {
+          if (german.has(word)) complain(`i18n: ${JSON.stringify(word)} without tr() in ${m[0]} (${path.slice(root.length)}:${at + 1})`);
+        }
+      }
+    });
+}
+
 const enKt = join(root, "android/app/src/main/java/de/samudo/app/En.kt");
 let app = 0;
 if (existsSync(enKt)) {

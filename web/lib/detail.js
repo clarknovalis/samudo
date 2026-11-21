@@ -875,7 +875,7 @@ export function renderDetail() {
         : null,
       el("label", { class: "flagbox" }, [
         el("input", { type: "checkbox", checked: task.flagged, onchange: () => toggleFlag(status) }),
-        "markiert (f)",
+        tr("markiert (f)"),
       ]),
     ]),
     show("logbook") ? section("Logbook", logbook()) : null,

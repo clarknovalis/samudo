@@ -43,7 +43,7 @@ export function bookedText(clock) {
 }
 
 // When `x:` completes, as a chip.
-export const completedText = (at) => `✓ erledigt ${dayWord(at)} ${hhmm(at)}`;
+export const completedText = (at) => `✓ ${tr("erledigt")} ${dayWord(at)} ${hhmm(at)}`;
 
 // `1:05` for an hour and five minutes.
 export function length(seconds) {
@@ -235,7 +235,7 @@ export function clockSection(task, section) {
     el("div", { class: "clocks" }, [
       el("p", { class: "total" }, [
         el("strong", { text: length(total) }),
-        ` geclockt${estimate}`,
+        ` ${tr("geclockt")}${estimate}`,
         task.estimate && total > periodSeconds(task.estimate) ? el("span", { class: "over", text: ` · ${tr("drüber")}` }) : null,
       ]),
       el("div", { class: "actions" }, [
