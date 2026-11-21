@@ -721,6 +721,8 @@ fn upstream_failure(error: &samu_client::Error, what: &str) -> Failure {
 
 fn session_info(replica: &Replica, account: &str, device: &str) -> Result<SessionInfo, Failure> {
     let (settings, known) = samu_replica::settings(&*replica.cache()?).map_err(replica_error)?;
+    // What the server said at the last sync (ADR 0140 §3).
+    let transcribe = samu_replica::transcribes(&*replica.cache()?).map_err(replica_error)?;
     let expires = Timestamp::now()
         .checked_add(SignedDuration::from_hours(LOCAL_SESSION_DAYS * 24))
         .unwrap_or(Timestamp::MAX);
@@ -738,7 +740,7 @@ fn session_info(replica: &Replica, account: &str, device: &str) -> Result<Sessio
         replica: Some(replica.state()?),
         grant: None,
         demo_until: None,
-        transcribe: false,
+        transcribe,
     })
 }
 

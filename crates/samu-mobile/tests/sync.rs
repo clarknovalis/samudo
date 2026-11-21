@@ -53,6 +53,11 @@ struct Server {
 
 impl Server {
     fn start() -> Self {
+        Self::start_with_env(&[])
+    }
+
+    /// The same, with settings from the environment.
+    fn start_with_env(env: &[(&str, &str)]) -> Self {
         let dir =
             std::env::temp_dir().join(format!("samu-mobile-{}-{}", std::process::id(), unique()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -80,6 +85,7 @@ impl Server {
                 "SAMU_SECRET_KEY",
                 "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
             )
+            .envs(env.iter().copied())
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
@@ -4932,4 +4938,170 @@ fn tag_settings_from_the_phone() {
     samu.set_tag_key(state.clone(), None).unwrap();
     samu.sync().unwrap();
     assert!(stored(&other, &state).get("key").is_none_or(Value::is_null));
+}
+
+/// A transcript service for one test: answers every request with `text`
+/// once it has read the whole request, and counts them.
+fn transcript_service(text: &'static str) -> (String, Arc<std::sync::atomic::AtomicUsize>) {
+    use std::io::Read;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!(
+        "http://{}/v1/audio/transcriptions",
+        listener.local_addr().unwrap()
+    );
+    let asked = Arc::new(AtomicUsize::new(0));
+    let counted = asked.clone();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut request = Vec::new();
+            let mut buffer = [0u8; 4096];
+            while let Ok(n) = stream.read(&mut buffer) {
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buffer[..n]);
+                let Some(end) = request.windows(4).position(|w| w == b"\r\n\r\n") else {
+                    continue;
+                };
+                let head = String::from_utf8_lossy(&request[..end]).to_ascii_lowercase();
+                let length: usize = head
+                    .lines()
+                    .find_map(|line| line.strip_prefix("content-length:"))
+                    .and_then(|v| v.trim().parse().ok())
+                    .unwrap_or(0);
+                if request.len() >= end + 4 + length {
+                    break;
+                }
+            }
+            counted.fetch_add(1, Ordering::SeqCst);
+            let body = json!({ "text": text }).to_string();
+            let _ = write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\
+                 Connection: close\r\n\r\n{body}",
+                body.len()
+            );
+        }
+    });
+    (url, asked)
+}
+
+/// Syncs until `done` holds for the first attachment of `task`: the
+/// transcript is made in the background on the server.
+fn synced_until(
+    samu: &Samu,
+    task: &str,
+    done: impl Fn(&samu_mobile::AttachmentRow) -> bool,
+) -> samu_mobile::AttachmentRow {
+    for _ in 0..200 {
+        samu.sync().unwrap();
+        let files = samu.attachments(task.to_string()).unwrap();
+        if let Some(file) = files.into_iter().next()
+            && done(&file)
+        {
+            return file;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    panic!("the recording of {task} never got there");
+}
+
+/// ADR 0140 §4, §6: a voice note made offline is a task in the inbox with
+/// its recording, which asks for the transcript; after the sync the
+/// server's text is its title, its note and the attachment's transcript.
+#[test]
+fn a_voice_note_waits_offline_and_comes_back_with_its_text() {
+    let (url, asked) = transcript_service("Call the plumber about the tap.\nBefore Friday.");
+    let server = Server::start_with_env(&[("SAMU_TRANSCRIBE_URL", &url)]);
+    let other = server.other_client();
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    assert!(samu.can_transcribe().unwrap());
+
+    let voice = b"not really aac";
+    let task = samu
+        .voice_note(
+            " Voice note 21.11. 10:00 ".into(),
+            taken(&server, "voice.m4a", voice),
+            "voice-20261121-1000.m4a".into(),
+            "audio/mp4".into(),
+        )
+        .unwrap();
+    assert!(!server.dir.join("voice.m4a").exists());
+    // On the phone at once, before the server knows of it.
+    let detail = samu.task(task.clone()).unwrap();
+    assert_eq!(detail.row.title, "Voice note 21.11. 10:00");
+    let files = samu.attachments(task.clone()).unwrap();
+    assert_eq!(files.len(), 1);
+    assert!(files[0].pending && files[0].transcribing);
+    assert_eq!(files[0].transcript, None);
+    assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 0);
+
+    let file = synced_until(&samu, &task, |f| f.transcript.is_some());
+    assert_eq!(
+        file.transcript.as_deref(),
+        Some("Call the plumber about the tap.\nBefore Friday.")
+    );
+    assert!(!file.transcribing && !file.pending && file.transcript_error.is_none());
+    assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 1);
+    let detail = samu.task(task.clone()).unwrap();
+    assert_eq!(detail.row.title, "Call the plumber about the tap.");
+    // Asked of the server.
+    let stored_task = stored(&other, &task);
+    assert_eq!(stored_task["title"], "Call the plumber about the tap.");
+    assert_eq!(
+        stored_task["note"],
+        "Call the plumber about the tap.\nBefore Friday."
+    );
+    assert_eq!(stored_task["properties"], json!({"source": "voice"}));
+    assert!(stored_task.get("project").is_none(), "{stored_task}");
+    assert_eq!(stored(&other, &file.id)["blob"], sha256(voice));
+
+    // Asked again from the phone.
+    samu.transcribe(file.id.clone()).unwrap();
+    synced_until(&samu, &task, |f| !f.transcribing);
+    assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 2);
+
+    // What is no recording makes no task.
+    let before = stored(&other, &task)["modified"].clone();
+    for (path, media_type) in [
+        (taken(&server, "empty.m4a", b""), "audio/mp4"),
+        (taken(&server, "photo.jpg", b"jpeg"), "image/jpeg"),
+        (
+            server.dir.join("gone.m4a").display().to_string(),
+            "audio/mp4",
+        ),
+    ] {
+        assert!(
+            samu.voice_note("Voice note".into(), path, "x".into(), media_type.into())
+                .is_err()
+        );
+    }
+    assert_eq!(samu.status().unwrap().outbox, 0);
+    assert_eq!(stored(&other, &task)["modified"], before);
+}
+
+/// ADR 0140 §1: a server without a transcript service keeps the voice
+/// note as it was recorded, and the phone knows not to offer transcripts.
+#[test]
+fn a_voice_note_without_a_service_stays_as_recorded() {
+    let server = Server::start();
+    let other = server.other_client();
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    assert!(!samu.can_transcribe().unwrap());
+    let task = samu
+        .voice_note(
+            "Voice note 21.11. 10:00".into(),
+            taken(&server, "voice.m4a", b"not really aac"),
+            "voice.m4a".into(),
+            "audio/mp4".into(),
+        )
+        .unwrap();
+    let file = synced_until(&samu, &task, |f| !f.transcribing && !f.pending);
+    assert_eq!((file.transcript, file.transcript_error), (None, None));
+    assert_eq!(stored(&other, &task)["title"], "Voice note 21.11. 10:00");
+    assert!(samu.transcribe(file.id).is_err());
 }

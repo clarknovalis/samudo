@@ -2702,7 +2702,7 @@ impl Samu {
         if text.trim().is_empty() {
             return Err(input("nothing to capture"));
         }
-        self.make(&text, project.as_deref(), None)
+        self.make(&text, project.as_deref(), None, None)
     }
 
     /// Makes a task as the last child of the open task `parent`, in its
@@ -2800,7 +2800,7 @@ impl Samu {
             note: note.filter(|n| !n.trim().is_empty()),
             links,
         };
-        self.make(&extra, project.as_deref(), Some(&shared))
+        self.make(&extra, project.as_deref(), Some(&shared), None)
     }
 
     /// Files a recording from the ring that Tasker handed over, offline
@@ -4105,10 +4105,10 @@ impl Samu {
 }
 
 /// The shared part of a task made from a shared text.
-struct Shared {
-    title: String,
-    note: Option<String>,
-    links: Vec<String>,
+pub(crate) struct Shared {
+    pub(crate) title: String,
+    pub(crate) note: Option<String>,
+    pub(crate) links: Vec<String>,
 }
 
 impl Samu {
@@ -4119,6 +4119,7 @@ impl Samu {
         text: &str,
         project: Option<&str>,
         shared: Option<&Shared>,
+        source: Option<&str>,
     ) -> Result<String, MobileError> {
         let fallback = project.map(parse_id).transpose()?;
         let (zone, chosen) = {
@@ -4163,6 +4164,13 @@ impl Samu {
                     .flatten()
                     .collect();
                 task.note = (!notes.is_empty()).then(|| notes.join("\n\n"));
+            }
+            // Where the task comes from, like `source=index-ring`.
+            if let Some(source) = source {
+                resolved
+                    .task
+                    .properties
+                    .insert("source".into(), source.into());
             }
             let value = |v: serde_json::Result<Value>| v.map_err(|e| input(e.to_string()));
             let mut changes = Vec::new();

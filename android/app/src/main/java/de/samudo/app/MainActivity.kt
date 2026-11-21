@@ -34,6 +34,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -102,6 +106,7 @@ class MainActivity : ComponentActivity() {
         I18n.init(this, Store.get(this))
         Sync.periodic(this)
         askToNotify()
+        Voice.shortcut(this)
         takeShare(intent)
         takeWidget(intent)
         takeAddress(intent)
@@ -324,12 +329,23 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
         },
         floatingActionButton = {
             if (place.task == null && !place.settings) {
-                ExtendedFloatingActionButton(
-                    onClick = { capturing = true },
-                    containerColor = t.accent,
-                    contentColor = t.onAccent,
-                    shape = RoundedCornerShape(16.dp),
-                ) { Text(tr("+  Erfassen"), fontWeight = FontWeight.SemiBold) }
+                val context = LocalContext.current
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // The recorder beside quick capture (ADR 0140 §6).
+                    SmallFloatingActionButton(
+                        onClick = { context.startActivity(Intent(context, VoiceActivity::class.java)) },
+                        containerColor = t.accent,
+                        contentColor = t.onAccent,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.semantics { contentDescription = tr("Sprachnotiz aufnehmen") },
+                    ) { Text("●", fontWeight = FontWeight.SemiBold) }
+                    ExtendedFloatingActionButton(
+                        onClick = { capturing = true },
+                        containerColor = t.accent,
+                        contentColor = t.onAccent,
+                        shape = RoundedCornerShape(16.dp),
+                    ) { Text(tr("+  Erfassen"), fontWeight = FontWeight.SemiBold) }
+                }
             }
         },
     ) { padding ->

@@ -9,6 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 <resources>
     <string name="widget_label">samudo · Today</string>
     <string name="widget_description">Overdue, today and flagged; check off and capture</string>
+    <string name="voice_label">Voice note</string>
     <string name="habits_widget_label">samudo · Habits</string>
     <string name="habits_widget_description">All habits with their streak; ✓ or +1 for today</string>
 </resources>

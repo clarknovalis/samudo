@@ -172,6 +172,12 @@ private fun AttachmentView(a: AttachmentRow, act: (Samu.() -> Unit) -> Unit) {
     var asking by remember(a.id) { mutableStateOf(false) }
     val image = a.mediaType.startsWith("image/")
     val sound = a.mediaType.startsWith("audio/")
+    // The server makes transcripts (ADR 0140 §3); asked here, until the sync brings the answer.
+    var canTranscribe by remember { mutableStateOf(false) }
+    var asked by remember(a.id, a.transcript, a.transcriptError) { mutableStateOf(false) }
+    LaunchedEffect(sound) {
+        if (sound) canTranscribe = withContext(Dispatchers.IO) { runCatching { Store.get(context).canTranscribe() }.getOrDefault(false) }
+    }
     LaunchedEffect(a.hash) {
         if (image) {
             withContext(Dispatchers.IO) {
@@ -217,6 +223,21 @@ private fun AttachmentView(a: AttachmentRow, act: (Samu.() -> Unit) -> Unit) {
             }
         }
         failed?.let { Text(tr("Nicht geladen: {it}", "it" to it), color = t.overdue, fontSize = 12.sp) }
+        if (sound) {
+            val text = a.transcript
+            val waiting = a.transcribing || asked
+            when {
+                waiting -> Text(tr("Transkript läuft …"), color = t.muted, fontSize = 12.sp)
+                a.transcriptError != null -> Text(tr("Kein Transkript: {it}", "it" to a.transcriptError), color = t.overdue, fontSize = 12.sp)
+                text != null && text.isEmpty() -> Text(tr("Nichts gesprochen."), color = t.muted, fontSize = 12.sp)
+                text != null -> Text(text, color = t.fg, fontSize = 14.sp)
+            }
+            if (canTranscribe && !waiting && !a.pending) {
+                TextButton(onClick = { asked = true; act { transcribe(a.id) } }) {
+                    Text(if (text != null) tr("Neu transkribieren") else tr("Transkribieren"))
+                }
+            }
+        }
     }
 }
 

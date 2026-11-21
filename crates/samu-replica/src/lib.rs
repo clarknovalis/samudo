@@ -13,7 +13,9 @@ mod cache;
 mod sync;
 
 pub use cache::{Cache, CacheError, object_of};
-pub use sync::{ReadBlob, SyncReport, push_blobs, remember_session, settings, sync, view};
+pub use sync::{
+    ReadBlob, SyncReport, push_blobs, remember_session, settings, sync, transcribes, view,
+};
 
 /// Why the sync or a read of the mirror failed.
 #[derive(Debug, thiserror::Error)]

@@ -18,12 +18,13 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use jiff::Timestamp;
-use samu_api::{Attachment, Author, AuthorKind, Change, Comment, Id, ObjectKind};
+use samu_api::{Attachment, Author, AuthorKind, Change, Comment, Id, ObjectKind, TranscriptState};
 use samu_core::overlay::Objects;
+use samu_core::voice::VOICE_SOURCE;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use crate::{MobileError, Samu, input, parse_id};
+use crate::{MobileError, Samu, Shared, input, parse_id};
 use samu_replica::Cache;
 
 /// What the server keeps at most per file (ADR 0039 §4).
@@ -64,6 +65,12 @@ pub struct AttachmentRow {
     pub changeable: bool,
     /// The attachment or its file has not reached the server yet.
     pub pending: bool,
+    /// What is said in a recording (ADR 0140 §2); empty when nothing was.
+    pub transcript: Option<String>,
+    /// The server is asked for the transcript and has not answered yet.
+    pub transcribing: bool,
+    /// Why the last try for a transcript failed.
+    pub transcript_error: Option<String>,
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -110,6 +117,72 @@ impl Samu {
         self.dir.join("blobs")
     }
 
+    /// The file at `path` moves into the phone's store of files and waits
+    /// there until the next sync sends it up; the attachment goes through
+    /// the outbox after it. With `transcribe` it asks for its transcript
+    /// (ADR 0140 §3).
+    fn attach(
+        &self,
+        owner: Id,
+        path: &str,
+        name: &str,
+        media_type: &str,
+        transcribe: bool,
+    ) -> Result<String, MobileError> {
+        let bytes = std::fs::read(path).map_err(|e| input(format!("{path}: {e}")))?;
+        let size = bytes.len() as u64;
+        if size > MAX_BYTES {
+            return Err(input(format!(
+                "{name} has {size} bytes; the server keeps at most {MAX_BYTES}"
+            )));
+        }
+        if size == 0 {
+            return Err(input(format!("{name} is empty")));
+        }
+        let media_type = if media_type.trim().is_empty() {
+            "application/octet-stream".to_string()
+        } else {
+            media_type.trim().to_string()
+        };
+        let hash = hex(&Sha256::digest(&bytes));
+        keep(&self.blobs(), &hash, &bytes)?;
+        let _ = std::fs::remove_file(path);
+        let now = Timestamp::now();
+        let attachment = Attachment {
+            id: Id::new(),
+            created: now,
+            modified: now,
+            created_by: None,
+            owner,
+            blob: hash.clone(),
+            name: if name.trim().is_empty() {
+                "file".into()
+            } else {
+                name.trim().to_string()
+            },
+            media_type: media_type.clone(),
+            size,
+            transcript: None,
+            transcript_state: transcribe.then_some(TranscriptState::Pending),
+            transcript_error: None,
+        };
+        let id = attachment.id;
+        let value = serde_json::to_value(&attachment).map_err(|e| input(e.to_string()))?;
+        self.cache()?.push_blob(&hash, &media_type, size)?;
+        self.queue(|objects, stamp| {
+            if !Self::owner_exists(objects, owner, true) {
+                return Err(input(format!("no task, project or comment {owner}")));
+            }
+            Ok(vec![Change::Create {
+                object: id,
+                kind: ObjectKind::Attachment,
+                value,
+                hlc: stamp(),
+            }])
+        })?;
+        Ok(id.to_string())
+    }
+
     fn local(&self, hash: &str) -> Option<String> {
         let path = self.blobs().join(hash);
         path.exists().then(|| path.display().to_string())
@@ -133,6 +206,13 @@ impl Samu {
             agent: kind == AuthorKind::Agent,
             changeable: kind == own,
             pending: touched.contains(&a.id) || waiting.contains(&a.blob),
+            transcript: a.transcript.clone(),
+            transcribing: a.transcript_state == Some(TranscriptState::Pending),
+            transcript_error: (a.transcript_state == Some(TranscriptState::Failed)).then(|| {
+                a.transcript_error
+                    .clone()
+                    .unwrap_or_else(|| "no transcript".into())
+            }),
         }
     }
 
@@ -343,59 +423,67 @@ impl Samu {
         name: String,
         media_type: String,
     ) -> Result<String, MobileError> {
-        let owner = parse_id(&owner)?;
-        let bytes = std::fs::read(&path).map_err(|e| input(format!("{path}: {e}")))?;
-        let size = bytes.len() as u64;
-        if size > MAX_BYTES {
+        self.attach(parse_id(&owner)?, &path, &name, &media_type, false)
+    }
+
+    /// A voice note (ADR 0140 §4, §6): a task in the inbox with `title`
+    /// as it stands, marked `source=voice`, and the recording at `path` on
+    /// it, which asks for its transcript. Offline both wait; the server
+    /// fills title and note from the transcript when it has one. The scope
+    /// chosen here fills in what it gives new tasks. Answers the task.
+    pub fn voice_note(
+        &self,
+        title: String,
+        path: String,
+        name: String,
+        media_type: String,
+    ) -> Result<String, MobileError> {
+        if title.trim().is_empty() {
+            return Err(input("a voice note needs a title"));
+        }
+        if !samu_core::voice::is_audio(&media_type) {
+            return Err(input(format!("{media_type} is not audio")));
+        }
+        // Signed out it refuses, so the app keeps the recording to hand
+        // on instead of filing it where no sync will fetch it.
+        if self.cache()?.meta("token")?.is_none() {
+            return Err(MobileError::SignedOut {
+                reason: "not signed in: the voice note was not filed".into(),
+            });
+        }
+        // Before the task: a recording that cannot be kept makes none.
+        let size = std::fs::metadata(&path)
+            .map_err(|e| input(format!("{path}: {e}")))?
+            .len();
+        if size == 0 || size > MAX_BYTES {
             return Err(input(format!(
-                "{name} has {size} bytes; the server keeps at most {MAX_BYTES}"
+                "{name} has {size} bytes; a recording has between 1 and {MAX_BYTES}"
             )));
         }
-        if size == 0 {
-            return Err(input(format!("{name} is empty")));
-        }
-        let media_type = if media_type.trim().is_empty() {
-            "application/octet-stream".to_string()
-        } else {
-            media_type.trim().to_string()
+        let placeholder = Shared {
+            title: title.trim().to_string(),
+            note: None,
+            links: Vec::new(),
         };
-        let hash = hex(&Sha256::digest(&bytes));
-        keep(&self.blobs(), &hash, &bytes)?;
-        let _ = std::fs::remove_file(&path);
-        let now = Timestamp::now();
-        let attachment = Attachment {
-            id: Id::new(),
-            created: now,
-            modified: now,
-            created_by: None,
-            owner,
-            blob: hash.clone(),
-            name: if name.trim().is_empty() {
-                "file".into()
-            } else {
-                name.trim().to_string()
-            },
-            media_type: media_type.clone(),
-            size,
-            transcript: None,
-            transcript_state: None,
-            transcript_error: None,
-        };
-        let id = attachment.id;
-        let value = serde_json::to_value(&attachment).map_err(|e| input(e.to_string()))?;
-        self.cache()?.push_blob(&hash, &media_type, size)?;
-        self.queue(|objects, stamp| {
-            if !Self::owner_exists(objects, owner, true) {
-                return Err(input(format!("no task, project or comment {owner}")));
-            }
-            Ok(vec![Change::Create {
-                object: id,
-                kind: ObjectKind::Attachment,
-                value,
-                hlc: stamp(),
-            }])
-        })?;
-        Ok(id.to_string())
+        let task = self.make("", None, Some(&placeholder), Some(VOICE_SOURCE))?;
+        self.attach(parse_id(&task)?, &path, &name, &media_type, true)?;
+        Ok(task)
+    }
+
+    /// Whether the server makes transcripts, as it said at the last sync
+    /// (ADR 0140 §3): the app offers them only then.
+    pub fn can_transcribe(&self) -> Result<bool, MobileError> {
+        Ok(samu_replica::transcribes(&*self.cache()?)?)
+    }
+
+    /// Asks the server for the transcript of an audio attachment, now
+    /// (ADR 0140 §3). The text comes with a later sync.
+    pub fn transcribe(&self, attachment: String) -> Result<(), MobileError> {
+        let id = parse_id(&attachment)?;
+        let client = self.client()?;
+        let answer = client.call("POST", &format!("/attachments/{id}/transcribe"), None);
+        self.signed_out_on_401(answer)?;
+        Ok(())
     }
 
     /// Where the file of a blob lies on the phone; fetched from the server

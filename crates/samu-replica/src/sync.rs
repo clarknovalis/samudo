@@ -74,7 +74,14 @@ pub fn remember_session(cache: &Cache, session: &SessionInfo) -> Result<(), Erro
             _ => None,
         },
     )?;
+    cache.set_meta("transcribe", session.transcribe.then_some("1"))?;
     Ok(())
+}
+
+/// Whether the server has a transcript service (ADR 0140 §3), as it said
+/// at the last sync.
+pub fn transcribes(cache: &Cache) -> Result<bool, Error> {
+    Ok(cache.meta("transcribe")?.as_deref() == Some("1"))
 }
 
 /// The mirror with the outbox laid over it, and which objects the outbox

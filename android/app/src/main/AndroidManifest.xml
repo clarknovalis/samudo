@@ -69,6 +69,30 @@ SPDX-License-Identifier: AGPL-3.0-or-later
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <!-- The recorder (ADR 0140 §6 to §8). With the ASSIST filter the
+             app may hold the digital assistant role (Default apps →
+             Digital assistant), and a long press of the side key then
+             opens it recording. Audio shared from another app arrives
+             here too and becomes a voice note. Whoever starts it gets a
+             visible recorder and nothing of the account. -->
+        <activity
+            android:name=".VoiceActivity"
+            android:exported="true"
+            android:label="@string/voice_label"
+            android:taskAffinity=""
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+        </activity>
         <!-- The widget "Heute" (ADR 0028 §9). -->
         <receiver
             android:name=".TodayWidgetReceiver"
