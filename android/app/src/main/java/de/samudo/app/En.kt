@@ -209,6 +209,8 @@ val EN: Map<String, String> = mapOf(
     "in " to "in ",
     "In Checkpunkt umwandeln" to "Turn into a checklist item",
     "In Unteraufgabe umwandeln" to "Turn into a subtask",
+    "Alle in Unteraufgaben" to "All into subtasks",
+    "Alle Unteraufgaben in Punkte" to "All subtasks into items",
     "In den Einstellungen" to "In settings",
     "in die Inbox" to "to the inbox",
     "in ein anderes Projekt" to "to another project",

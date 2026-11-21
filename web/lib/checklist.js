@@ -133,3 +133,25 @@ export function fromSubtask({ tasks, items, task, id, now, hlc }) {
     { op: "delete", object: task, hlc: hlc() },
   ];
 }
+
+// Every plain subtask of `task` as an item, in the order of the subtasks,
+// each after the ones made before it. Those that carry something an item
+// cannot keep stay and come back in `skipped` with the reason; throws the
+// first reason when none can be converted, or when there are no subtasks.
+export function allFromSubtasks({ tasks, items, task, now, hlc, newId }) {
+  const subs = tasks.filter((t) => t.parent === task).sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1));
+  const known = [...items];
+  const changes = [];
+  const skipped = [];
+  for (const sub of subs) {
+    try {
+      const made = fromSubtask({ tasks, items: known, task: sub.id, id: newId(), now, hlc });
+      known.push(made[0].value);
+      changes.push(...made);
+    } catch (error) {
+      skipped.push({ id: sub.id, title: sub.title, reason: error.message });
+    }
+  }
+  if (!changes.length) throw new Error(skipped[0]?.reason ?? "The task has no subtask that an item could take over.");
+  return { changes, skipped };
+}

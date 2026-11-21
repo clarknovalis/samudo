@@ -187,6 +187,58 @@ impl Samu {
         })?;
         Ok(item.to_string())
     }
+
+    /// Every item of the task made a subtask, in the order of the list.
+    pub fn checklist_all_to_subtasks(&self, task: String) -> Result<(), MobileError> {
+        let task = parse_id(&task)?;
+        self.queue(|objects, stamp| {
+            let changes = checklist::all_to_subtasks(
+                &objects.tasks,
+                &objects.checklist_items,
+                task,
+                Timestamp::now(),
+                Id::new,
+            )
+            .map_err(|e| input(e.to_string()))?;
+            Ok(changes.into_iter().map(|c| restamp(c, stamp())).collect())
+        })
+    }
+
+    /// Every plain subtask of the task made an item. Those that carry
+    /// something an item cannot keep stay; the result names each, with the
+    /// reason, one line per subtask. Refused when none can be converted.
+    pub fn checklist_all_from_subtasks(&self, task: String) -> Result<Vec<String>, MobileError> {
+        let task = parse_id(&task)?;
+        let mut skipped = Vec::new();
+        self.queue(|objects, stamp| {
+            let bulk = checklist::all_from_subtasks(
+                &objects.tasks,
+                &objects.checklist_items,
+                task,
+                Timestamp::now(),
+                Id::new,
+            )
+            .map_err(|e| input(e.to_string()))?;
+            skipped = bulk
+                .skipped
+                .iter()
+                .map(|(id, why)| {
+                    let title = objects
+                        .tasks
+                        .iter()
+                        .find(|t| t.id == *id)
+                        .map_or_else(String::new, |t| t.title.clone());
+                    format!("{title}: {why}")
+                })
+                .collect();
+            Ok(bulk
+                .changes
+                .into_iter()
+                .map(|c| restamp(c, stamp()))
+                .collect())
+        })?;
+        Ok(skipped)
+    }
 }
 
 impl Samu {

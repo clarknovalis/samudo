@@ -5187,6 +5187,24 @@ fn a_checklist_is_made_offline_and_reaches_the_server() {
     let second = phone_again(&server);
     second.sync().unwrap();
     let texts: Vec<String> = second
+        .checklist(task.clone())
+        .unwrap()
+        .into_iter()
+        .map(|r| r.text)
+        .collect();
+    assert_eq!(texts, ["Sonnenbrille!", "Ladekabel"]);
+
+    // The whole list, both ways, in its order.
+    second.checklist_all_to_subtasks(task.clone()).unwrap();
+    assert!(second.checklist(task.clone()).unwrap().is_empty());
+    assert!(second.checklist_all_to_subtasks(task.clone()).is_err());
+    assert!(
+        second
+            .checklist_all_from_subtasks(task.clone())
+            .unwrap()
+            .is_empty()
+    );
+    let texts: Vec<String> = second
         .checklist(task)
         .unwrap()
         .into_iter()

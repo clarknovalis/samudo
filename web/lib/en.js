@@ -886,6 +886,8 @@ export const EN = {
   "In Unteraufgabe umwandeln": "Turn into a subtask",
   "Alle in Unteraufgaben umwandeln": "Turn all into subtasks",
   "↳ Alle in Unteraufgaben": "↳ All into subtasks",
+  "Alle Unteraufgaben in Checkpunkte umwandeln": "Turn all subtasks into checklist items",
+  "↴ Alle Unteraufgaben in Punkte": "↴ All subtasks into items",
   "In Checkpunkt umwandeln": "Turn into a checklist item",
   "Balken": "Bars",
   "ohne Ordner": "no folder",

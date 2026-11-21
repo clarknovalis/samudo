@@ -52,7 +52,10 @@ items.
    not dropped, and nothing an item cannot keep (note, dates, tags,
    estimate, flag, priority, properties). Anything else is refused and
    says why, instead of losing it silently. Both are one batch of
-   ordinary changes, so there is no route of their own; `samu-core`
+   ordinary changes, and so is converting a whole list: every item becomes
+   a subtask in list order, and every plain subtask becomes an item; the
+   subtasks that carry something an item cannot keep stay and are named,
+   and the conversion is refused only when none can be converted, so there is no route of their own; `samu-core`
    plans them (`checklist::to_subtask`, `from_subtask`) and the web UI
    repeats the few lines, held to the same cases.
 6. **Not changed:** checkboxes in notes stay as they are (0058); no
@@ -65,9 +68,10 @@ items.
 - A server that does not know the kind reads it as `unknown` (0015) and
   an older client simply does not show the list.
 - The CLI covers it whole: `samu checklist list|add|check|uncheck|edit|
-  move|rm|to-subtask|from-subtask`, and `show --full` carries the list.
+  move|rm|to-subtask|from-subtask|to-subtasks|from-subtasks`, and `show --full` carries the list.
 
 ## Changes
 
 - 2026-11-21: draft.
 - 2026-11-21: accepted. Built in the core, the CLI, the web UI and the Android app; the Emacs package, the user documentation and the bulk conversion in both directions in the app and the CLI follow.
+- 2026-11-21: converting a whole list in both directions (§5) in the core, the CLI, the web UI and the Android app.

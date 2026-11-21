@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 
 const root = new URL("../../", import.meta.url);
-const { lines, itemsOf, progress, toSubtask, fromSubtask, carries, allToSubtasks } = await import(
+const { lines, itemsOf, progress, toSubtask, fromSubtask, carries, allToSubtasks, allFromSubtasks } = await import(
   new URL("web/lib/checklist.js", root)
 );
 
@@ -78,6 +78,19 @@ assert.deepEqual(
 assert.deepEqual([from[1].op, from[1].object], ["delete", "s1"]);
 const done = [task("T", null, 0), task("s2", "T", 0, { completed_at: now })];
 assert.equal(fromSubtask({ tasks: done, items: [], task: "s2", id: "it", now, hlc })[0].value.checked, true);
+
+// Every plain subtask at once: in order, after the existing items; the
+// flagged one stays and is named.
+{
+  const subs = [task("T", null, 0), task("p", "T", 1), task("q", "T", 0, { flagged: true }), task("r", "T", 2, { completed_at: now })];
+  let n = 0;
+  const got = allFromSubtasks({ tasks: subs, items, task: "T", now, hlc, newId: () => `m${++n}` });
+  assert.deepEqual(got.changes.filter((c) => c.op === "create").map((c) => [c.value.text, c.value.position, c.value.checked]), [["tp", 3, undefined], ["tr", 4, true]]);
+  assert.deepEqual(got.changes.filter((c) => c.op === "delete").map((c) => c.object), ["p", "r"]);
+  assert.deepEqual(got.skipped.map((s) => s.id), ["q"]);
+  assert.throws(() => allFromSubtasks({ tasks: [task("T", null, 0), task("q", "T", 0, { flagged: true })], items: [], task: "T", now, hlc, newId: () => "x" }), /a flag/);
+  assert.throws(() => allFromSubtasks({ tasks: [task("T", null, 0)], items: [], task: "T", now, hlc, newId: () => "x" }));
+}
 
 // What an item cannot keep is refused and named, never lost.
 for (const [more, what] of [

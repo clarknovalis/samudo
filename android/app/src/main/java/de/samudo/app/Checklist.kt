@@ -40,8 +40,9 @@ import kotlinx.coroutines.withContext
  * task that has none.
  */
 @Composable
-fun ChecklistPart(id: String, row: TaskRow, tick: Int, act: (Samu.() -> Unit) -> Unit) {
+fun ChecklistPart(id: String, row: TaskRow, tick: Int, changed: () -> Unit, act: (Samu.() -> Unit) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val t = LocalTokens.current
     var items by remember { mutableStateOf<List<ChecklistRow>>(emptyList()) }
     var adding by remember { mutableStateOf("") }
@@ -71,6 +72,30 @@ fun ChecklistPart(id: String, row: TaskRow, tick: Int, act: (Samu.() -> Unit) ->
             if (!closed) {
                 TextButton(onClick = { act { runCatching { checklistToSubtask(item.id) } } }) {
                     Text(tr("In Unteraufgabe umwandeln"), fontSize = 12.sp)
+                }
+            }
+        }
+        if (!closed && (items.isNotEmpty() || row.group)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (items.isNotEmpty()) {
+                    TextButton(onClick = { act { runCatching { checklistAllToSubtasks(id) } } }) {
+                        Text(tr("Alle in Unteraufgaben"), fontSize = 12.sp)
+                    }
+                }
+                if (row.group) {
+                    TextButton(onClick = {
+                        scope.launch {
+                            try {
+                                val kept = withContext(Dispatchers.IO) { Store.get(context).checklistAllFromSubtasks(id) }
+                                changed()
+                                if (kept.isNotEmpty()) {
+                                    android.widget.Toast.makeText(context, kept.joinToString("\n"), android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, said(e), android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }) { Text(tr("Alle Unteraufgaben in Punkte"), fontSize = 12.sp) }
                 }
             }
         }

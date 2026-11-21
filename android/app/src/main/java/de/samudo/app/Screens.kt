@@ -697,7 +697,7 @@ fun TaskScreen(id: String, tick: Int, changed: () -> Unit, open: (String) -> Uni
             NoteField(e.note ?: "", { v -> act { setNote(id, v) } }, open, rendered = layout?.noteRendered == true)
         }
         EditChips(id, e, act, show)
-        if (show("checklist")) ChecklistPart(id, row, tick, act)
+        if (show("checklist")) ChecklistPart(id, row, tick, changed, act)
         if (show("clock")) ClockPart(id, row, d.estimate, tick, act)
         if (show("reminders") && !row.done && !row.dropped) RemindersPart(id, row, tick, act)
         NotesPart(id, tick, act, open, showComments = show("comments"), showFiles = show("attachments"))

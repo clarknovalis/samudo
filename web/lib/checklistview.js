@@ -9,7 +9,7 @@
 
 import { api, change } from "./api.js";
 import { $, el, uuidv7 } from "./dom.js";
-import { allToSubtasks, fromSubtask, itemsOf, lines, progress, toSubtask } from "./checklist.js";
+import { allFromSubtasks, allToSubtasks, fromSubtask, itemsOf, lines, progress, toSubtask } from "./checklist.js";
 import { state, update } from "./state.js";
 import { tr } from "./i18n.js";
 
@@ -227,6 +227,26 @@ export function checklistBody(task) {
           title: tr("Alle in Unteraufgaben umwandeln"),
           text: tr("↳ Alle in Unteraufgaben"),
           onclick: () => write(allToSubtasks({ tasks: state.tasks, items: state.checklist, task, now: now(), hlc, newId: uuidv7 })),
+        })
+      : null,
+    state.tasks.some((t) => t.parent === task)
+      ? el("button", {
+          type: "button",
+          class: "cl-all",
+          title: tr("Alle Unteraufgaben in Checkpunkte umwandeln"),
+          text: tr("↴ Alle Unteraufgaben in Punkte"),
+          onclick: async () => {
+            let got;
+            try {
+              got = allFromSubtasks({ tasks: state.tasks, items: state.checklist, task, now: now(), hlc, newId: uuidv7 });
+            } catch (error) {
+              update({ message: error.message });
+              return;
+            }
+            if (await write(got.changes) && got.skipped.length) {
+              update({ message: got.skipped.map((s) => `${s.title}: ${s.reason}`).join("\n") });
+            }
+          },
         })
       : null,
   ]);
