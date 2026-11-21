@@ -140,7 +140,9 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
 (ert-deftest samu-test-failure-names-stderr-once ()
   (samu-test--with-cli '((("show") 1 "" "warning\nsamu: no such task"))
     (let ((err (should-error (samu--call '("show" "x")) :type 'samu-error)))
-      (should (equal (cadr err) "samu: no such task")))))
+      (should (equal (cadr err) "samu: no such task"))
+      ;; what a key that waits shows: the line once, without quotes
+      (should (equal (error-message-string err) "samu: no such task")))))
 
 (ert-deftest samu-test-not-found-is-an-answer-where-allowed ()
   (samu-test--with-cli '((("clock" "out") 3 "" "samu: no clock runs"))

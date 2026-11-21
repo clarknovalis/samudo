@@ -168,7 +168,10 @@ clock is in the mode line.  `samu-toggle-live' switches it."
 (defconst samu--exit-needs-choice 7
   "The exit code of the CLI when tasks have open tasks below (ADR 0128).")
 
-(define-error 'samu-error "samu")
+;; Below `file-error', because only there Emacs prints the first datum as
+;; the message itself; any other error shows it quoted behind its own
+;; message: samu: "samu: no such task".
+(define-error 'samu-error "samu" 'file-error)
 
 (defun samu--global-args ()
   "Arguments every call takes: profile, server and account."
@@ -298,17 +301,11 @@ CALLBACK gets (CODE OUT ERR), what `samu--run' returns, once it ended."
   (while (and samu--waiting (< samu--running samu--max-processes))
     (apply #'samu--spawn (pop samu--waiting))))
 
-(defun samu--error-text (err)
-  "What to show for the error ERR: the CLI's own line for a `samu-error'."
-  (if (and (eq (car err) 'samu-error) (stringp (cadr err)))
-      (cadr err)
-    (error-message-string err)))
-
 (defun samu--answer (callback answer)
   "Give ANSWER to CALLBACK; an error there becomes a message."
   (condition-case err
       (funcall callback answer)
-    (error (message "%s" (samu--error-text err)))))
+    (error (message "%s" (error-message-string err)))))
 
 (defun samu--spawn (command input callback)
   "Start COMMAND with INPUT on stdin; CALLBACK gets (CODE OUT ERR)."
@@ -395,7 +392,7 @@ signaled after FAIL."
         (let ((err (if missing
                        '(samu-error "samu: this view never stops asking")
                      (cdr result))))
-          (message "%s" (samu--error-text err))
+          (message "%s" (error-message-string err))
           (when fail (funcall fail err))))))))
 
 ;;;; What completion offers
@@ -659,7 +656,7 @@ filled shows the error.  Then fill again if asked to meanwhile."
                    (setq samu--unfilled nil)
                    (samu--draw data))
                   (samu--unfilled
-                   (samu--placeholder (concat (samu--error-text err)
+                   (samu--placeholder (concat (error-message-string err)
                                               "\n\ng asks again"))))
           (force-mode-line-update)
           (when again (samu--render)))))))
@@ -718,7 +715,7 @@ shows them."
         (if (or (eq buffer here) (get-buffer-window buffer t))
             (condition-case err
                 (samu--render)
-              (samu-error (message "%s" (samu--error-text err))))
+              (samu-error (message "%s" (error-message-string err))))
           (setq samu--stale t))))))
 
 (defun samu--shown (window)
