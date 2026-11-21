@@ -203,12 +203,18 @@ private fun AttachmentView(a: AttachmentRow, act: (Samu.() -> Unit) -> Unit) {
                     .clickable { fetchThen { open(context, this, a.mediaType) } },
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        val name: @Composable (Modifier) -> Unit = { modifier ->
             Text(
                 (if (sound) "♪ " else if (image) "" else "▤ ") + a.name + " · " + size(a.size) +
                     (if (a.agent) " · Agent" else "") + (if (a.pending) tr(" · im Ausgang") else ""),
-                color = if (a.pending) t.wait else t.muted, fontSize = 12.sp, modifier = Modifier.weight(1f),
+                color = if (a.pending) t.wait else t.muted, fontSize = 12.sp, modifier = modifier,
             )
+        }
+        // A recording has two buttons, and in German they leave the name
+        // a column of a few letters: there it gets a line of its own.
+        if (sound) name(Modifier.fillMaxWidth())
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!sound) name(Modifier.weight(1f))
             when {
                 sound -> Player(a, fetchThen)
                 !image -> TextButton(onClick = { fetchThen { open(context, this, a.mediaType) } }) { Text(tr("Öffnen")) }
