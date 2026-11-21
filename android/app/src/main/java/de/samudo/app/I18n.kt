@@ -69,7 +69,10 @@ object I18n {
         for ((pattern, german) in MESSAGES) {
             val found = pattern.regex.matchEntire(reason) ?: continue
             var text = german
-            pattern.names.forEachIndexed { i, name -> text = text.replace("{$name}", found.groupValues[i + 1]) }
+            pattern.names.forEachIndexed { i, name ->
+                val value = found.groupValues[i + 1]
+                text = text.replace("{$name}", if (name == "what") WHAT[value] ?: value else value)
+            }
             return text
         }
         return reason
@@ -94,6 +97,28 @@ fun tr(key: String, vararg vars: Pair<String, Any?>): String {
     for ((name, value) in vars) text = text.replace("{$name}", value.toString())
     return text
 }
+
+/**
+ * What a subtask has that a checklist item cannot keep, as samu-core names
+ * it (`checklist`), and its German: the `{what}` of that refusal.
+ * `web/tests/i18n.mjs` checks that samu-core still says each.
+ */
+private val WHAT: Map<String, String> = mapOf(
+    "a note" to "eine Notiz",
+    "dates" to "Datumsangaben",
+    "tags" to "Tags",
+    "an estimate" to "eine Schätzung",
+    "a flag" to "eine Markierung",
+    "a priority" to "eine Priorität",
+    "properties" to "Properties",
+    "a checklist of its own" to "eine eigene Checkliste",
+    "comments" to "Kommentare",
+    "attachments" to "Anhänge",
+    "clocked time" to "gebuchte Zeit",
+    "reminders" to "Erinnerungen",
+    "links" to "Links",
+    "a task that waits for it" to "eine Aufgabe, die auf sie wartet",
+)
 
 /** An English message with `{name}` for a value, quoted or not, and those names. */
 private class Said(english: String) {

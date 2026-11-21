@@ -99,7 +99,7 @@ fun ChecklistPart(id: String, row: TaskRow, tick: Int, changed: () -> Unit, act:
                                 val kept = withContext(Dispatchers.IO) { Store.get(context).checklistAllFromSubtasks(id) }
                                 changed()
                                 if (kept.isNotEmpty()) {
-                                    android.widget.Toast.makeText(context, kept.joinToString("\n"), android.widget.Toast.LENGTH_LONG).show()
+                                    android.widget.Toast.makeText(context, kept.joinToString("\n", transform = ::keptLine), android.widget.Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
                                 android.widget.Toast.makeText(context, said(e), android.widget.Toast.LENGTH_LONG).show()
@@ -131,8 +131,17 @@ fun ChecklistPart(id: String, row: TaskRow, tick: Int, changed: () -> Unit, act:
 }
 
 /**
+ * A subtask that stays one, as samu-mobile names it: its title, `: ` and
+ * the reason in English, which is said in the app's language here.
+ */
+private fun keptLine(line: String): String {
+    val at = line.lastIndexOf(": ")
+    return if (at < 0) line else line.substring(0, at + 2) + I18n.message(line.substring(at + 2))
+}
+
+/**
  * Turns a subtask into an item of its parent's checklist (ADR 0141). The
- * server-side rule refuses what an item cannot keep and says what; the
+ * rule in samu-core refuses what an item cannot keep and says what; the
  * task page closes after it, since the task is gone.
  */
 @Composable

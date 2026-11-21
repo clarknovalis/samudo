@@ -119,6 +119,32 @@ if (existsSync(i18nKt)) {
     if (names(english) !== names(german)) complain(`i18n: ${JSON.stringify(german)} fills other names than ${JSON.stringify(english)}`);
   }
   if (messages === 0) complain("i18n: no message in I18n.kt MESSAGES: the pattern is broken");
+  // The `{what}` of a refused conversion: each word is one samu-core's
+  // checklist module still says, and none of its words is missing here.
+  const core = readFileSync(join(root, "crates/samu-core/src/checklist.rs"), "utf8");
+  const whatStart = kt.indexOf("private val WHAT");
+  const whatBlock = whatStart < 0 ? "" : kt.slice(whatStart, kt.indexOf("\n)", whatStart));
+  const words = [...whatBlock.matchAll(/^\s*"((?:[^"\\]|\\.)*)"\s+to\s+"/gm)].map((m) => unescape(m[1]));
+  if (words.length === 0) complain("i18n: no word in I18n.kt WHAT: the pattern is broken");
+  for (const word of words) {
+    if (!core.includes(`Some(${JSON.stringify(word)})`)) complain(`i18n: samu-core no longer says ${JSON.stringify(word)} (I18n.kt, WHAT)`);
+  }
+  // Up to the tests: there the words are only quoted.
+  const said = [...core.slice(0, core.indexOf("#[cfg(test)]")).matchAll(/Some\("([a-z][^"]*)"\)/g)].map((m) => m[1]);
+  if (said.length === 0) complain("i18n: no word found in samu-core's checklist module: the pattern is broken");
+  for (const word of said) {
+    if (!words.includes(word)) complain(`i18n: ${JSON.stringify(word)} of samu-core has no German in I18n.kt, WHAT`);
+  }
+  // The web UI words the same refusals (checklistview.js, WHAT), from the
+  // copy of the rule in checklist.js.
+  const view = readFileSync(join(root, "web/lib/checklistview.js"), "utf8");
+  const copy = readFileSync(join(root, "web/lib/checklist.js"), "utf8");
+  for (const word of said) {
+    if (!copy.includes(`return ${JSON.stringify(word)}`)) complain(`i18n: web/lib/checklist.js does not name ${JSON.stringify(word)} as samu-core does`);
+    if (!new RegExp(`^  (${word}|${JSON.stringify(word)}): \\(\\) => tr\\(`, "m").test(view)) {
+      complain(`i18n: ${JSON.stringify(word)} has no wording in web/lib/checklistview.js, WHAT`);
+    }
+  }
 }
 
 console.log(`i18n: web ${web.size} keys, app ${existsSync(enKt) ? `${app} keys` : "no En.kt yet"}, ${messages} messages, ${failed} problems`);

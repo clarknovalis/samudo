@@ -83,6 +83,12 @@ export function pasted(value, got) {
   return value.trim() === "" ? { own: got[0] ?? null, rest: got.slice(1) } : { own: null, rest: got };
 }
 
+// A refusal: `code` names the case and `what` the thing an item cannot
+// keep, for the page to say it in its language; `message` is the English.
+function refusal(code, message, what) {
+  return Object.assign(new Error(message), { code, what });
+}
+
 // What an item cannot keep, named; null for a plain subtask. `around` is
 // what hangs on tasks as objects of their own and would go with the task:
 // { items, comments, attachments, clocks, reminders, links }.
@@ -111,9 +117,9 @@ export function carries(task, around = {}) {
 // `hlc` stamps a change; the server stamps again (?stamp=server).
 export function toSubtask({ tasks, items, item, id, now, hlc }) {
   const it = items.find((i) => i.id === item);
-  if (!it) throw new Error("No such checklist item.");
+  if (!it) throw refusal("noItem", "No such checklist item.");
   const owner = tasks.find((t) => t.id === it.owner);
-  if (!owner) throw new Error("No such task.");
+  if (!owner) throw refusal("noTask", "No such task.");
   const value = {
     id,
     created: now,
@@ -149,14 +155,14 @@ export function allToSubtasks({ tasks, items, task, now, hlc, newId }) {
 // without the items.
 export function fromSubtask({ tasks, items, around = {}, task, id, now, hlc }) {
   const t = tasks.find((x) => x.id === task);
-  if (!t) throw new Error("No such task.");
-  if (!t.parent) throw new Error("The task is not a subtask.");
-  if (tasks.some((x) => x.parent === t.id)) throw new Error("The task has subtasks of its own.");
-  if (t.habit) throw new Error("The task is a habit.");
-  if (t.repeat) throw new Error("The task repeats.");
-  if (t.dropped_at) throw new Error("The task was dropped.");
+  if (!t) throw refusal("noTask", "No such task.");
+  if (!t.parent) throw refusal("noParent", "The task is not a subtask.");
+  if (tasks.some((x) => x.parent === t.id)) throw refusal("hasChildren", "The task has subtasks of its own.");
+  if (t.habit) throw refusal("habit", "The task is a habit.");
+  if (t.repeat) throw refusal("repeats", "The task repeats.");
+  if (t.dropped_at) throw refusal("dropped", "The task was dropped.");
   const what = carries(t, { ...around, items });
-  if (what) throw new Error(`The task carries ${what}, which an item cannot keep.`);
+  if (what) throw refusal("carries", `The task has ${what}, which a checklist item cannot keep.`, what);
   const value = {
     id,
     created: now,
@@ -174,8 +180,9 @@ export function fromSubtask({ tasks, items, around = {}, task, id, now, hlc }) {
 
 // Every plain subtask of `task` as an item, in the order of the subtasks,
 // each after the ones made before it. Those that carry something an item
-// cannot keep stay and come back in `skipped` with the reason; throws the
-// first reason when none can be converted, or when there are no subtasks.
+// cannot keep stay and come back in `skipped` with the refusal (`error`)
+// and its English (`reason`); throws the first refusal when none can be
+// converted, or one of its own when there are no subtasks.
 export function allFromSubtasks({ tasks, items, around = {}, task, now, hlc, newId }) {
   const subs = tasks.filter((t) => t.parent === task).sort((a, b) => a.position - b.position || (a.id < b.id ? -1 : 1));
   const known = [...items];
@@ -187,9 +194,11 @@ export function allFromSubtasks({ tasks, items, around = {}, task, now, hlc, new
       known.push(made[0].value);
       changes.push(...made);
     } catch (error) {
-      skipped.push({ id: sub.id, title: sub.title, reason: error.message });
+      skipped.push({ id: sub.id, title: sub.title, reason: error.message, error });
     }
   }
-  if (!changes.length) throw new Error(skipped[0]?.reason ?? "The task has no subtask that an item could take over.");
+  if (!changes.length) {
+    throw skipped[0]?.error ?? refusal("noPlain", "The task has no subtask that a checklist item could take over.");
+  }
   return { changes, skipped };
 }

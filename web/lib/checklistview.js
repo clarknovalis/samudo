@@ -39,6 +39,59 @@ async function write(changes) {
   }
 }
 
+// Why a conversion is refused (the codes of checklist.js), in the
+// language of the page.
+const WHY = {
+  noItem: () => tr("Den Checkpunkt gibt es nicht."),
+  noTask: () => tr("Die Aufgabe gibt es nicht."),
+  noParent: () => tr("Die Aufgabe ist keine Unteraufgabe."),
+  hasChildren: () => tr("Die Aufgabe hat eigene Unteraufgaben."),
+  habit: () => tr("Die Aufgabe ist ein Habit."),
+  repeats: () => tr("Die Aufgabe wiederholt sich."),
+  dropped: () => tr("Die Aufgabe wurde verworfen."),
+  noPlain: () => tr("Die Aufgabe hat keine Unteraufgabe, die ein Checkpunkt werden kann."),
+};
+
+// What a subtask has that an item cannot keep (`carries` in checklist.js).
+const WHAT = {
+  "a note": () => tr("Punkt|eine Notiz"),
+  dates: () => tr("Punkt|Datumsangaben"),
+  tags: () => tr("Punkt|Tags"),
+  "an estimate": () => tr("Punkt|eine Schätzung"),
+  "a flag": () => tr("Punkt|eine Markierung"),
+  "a priority": () => tr("Punkt|eine Priorität"),
+  properties: () => tr("Punkt|Properties"),
+  "a checklist of its own": () => tr("Punkt|eine eigene Checkliste"),
+  comments: () => tr("Punkt|Kommentare"),
+  attachments: () => tr("Punkt|Anhänge"),
+  "clocked time": () => tr("Punkt|gebuchte Zeit"),
+  reminders: () => tr("Punkt|Erinnerungen"),
+  links: () => tr("Punkt|Links"),
+  "a task that waits for it": () => tr("Punkt|eine Aufgabe, die auf sie wartet"),
+};
+
+// A refusal of checklist.js as the page says it; anything else as it is.
+export function said(error) {
+  if (error.code === "carries") {
+    return tr("Ein Checkpunkt kann nicht behalten, was die Aufgabe hat: {what}.", {
+      what: WHAT[error.what]?.() ?? error.what,
+    });
+  }
+  return WHY[error.code]?.() ?? error.message;
+}
+
+// A conversion planned by checklist.js and written; a refusal is shown.
+function convert(plan) {
+  let changes;
+  try {
+    changes = plan();
+  } catch (error) {
+    update({ message: said(error) });
+    return Promise.resolve(false);
+  }
+  return write(changes);
+}
+
 // The page is drawn again after a write, later than the write returns: the
 // cursor goes to the item once that draw has it.
 let wanted = null;
@@ -247,7 +300,7 @@ function itemRow(task, item, list) {
         "aria-label": tr("In Unteraufgabe umwandeln"),
         text: "↳",
         onclick: () =>
-          write(toSubtask({ tasks: state.tasks, items: state.checklist, item: item.id, id: uuidv7(), now: now(), hlc })),
+          convert(() => toSubtask({ tasks: state.tasks, items: state.checklist, item: item.id, id: uuidv7(), now: now(), hlc })),
       }),
       el("button", {
         type: "button",
@@ -310,7 +363,8 @@ export function checklistBody(task) {
           class: "cl-all",
           title: tr("Alle in Unteraufgaben umwandeln"),
           text: tr("↳ Alle in Unteraufgaben"),
-          onclick: () => write(allToSubtasks({ tasks: state.tasks, items: state.checklist, task, now: now(), hlc, newId: uuidv7 })),
+          onclick: () =>
+            convert(() => allToSubtasks({ tasks: state.tasks, items: state.checklist, task, now: now(), hlc, newId: uuidv7 })),
         })
       : null,
     state.tasks.some((t) => t.parent === task)
@@ -324,11 +378,11 @@ export function checklistBody(task) {
             try {
               got = allFromSubtasks({ tasks: state.tasks, items: state.checklist, around: around(), task, now: now(), hlc, newId: uuidv7 });
             } catch (error) {
-              update({ message: error.message });
+              update({ message: said(error) });
               return;
             }
-            if (await write(got.changes) && got.skipped.length) {
-              update({ message: got.skipped.map((s) => `${s.title}: ${s.reason}`).join("\n") });
+            if ((await write(got.changes)) && got.skipped.length) {
+              update({ message: got.skipped.map((s) => `${s.title}: ${said(s.error)}`).join("\n") });
             }
           },
         })
@@ -357,7 +411,7 @@ export function toItemButton(task) {
       try {
         changes = fromSubtask({ tasks: state.tasks, items: state.checklist, around: around(), task: task.id, id: uuidv7(), now: now(), hlc });
       } catch (error) {
-        update({ message: error.message });
+        update({ message: said(error) });
         return;
       }
       if (await write(changes)) update({ selected: task.parent });

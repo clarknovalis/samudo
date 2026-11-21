@@ -143,6 +143,33 @@ assert.equal(carries(task("s", "T", 0, { note: "  " })), null);
   assert.match(got.skipped[0].reason, /comments/);
 }
 assert.throws(() => fromSubtask({ tasks, items, task: "T", id: "i", now, hlc }), /not a subtask/);
+// A refusal carries its case and what it is about, for the page to word.
+assert.throws(
+  () => fromSubtask({ tasks, items, task: "T", id: "i", now, hlc }),
+  (e) => e.code === "noParent" && e.what === undefined,
+);
+assert.throws(
+  () => fromSubtask({ tasks: [task("T", null, 0), task("s", "T", 0, { flagged: true })], items: [], task: "s", id: "i", now, hlc }),
+  (e) => e.code === "carries" && e.what === "a flag",
+);
+assert.throws(
+  () => allFromSubtasks({ tasks: [task("T", null, 0)], items: [], task: "T", now, hlc, newId: () => "x" }),
+  (e) => e.code === "noPlain",
+);
+{
+  const got = allFromSubtasks({
+    tasks: [task("T", null, 0), task("a", "T", 0), task("b", "T", 1, { priority: "A" })],
+    items: [],
+    task: "T",
+    now,
+    hlc,
+    newId: () => "n",
+  });
+  assert.deepEqual(
+    got.skipped.map((x) => [x.id, x.error.code, x.error.what]),
+    [["b", "carries", "a priority"]],
+  );
+}
 assert.throws(
   () => fromSubtask({ tasks: [...tasks, task("g", "s1", 0)], items, task: "s1", id: "i", now, hlc }),
   /subtasks of its own/,
