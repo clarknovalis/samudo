@@ -160,8 +160,16 @@ Eine Taste setzt man mit `samu template key <name> <taste>` oder unter
 
 Solange ein samu-Puffer offen ist oder die Uhr in der Mode-Line steht,
 läuft ein Prozess `samu events`. Jede Änderung, auch aus dem Web, der App
-oder der Kommandozeile, frischt die offenen Puffer und die Uhr auf, nach
+oder der Kommandozeile, frischt die sichtbaren Puffer und die Uhr auf, nach
 einer Sekunde Ruhe und nicht, während der Minibuffer liest. Punkt,
 Markierungen und die erste Zeile jedes Fensters bleiben, wo sie waren.
 Endet der Prozess, verbindet er sich nach 5 Sekunden neu, dann mit
 verdoppelten Pausen bis zu einer Minute.
+
+Emacs wartet nie darauf, dass sich ein Puffer füllt. Die Kommandozeile
+wird im Hintergrund gefragt, mehrere Aufrufe nebeneinander, und der Puffer
+behält, was er zeigt, bis die Antworten da sind; solange steht ` …` in der
+Mode-Line, und ein neuer Puffer zeigt `Loading …`. Ein Puffer in keinem
+Fenster wird gar nicht aufgefrischt: er füllt sich, sobald man zu ihm
+zurückwechselt. Nur eine Taste, die etwas ändert, wartet auf ihren einen
+Aufruf, damit ihr Fehler sofort zu sehen ist.

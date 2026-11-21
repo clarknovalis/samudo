@@ -14,7 +14,9 @@
 ;; Everything goes through the command line `samu' with `--format
 ;; json': its configuration, its session and its server, the local
 ;; replica (ADR 0066) included.  Emacs writes as the person signed in
-;; there.
+;; there.  A key that changes something waits for its call; what the
+;; buffers show is fetched in the background, and only for buffers in
+;; a window.
 ;;
 ;;   (load "~/path/to/samudo/emacs/samu.el")
 ;;   (global-set-key (kbd "C-c s") #'samu)          ; the forecast

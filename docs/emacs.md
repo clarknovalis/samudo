@@ -155,7 +155,14 @@ key picks one, and the line starts with its `/name`. Set a key with
 
 While a samu buffer is open or the clock shows in the mode line, a process
 `samu events` runs. Every change, also from the web, the app or the command
-line, refreshes the open buffers and the clock, after one second of quiet
-and not while the minibuffer is reading. Point, marks and each window's
-first line stay where they were. If the process ends, it reconnects after
-5 seconds, then with doubling delays up to a minute.
+line, refreshes the buffers you can see and the clock, after one second of
+quiet and not while the minibuffer is reading. Point, marks and each
+window's first line stay where they were. If the process ends, it
+reconnects after 5 seconds, then with doubling delays up to a minute.
+
+Emacs never waits for a buffer to fill. The command line is asked in the
+background, several calls side by side, and the buffer keeps what it shows
+until the answers are there; the mode line shows ` …` meanwhile, and a new
+buffer says `Loading …`. A buffer in no window is not refreshed at all: it
+fills when you switch back to it. Only a key that changes something waits,
+for its one call, so that its error shows at once.

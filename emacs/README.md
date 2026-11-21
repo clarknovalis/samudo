@@ -9,4 +9,5 @@ Einstellungen, Ansichten, Tasten, Habits, Erfassen, Org-Links, Live.
 ## Tests
 
 `make emacs-check` (Teil von `make check`) kompiliert ohne Warnungen und
-lässt `test-samu.el` laufen, ohne CLI und ohne Server.
+lässt `test-samu.el` laufen, ohne CLI und ohne Server. Die Tests der
+Aufrufe im Hintergrund starten an Stelle der CLI ein Shell-Skript.

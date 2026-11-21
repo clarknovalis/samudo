@@ -44,6 +44,7 @@ its citations in the code have no target.
 | [0078](0078-edit-dialog.md) | accepted | The "Edit" dialog changes an existing task in quick-capture syntax, its values as removable chips; `CaptureRequest.task` |
 | [0080](0080-report.md) | accepted | Report of done, worked on and time over a period, filtered with the search language, `GET /report`; by default only the person's own work |
 | [0081](0081-report-replaces-time.md) | accepted | "Report" replaces "Time"; booking time afterwards with `z:` (and `x:` for completed) in capture and edit |
+| [0082](0082-samu-el.md) | accepted | samu.el through the CLI: views like org-agenda, the web's keys, a task's buffer, capture with completion, the clock in the mode line; writing waits, reading runs in the background |
 | [0088](0088-review.md) | accepted | Review: due date computed in `samu-core`, "reviewed" as an ordinary change, a review view in the web |
 | [0090](0090-perspectives.md) | accepted | Perspectives: saved search, filter, arrangement and display as a server object, evaluated in `samu-core`, in the sidebar |
 | [0091](0091-habits.md) | accepted | Habits: a task with the field `habit`, every tap an entry `habit_entry`, streak and rate in `samu-core` |
