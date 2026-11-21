@@ -1,0 +1,23 @@
+{{- /*
+  Images of the pages in docs/ are written for the repository
+  (`img/android-voice-note.png`, beside the Markdown of that language).
+  The pages here have no file, so the image is looked up among the
+  mounted assets (assets/docs/<lang>/) and published from there. An image
+  that is missing fails the build.
+*/ -}}
+{{- $dest := .Destination -}}
+{{- $src := $dest -}}
+{{- $width := 0 -}}
+{{- $height := 0 -}}
+{{- if not (or (hasPrefix $dest "http://") (hasPrefix $dest "https://")) -}}
+  {{- $name := printf "docs/%s/%s" .Page.Language.Lang $dest -}}
+  {{- with resources.Get $name -}}
+    {{- $src = .RelPermalink -}}
+    {{- $width = .Width -}}
+    {{- $height = .Height -}}
+  {{- else -}}
+    {{- errorf "render-image: %s is missing (%s)" $name .Page.RelPermalink -}}
+  {{- end -}}
+{{- end -}}
+<img class="samu-shot" src="{{ $src | safeURL }}" alt="{{ .PlainText }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $width }} width="{{ $width }}" height="{{ $height }}"{{ end }} loading="lazy">
+{{- /**/ -}}

@@ -138,6 +138,8 @@ Where the server has a transcript service, "Transcribe" asks for it and
 "Transcribe again" for a new one; while the server is at it the line says
 so, and a failure shows its reason with "Try again".
 
+![A voice note in the inbox; the inspector shows the player, the transcript under it and "Transcribe again"](img/web-voice-note.png)
+
 ### Selecting many
 
 Ctrl- or ⌘-click adds a row, Shift-click a range, Space the current row. A

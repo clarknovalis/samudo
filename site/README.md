@@ -22,6 +22,9 @@ this directory turns them into a site.
 - `layouts/_markup/render-link.html` – resolves the repository links
   between the pages (`concepts.md#scopes`) by file name; links that leave
   `docs/` stay text.
+- `layouts/_markup/render-image.html` – publishes the images of the pages
+  (`img/android-voice-note.png`, in `docs/img/` and `docs/de/img/`) from
+  the mounted assets; a missing image fails the build.
 - `content/<lang>/` – what is not a doc page: the home page, a table of
   contents that points to samudo.de for what samudo is.
 - `i18n/`, `assets/css/custom.css`, `layouts/_partials/` – labels, CSS

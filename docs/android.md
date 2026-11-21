@@ -170,6 +170,8 @@ The round button "●" beside "+ Capture" opens the recorder, and so does
 "Voice note" after a long press on the app's icon. It records from the
 first moment (it asks for the microphone the first time).
 
+![The recorder while it records, the voice note in the inbox under the title from its transcript, and the recording with its transcript on the task](img/android-voice-note.png)
+
 - **"■ Stop and file"** makes a task "Voice note *date time*" in the
   inbox with the recording on it, also offline. On a server with a
   [transcript service](self-hosting.md#transcripts) what you said then

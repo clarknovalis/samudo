@@ -183,6 +183,8 @@ Der runde Knopf „●“ neben „+ Erfassen“ öffnet die Aufnahme, ebenso
 „Sprachnotiz“ nach langem Druck auf das Symbol der App. Sie nimmt vom
 ersten Moment an auf (beim ersten Mal fragt sie nach dem Mikrofon).
 
+![Die Aufnahme, während sie läuft, die Sprachnotiz in der Inbox unter dem Titel aus ihrem Transkript und die Aufnahme mit ihrem Transkript an der Aufgabe](img/android-voice-note.png)
+
 - **„■ Stopp und anlegen“** legt eine Aufgabe „Sprachnotiz *Datum
   Uhrzeit*“ mit der Aufnahme in die Inbox, auch offline. Auf einem Server
   mit [Transkript-Dienst](self-hosting.md#transkripte) wird das

@@ -147,6 +147,8 @@ darum und „Neu transkribieren“ um ein neues; solange der Server daran
 arbeitet, steht das da, und ein Fehlschlag zeigt seinen Grund mit
 „Erneut versuchen“.
 
+![Eine Sprachnotiz in der Inbox; der Inspektor zeigt den Player, darunter das Transkript und „Neu transkribieren“](img/web-voice-note.png)
+
 ### Viele auswählen
 
 Strg- oder ⌘-Klick nimmt eine Zeile dazu, Umschalt-Klick einen Bereich,

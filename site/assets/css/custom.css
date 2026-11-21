@@ -3,3 +3,11 @@
   text-decoration: underline dotted;
   cursor: help;
 }
+
+/* A screenshot from docs/: never wider than the text, and set off from it. */
+.samu-shot {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 6px;
+}
