@@ -107,6 +107,8 @@ pub enum ObjectKind {
     Perspective,
     /// ADR 0091: an entry for a habit.
     HabitEntry,
+    /// ADR 0141: an item of a task's checklist.
+    ChecklistItem,
     /// A kind from a newer samu (ADR 0015). Read, never written.
     #[serde(other)]
     Unknown,

@@ -197,6 +197,12 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0028_transcript.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 29,
+        name: "0029_checklist",
+        sql: include_str!("migrations/0029_checklist.sql"),
+        rebuilds: true,
+    },
 ];
 
 /// The migrations of the server file: accounts and sessions (ADR 0019 §2).

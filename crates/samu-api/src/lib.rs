@@ -68,14 +68,14 @@ pub use hook::{HookChange, HookChangeResponse, HookDelivery, HookFormat, HookVie
 pub use id::Id;
 pub use logbook::{AccountLogEntry, LogEntry, LogKind};
 pub use model::{
-    AccountSettings, Attachment, Author, AuthorKind, Blob, BoardSource, Clock, Comment, Folder,
-    FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer, InspectorLayout,
-    InspectorPart, Link, LinkKind, NoteMode, Period, Perspective, PerspectiveArrange,
-    PerspectiveBlock, PerspectiveBoard, PerspectiveFilter, PerspectiveGroup, PerspectiveSort,
-    PerspectiveTable, PerspectiveView, Priority, Project, ProjectKind, ProjectStatus, Reminder,
-    ReminderAnchor, Schedule, Scope, ScopeCapture, ScopeChip, ScopeChipKind, ScopeColor,
-    ScopeLayout, ScopeMode, ScopeWindow, Tag, TagStatus, Tagging, Task, Template, TemplateReminder,
-    TranscriptState, Weekday,
+    AccountSettings, Attachment, Author, AuthorKind, Blob, BoardSource, ChecklistItem, Clock,
+    Comment, Folder, FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer,
+    InspectorLayout, InspectorPart, Link, LinkKind, NoteMode, Period, Perspective,
+    PerspectiveArrange, PerspectiveBlock, PerspectiveBoard, PerspectiveFilter, PerspectiveGroup,
+    PerspectiveSort, PerspectiveTable, PerspectiveView, Priority, Project, ProjectKind,
+    ProjectStatus, Reminder, ReminderAnchor, Schedule, Scope, ScopeCapture, ScopeChip,
+    ScopeChipKind, ScopeColor, ScopeLayout, ScopeMode, ScopeWindow, Tag, TagStatus, Tagging, Task,
+    Template, TemplateReminder, TranscriptState, Weekday,
 };
 pub use page::{AnyObject, ChangesPage};
 pub use pair::{PairCode, PairCodeRequest, PairRequest};

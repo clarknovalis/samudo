@@ -863,6 +863,27 @@ pub struct Comment {
     pub body: String,
 }
 
+/// One item of a task's checklist (ADR 0141): a line to tick off, not a
+/// task of its own. Turned into a subtask and back by a client, with
+/// ordinary changes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChecklistItem {
+    pub id: Id,
+    pub created: Timestamp,
+    pub modified: Timestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_by: Option<Author>,
+    /// The task.
+    pub owner: Id,
+    /// One line of plain text.
+    pub text: String,
+    /// Ticked off.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub checked: bool,
+    /// Order among the items of the task.
+    pub position: i64,
+}
+
 /// A file on a task, a project or a comment (ADR 0039 §5). The file itself
 /// is a blob, named by its SHA-256 and fetched with `GET /blobs/{sha256}`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -164,6 +164,7 @@ pub fn export_file(kind: ObjectKind) -> Option<&'static str> {
         ObjectKind::Template => "templates.json",
         ObjectKind::Perspective => "perspectives.json",
         ObjectKind::HabitEntry => "habit_entries.json",
+        ObjectKind::ChecklistItem => "checklist_items.json",
         ObjectKind::Unknown => return None,
     })
 }
@@ -186,6 +187,7 @@ pub const EXPORT_KINDS: &[ObjectKind] = &[
     ObjectKind::Template,
     ObjectKind::Perspective,
     ObjectKind::HabitEntry,
+    ObjectKind::ChecklistItem,
 ];
 
 /// The kind of an object as the wire form names it.
@@ -208,6 +210,7 @@ pub fn kind_of(object: &AnyObject) -> ObjectKind {
         AnyObject::Template(_) => ObjectKind::Template,
         AnyObject::Perspective(_) => ObjectKind::Perspective,
         AnyObject::HabitEntry(_) => ObjectKind::HabitEntry,
+        AnyObject::ChecklistItem(_) => ObjectKind::ChecklistItem,
         AnyObject::Unknown => ObjectKind::Unknown,
     }
 }
@@ -232,6 +235,7 @@ pub fn id_of(object: &AnyObject) -> Option<Id> {
         AnyObject::Template(o) => o.id,
         AnyObject::Perspective(o) => o.id,
         AnyObject::HabitEntry(o) => o.id,
+        AnyObject::ChecklistItem(o) => o.id,
         AnyObject::Unknown => return None,
     })
 }
@@ -355,7 +359,7 @@ text editor, `jq` or `git diff` is enough.
   `tasks.json`, `tags.json`, `links.json`, `clocks.json`, `reminders.json`,
   `scopes.json`, `comments.json`, `attachments.json`, `settings.json`,
   `calendars.json`, `appointments.json`, `templates.json`, `perspectives.json`,
-  `habit_entries.json`.
+  `habit_entries.json`, `checklist_items.json`.
 - `logbook.json`: what happened to tasks, projects and appointments, oldest
   first per object, with the device and whether a person or an agent did it.
 - `files.json`: the files attachments point at, by SHA-256.

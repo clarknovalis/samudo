@@ -9,8 +9,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::{
-    AccountSettings, Appointment, Attachment, Calendar, Clock, Comment, Folder, HabitEntry, Id,
-    Link, Perspective, Project, Reminder, Scope, Tag, Task, Template,
+    AccountSettings, Appointment, Attachment, Calendar, ChecklistItem, Clock, Comment, Folder,
+    HabitEntry, Id, Link, Perspective, Project, Reminder, Scope, Tag, Task, Template,
 };
 
 /// An object of any kind: `{"kind": "task", "object": {…}}`.
@@ -37,6 +37,7 @@ pub enum AnyObject {
     Template(Template),
     Perspective(Perspective),
     HabitEntry(HabitEntry),
+    ChecklistItem(ChecklistItem),
     /// A kind from a newer samu (ADR 0015).
     #[serde(other)]
     Unknown,
@@ -69,6 +70,7 @@ impl<'de> Deserialize<'de> for AnyObject {
             "template" => serde_json::from_value(object).map(Self::Template),
             "perspective" => serde_json::from_value(object).map(Self::Perspective),
             "habit_entry" => serde_json::from_value(object).map(Self::HabitEntry),
+            "checklist_item" => serde_json::from_value(object).map(Self::ChecklistItem),
             _ => return Ok(Self::Unknown),
         };
         typed.map_err(D::Error::custom)
@@ -96,6 +98,7 @@ impl AnyObject {
             Self::Template(o) => o.id,
             Self::Perspective(o) => o.id,
             Self::HabitEntry(o) => o.id,
+            Self::ChecklistItem(o) => o.id,
             Self::Unknown => return None,
         })
     }

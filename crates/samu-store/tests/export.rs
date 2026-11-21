@@ -264,6 +264,15 @@ fn fill(store: &mut AccountStore) {
     );
     w.create(
         store,
+        ObjectKind::ChecklistItem,
+        with(
+            Id::new(),
+            json!({"owner": habit.to_string(), "text": "Milch", "checked": true,
+                   "position": 0}),
+        ),
+    );
+    w.create(
+        store,
         ObjectKind::Perspective,
         with(
             Id::new(),

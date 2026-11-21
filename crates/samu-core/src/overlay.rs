@@ -15,9 +15,9 @@
 //! Rust structs.
 
 use samu_api::{
-    AccountSettings, AnyObject, Appointment, Attachment, Calendar, Change, Clock, Comment, Folder,
-    HabitEntry, Id, Link, ObjectKind, Perspective, Project, Reminder, Scope, Tag, Tagging, Task,
-    Template,
+    AccountSettings, AnyObject, Appointment, Attachment, Calendar, Change, ChecklistItem, Clock,
+    Comment, Folder, HabitEntry, Id, Link, ObjectKind, Perspective, Project, Reminder, Scope, Tag,
+    Tagging, Task, Template,
 };
 use serde_json::{Map, Value};
 
@@ -53,6 +53,8 @@ pub struct Objects {
     pub perspectives: Vec<Perspective>,
     /// ADR 0091.
     pub habit_entries: Vec<HabitEntry>,
+    /// ADR 0141.
+    pub checklist_items: Vec<ChecklistItem>,
 }
 
 /// Why a change could not be laid over; the change stays in the outbox and
@@ -106,6 +108,9 @@ impl Objects {
             AnyObject::HabitEntry(o) => {
                 replace(&mut self.habit_entries, o.clone(), o.id, |x| x.id);
             }
+            AnyObject::ChecklistItem(o) => {
+                replace(&mut self.checklist_items, o.clone(), o.id, |x| x.id);
+            }
             AnyObject::Unknown => {}
         }
     }
@@ -127,6 +132,7 @@ impl Objects {
         self.templates.retain(|o| o.id != id);
         self.perspectives.retain(|o| o.id != id);
         self.habit_entries.retain(|o| o.id != id);
+        self.checklist_items.retain(|o| o.id != id);
         if self.settings.as_ref().is_some_and(|o| o.id == id) {
             self.settings = None;
         }
@@ -166,6 +172,12 @@ impl Objects {
                 .iter()
                 .cloned()
                 .map(AnyObject::HabitEntry),
+        );
+        out.extend(
+            self.checklist_items
+                .iter()
+                .cloned()
+                .map(AnyObject::ChecklistItem),
         );
         out
     }
@@ -218,6 +230,9 @@ impl Objects {
         }
         if let Some(o) = self.habit_entries.iter().find(|o| o.id == id) {
             return find(AnyObject::HabitEntry(o.clone()));
+        }
+        if let Some(o) = self.checklist_items.iter().find(|o| o.id == id) {
+            return find(AnyObject::ChecklistItem(o.clone()));
         }
         self.links
             .iter()

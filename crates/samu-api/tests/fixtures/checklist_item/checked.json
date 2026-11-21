@@ -1,0 +1,13 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f62",
+  "created": "2026-11-21T09:00:00Z",
+  "modified": "2026-11-21T09:05:00Z",
+  "created_by": {
+    "device": "claude",
+    "kind": "agent"
+  },
+  "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "text": "Brot",
+  "checked": true,
+  "position": 1
+}

@@ -5533,3 +5533,98 @@ fn transcribe_without_a_service_says_so() {
     let said = String::from_utf8_lossy(&refused.stderr);
     assert!(said.contains("SAMU_TRANSCRIBE_URL"), "{said}");
 }
+
+/// ADR 0141: a pasted list becomes items, which tick, move and turn into
+/// subtasks and back; the server holds what the answers claim.
+#[test]
+fn a_checklist_is_typed_ticked_moved_and_converted() {
+    let server = signed_in_server();
+    let task = json_out(&server.samu(&["add", "Einkauf", "--format", "json"], None));
+    let task = task[0]["id"].as_str().unwrap().to_owned();
+    let list = |server: &Server| {
+        json_out(&server.samu(&["checklist", "list", &task, "--format", "json"], None))
+    };
+
+    let made = json_out(&server.samu(
+        &["checklist", "add", &task, "-", "--format", "json"],
+        Some("- [ ] Milch\n* Brot\n1. Eier\n[x] Salz\n\n"),
+    ));
+    assert_eq!(made.as_array().unwrap().len(), 4, "{made}");
+    let items = list(&server);
+    let texts: Vec<&str> = items
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|i| i["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(texts, ["Milch", "Brot", "Eier", "Salz"]);
+    assert_eq!(items[3]["checked"], true, "a ticked box ticks the item");
+    assert_eq!(items[0]["checked"], false);
+    let milch = items[0]["id"].as_str().unwrap().to_owned();
+    let eier = items[2]["id"].as_str().unwrap().to_owned();
+
+    assert_eq!(code(&server.samu(&["checklist", "check", &milch], None)), 0);
+    assert_eq!(
+        code(&server.samu(&["checklist", "edit", &eier, "Zehn Eier"], None)),
+        0
+    );
+    assert_eq!(
+        code(&server.samu(&["checklist", "move", &eier, "1"], None)),
+        0
+    );
+    let items = list(&server);
+    let texts: Vec<&str> = items
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|i| i["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(texts, ["Zehn Eier", "Milch", "Brot", "Salz"]);
+    assert_eq!(items[1]["checked"], true);
+    // A place outside the list is refused, and nothing moves.
+    assert_ne!(
+        code(&server.samu(&["checklist", "move", &eier, "9"], None)),
+        0
+    );
+
+    // `show --full` carries the list.
+    let full = json_out(&server.samu(&["show", &task, "--full", "--format", "json"], None));
+    assert_eq!(full[0]["checklist"].as_array().unwrap().len(), 4, "{full}");
+
+    // An item becomes a subtask, completed because it was ticked.
+    let sub = json_out(&server.samu(
+        &["checklist", "to-subtask", &milch, "--format", "json"],
+        None,
+    ));
+    let sub = sub[0]["id"].as_str().unwrap().to_owned();
+    assert_eq!(list(&server).as_array().unwrap().len(), 3);
+    let shown = json_out(&server.samu(&["show", &sub, "--format", "json"], None));
+    assert_eq!(shown[0]["title"], "Milch");
+    assert_eq!(shown[0]["object"]["parent"], task);
+    assert!(shown[0]["object"]["completed_at"].is_string(), "{shown}");
+    // ... and back.
+    assert_eq!(
+        code(&server.samu(&["checklist", "from-subtask", &sub], None)),
+        0
+    );
+    let items = list(&server);
+    assert_eq!(items.as_array().unwrap().len(), 4);
+    assert_eq!(items[3]["text"], "Milch");
+    assert_eq!(items[3]["checked"], true);
+    // A subtask with a flag is refused and stays.
+    let flagged = json_out(&server.samu(
+        &[
+            "add", "Wichtig", "--parent", &task, "--flag", "--format", "json",
+        ],
+        None,
+    ));
+    let flagged = flagged[0]["id"].as_str().unwrap().to_owned();
+    assert_ne!(
+        code(&server.samu(&["checklist", "from-subtask", &flagged], None)),
+        0
+    );
+    assert_eq!(list(&server).as_array().unwrap().len(), 4);
+
+    assert_eq!(code(&server.samu(&["checklist", "rm", &eier], None)), 0);
+    assert_eq!(list(&server).as_array().unwrap().len(), 3);
+}

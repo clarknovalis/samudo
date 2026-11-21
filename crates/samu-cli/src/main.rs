@@ -13,6 +13,7 @@ mod appointment;
 mod blockers;
 mod bulk;
 mod calendar;
+mod checklist;
 mod clock;
 mod close;
 mod comments;
@@ -244,6 +245,10 @@ enum Command {
     /// marks, called as `/name` in `samu add`.
     #[command(subcommand)]
     Template(templates::TemplateCommand),
+    /// The checklist of a task (ADR 0141): lines to tick off, turned into
+    /// subtasks and back.
+    #[command(subcommand)]
+    Checklist(checklist::ChecklistCommand),
     /// A habit (ADR 0091): a task with a goal, entered day by day, with
     /// its streak computed on the server.
     #[command(subcommand)]
@@ -2097,6 +2102,7 @@ fn run(args: Args) -> Result<()> {
         Command::Profile(command) => profiles::run(&config, args.format, command)?,
         Command::Template(command) => templates::run(&config, args.format, command)?,
         Command::Habit(command) => habits::run(&config, args.format, command)?,
+        Command::Checklist(command) => checklist::run(&config, args.format, command)?,
         Command::Perspective(command) => perspectives::run(&config, args.format, command)?,
         Command::Clock(command) => clock::run(&config, args.format, command)?,
         Command::Report(report) => report::run(&config, args.format, &report)?,

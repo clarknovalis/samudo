@@ -18,7 +18,7 @@ use samu_api::{
 use serde_json::{Value, json};
 
 use crate::output::{Format, emit};
-use crate::{Names, comments, habits, object_record, props, remind, status_record};
+use crate::{Names, checklist, comments, habits, object_record, props, remind, status_record};
 use samu_client::{Client, Error as Failure};
 
 /// The open tasks below a task, or in a project, in the order of `statuses`.
@@ -118,6 +118,14 @@ pub(crate) fn show(client: &Client, format: Format, id: Id, log: bool) -> Result
         _ => None,
     };
 
+    let checklist_items: Vec<samu_api::ChecklistItem> = page
+        .objects
+        .iter()
+        .filter_map(|o| match o {
+            AnyObject::ChecklistItem(i) => Some(i.clone()),
+            _ => None,
+        })
+        .collect();
     let mut comment_records = comments::comment_records(&page.objects, id);
     let shown = object_record(object);
     let note = shown["object"]["note"]
@@ -152,6 +160,7 @@ pub(crate) fn show(client: &Client, format: Format, id: Id, log: bool) -> Result
         "habit": habit,
         "reminders": remind::records_in(&page.objects, Some(id)),
         "props": props::records_of(object, &statuses, &props::templates_in(&page.objects))?,
+        "checklist": checklist::records(&checklist_items, id),
         "comments": comment_records,
         "attachments": comments::attachment_records(&page.objects, id),
         "log": log,

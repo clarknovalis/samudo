@@ -1033,6 +1033,14 @@ fn every_fixture_survives_the_round_trip_through_the_database() {
         (ObjectKind::Project, fixture("project/by_human.json")),
         (ObjectKind::Comment, fixture("comment/by_agent.json")),
         (ObjectKind::Comment, fixture("comment/before_authors.json")),
+        (
+            ObjectKind::ChecklistItem,
+            fixture("checklist_item/open.json"),
+        ),
+        (
+            ObjectKind::ChecklistItem,
+            fixture("checklist_item/checked.json"),
+        ),
         (ObjectKind::Attachment, fixture("attachment/photo.json")),
         (ObjectKind::Attachment, fixture("attachment/recording.json")),
     ];
@@ -1129,6 +1137,7 @@ fn every_fixture_survives_the_round_trip_through_the_database() {
                 | ObjectKind::Comment
                 | ObjectKind::Attachment
                 | ObjectKind::HabitEntry
+                | ObjectKind::ChecklistItem
         );
         if authored && value.get("created_by").is_none() {
             assert_eq!(
@@ -1889,7 +1898,7 @@ fn the_migration_marks_what_the_ring_delivered() {
     {
         let conn = rusqlite::Connection::open(&path).unwrap();
         conn.execute_batch(
-            "DROP TABLE habit_entry; ALTER TABLE task DROP COLUMN habit; \
+            "DROP TABLE checklist_item; DROP TABLE habit_entry; ALTER TABLE task DROP COLUMN habit; \
              DROP TABLE perspective; DROP TABLE template; ALTER TABLE scope DROP COLUMN layout; \
              ALTER TABLE folder DROP COLUMN own_scope; \
              ALTER TABLE project DROP COLUMN own_scope; ALTER TABLE tag DROP COLUMN own_scope; \
@@ -3211,7 +3220,7 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
              ALTER TABLE attachment DROP COLUMN transcript; \
              ALTER TABLE attachment DROP COLUMN transcript_state; \
              ALTER TABLE attachment DROP COLUMN transcript_error; \
-             DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
+             DROP TABLE checklist_item; DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
         )
         .unwrap();
         mark("folder", &habits);
@@ -3227,7 +3236,8 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
             "0025_appointment_alarms",
             "0026_perspective_table",
             "0027_perspective_blocks",
-            "0028_transcript"
+            "0028_transcript",
+            "0029_checklist"
         ]
     );
     assert_eq!(
@@ -3306,7 +3316,7 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
              ALTER TABLE attachment DROP COLUMN transcript; \
              ALTER TABLE attachment DROP COLUMN transcript_state; \
              ALTER TABLE attachment DROP COLUMN transcript_error; \
-             DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
+             DROP TABLE checklist_item; DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
             id_of(&calendar).to_string().replace('-', "")
         ))
         .unwrap();
@@ -3318,7 +3328,8 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
             "0025_appointment_alarms",
             "0026_perspective_table",
             "0027_perspective_blocks",
-            "0028_transcript"
+            "0028_transcript",
+            "0029_checklist"
         ]
     );
     drop(store);
@@ -3332,4 +3343,90 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
         )
         .unwrap();
     assert_eq!((rows, forgotten), (1, 1), "a probe that must find the row");
+}
+
+/// A checklist item hangs on a task; text, tick and place change, its owner
+/// does not, and it goes with its task (ADR 0141 §1).
+#[test]
+fn a_checklist_item_belongs_to_a_task_and_goes_with_it() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let task = fixture("task/inbox.json");
+    let task_id = id_of(&task);
+    assert!(is_applied(&create(
+        &mut store,
+        ObjectKind::Task,
+        task,
+        stamp(1, "a")
+    )));
+    let item = |n: u8, owner: &str, text: &str, position: i64| {
+        json!({"id": format!("01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f{n:02x}"),
+               "created": "2026-11-21T09:00:00Z", "modified": "2026-11-21T09:00:00Z",
+               "owner": owner, "text": text, "position": position})
+    };
+    let owner = task_id.to_string();
+    // Not on a task that is not there.
+    let nowhere = item(0x50, "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6aaa", "x", 0);
+    assert!(is_rejected(&create(
+        &mut store,
+        ObjectKind::ChecklistItem,
+        nowhere,
+        stamp(2, "a")
+    )));
+    let milk = item(0x51, &owner, "Milch", 0);
+    let milk_id = id_of(&milk);
+    let bread = item(0x52, &owner, "Brot", 1);
+    let bread_id = id_of(&bread);
+    for (n, value) in [(3, milk), (4, bread)] {
+        assert!(is_applied(&create(
+            &mut store,
+            ObjectKind::ChecklistItem,
+            value,
+            stamp(n, "a")
+        )));
+    }
+    assert!(is_applied(&set(
+        &mut store,
+        milk_id,
+        "checked",
+        json!(true),
+        stamp(5, "a")
+    )));
+    assert!(is_applied(&set(
+        &mut store,
+        milk_id,
+        "text",
+        json!("Hafermilch"),
+        stamp(6, "a")
+    )));
+    assert!(is_applied(&set(
+        &mut store,
+        bread_id,
+        "position",
+        json!(-1),
+        stamp(7, "a")
+    )));
+    // Last writer wins per item and field: an older tick does not undo it.
+    assert!(matches!(
+        set(&mut store, milk_id, "checked", json!(false), stamp(4, "b")),
+        ChangeOutcome::Superseded { .. }
+    ));
+    assert!(is_rejected(&set(
+        &mut store,
+        milk_id,
+        "owner",
+        json!(milk_id.to_string()),
+        stamp(8, "a")
+    )));
+    let back = Value::Object(store.get(milk_id).unwrap().unwrap().to_json().unwrap());
+    assert_eq!(back["text"], json!("Hafermilch"));
+    assert_eq!(back["checked"], json!(true));
+    assert_eq!(back["owner"], json!(owner));
+
+    let gone = Change::Delete {
+        object: task_id,
+        hlc: stamp(9, "a"),
+    };
+    assert!(is_applied(&store.apply(&gone, &person(), now()).unwrap()));
+    assert_eq!(store.deleted(milk_id).unwrap(), Some(true));
+    assert_eq!(store.deleted(bread_id).unwrap(), Some(true));
 }

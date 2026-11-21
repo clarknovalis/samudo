@@ -585,6 +585,7 @@ fn assemble(
                 | ObjectKind::Comment
                 | ObjectKind::Attachment
                 | ObjectKind::HabitEntry
+                | ObjectKind::ChecklistItem
         )
     {
         let author = serde_json::to_value(author).map_err(|e| corrupt(e.to_string()))?;
@@ -676,6 +677,7 @@ fn check_references(tx: &Connection, object: &Object) -> Result<Result<(), Refus
         // Chips are checked when they come, like a scope's filter.
         Object::Perspective(_) => {}
         Object::HabitEntry(e) => wanted.push((e.habit, &[K::Task][..], "habit")),
+        Object::ChecklistItem(i) => wanted.push((i.owner, &[K::Task][..], "owner")),
         Object::Appointment(a) => wanted.push((a.calendar, &[K::Calendar][..], "calendar")),
         Object::Comment(c) => wanted.push((c.owner, &[K::Task, K::Project][..], "owner")),
         Object::Attachment(a) => {
@@ -1245,6 +1247,7 @@ impl AccountStore {
                 Object::Template(o) => snapshot.templates.push(o),
                 Object::Perspective(o) => snapshot.perspectives.push(o),
                 Object::HabitEntry(o) => snapshot.habit_entries.push(o),
+                Object::ChecklistItem(o) => snapshot.checklist_items.push(o),
             }
         }
         Ok(snapshot)
@@ -3089,8 +3092,29 @@ fn delete(
     // A habit takes its entries along (ADR 0091).
     if h.kind == ObjectKind::Task {
         forget_entries(tx, id, hlc, now)?;
+        forget_items(tx, id, hlc, now)?;
     }
     Ok(ChangeOutcome::Applied { seq: as_seq(seq) })
+}
+
+/// Makes tombstones of the checklist items of a deleted task (ADR 0141 §1).
+fn forget_items(tx: &Transaction<'_>, task: Id, hlc: &Hlc, now: Timestamp) -> Result<()> {
+    let rows: Vec<i64> = tx
+        .prepare(
+            "SELECT o.id FROM checklist_item i JOIN object o ON o.id = i.object \
+             WHERE i.owner = ?1 AND o.deleted_at IS NULL",
+        )?
+        .query_map([uuid_blob(task)], |row| row.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+    for rowid in rows {
+        let seq = next_seq(tx)?;
+        tx.execute(
+            "UPDATE object SET deleted_at = ?2, seq = ?3, modified = ?2 WHERE id = ?1",
+            params![rowid, now.to_string(), seq],
+        )?;
+        write_stamp(tx, rowid, "@delete", hlc, seq)?;
+    }
+    Ok(())
 }
 
 /// Makes tombstones of the entries of a deleted task, with the stamp of the
@@ -3197,7 +3221,8 @@ pub(crate) mod tests {
                 "0025_appointment_alarms",
                 "0026_perspective_table",
                 "0027_perspective_blocks",
-                "0028_transcript"
+                "0028_transcript",
+                "0029_checklist"
             ]
         );
         drop(store);
@@ -3245,7 +3270,8 @@ pub(crate) mod tests {
                     "0025_appointment_alarms",
                     "0026_perspective_table",
                     "0027_perspective_blocks",
-                    "0028_transcript"
+                    "0028_transcript",
+                    "0029_checklist"
                 ]
             );
             // The settings object, made on opening (ADR 0045 §4).
@@ -3259,7 +3285,7 @@ pub(crate) mod tests {
         let history: i64 = conn
             .query_row("SELECT count(*) FROM schema_history", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(history, 28);
+        assert_eq!(history, 29);
         let journal: String = conn
             .query_row("PRAGMA journal_mode", [], |r| r.get(0))
             .unwrap();
@@ -3371,7 +3397,8 @@ pub(crate) mod tests {
                 "0025_appointment_alarms",
                 "0026_perspective_table",
                 "0027_perspective_blocks",
-                "0028_transcript"
+                "0028_transcript",
+                "0029_checklist"
             ]
         );
         let id: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3470,7 +3497,8 @@ pub(crate) mod tests {
                 "0025_appointment_alarms",
                 "0026_perspective_table",
                 "0027_perspective_blocks",
-                "0028_transcript"
+                "0028_transcript",
+                "0029_checklist"
             ]
         );
         let reminder: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e22".parse().unwrap();
@@ -3572,7 +3600,8 @@ pub(crate) mod tests {
                 "0025_appointment_alarms",
                 "0026_perspective_table",
                 "0027_perspective_blocks",
-                "0028_transcript"
+                "0028_transcript",
+                "0029_checklist"
             ]
         );
 
@@ -3774,7 +3803,8 @@ pub(crate) mod tests {
                 "0025_appointment_alarms",
                 "0026_perspective_table",
                 "0027_perspective_blocks",
-                "0028_transcript"
+                "0028_transcript",
+                "0029_checklist"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3884,7 +3914,8 @@ pub(crate) mod tests {
                 "0025_appointment_alarms",
                 "0026_perspective_table",
                 "0027_perspective_blocks",
-                "0028_transcript"
+                "0028_transcript",
+                "0029_checklist"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();

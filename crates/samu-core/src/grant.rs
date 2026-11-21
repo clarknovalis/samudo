@@ -85,6 +85,7 @@ impl Reach {
             AnyObject::Comment(comment) => self.sees_id(comment.owner),
             AnyObject::Attachment(attachment) => self.sees_id(attachment.owner),
             AnyObject::HabitEntry(entry) => self.tasks.contains(&entry.habit),
+            AnyObject::ChecklistItem(item) => self.sees_id(item.owner),
             AnyObject::Scope(_)
             | AnyObject::Settings(_)
             | AnyObject::Calendar(_)
@@ -154,6 +155,7 @@ impl Reach {
             templates: Vec::new(),
             perspectives: Vec::new(),
             habit_entries: keep_seen(self, &objects.habit_entries, AnyObject::HabitEntry),
+            checklist_items: keep_seen(self, &objects.checklist_items, AnyObject::ChecklistItem),
         }
     }
 
@@ -340,6 +342,7 @@ mod tests {
         });
         let extra = match kind {
             "comment" => json!({"body": "x"}),
+            "checklist_item" => json!({"text": "x", "position": 0}),
             "attachment" => json!({
                 "blob": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 "name": "a.txt", "media_type": "text/plain", "size": 1
@@ -430,7 +433,14 @@ mod tests {
     #[test]
     fn what_hangs_on_it_follows_its_owner() {
         let reach = reach(Access::Ro);
-        for kind in ["comment", "attachment", "link", "clock", "reminder"] {
+        for kind in [
+            "comment",
+            "attachment",
+            "link",
+            "clock",
+            "reminder",
+            "checklist_item",
+        ] {
             assert!(reach.sees(&on(kind, 90, 22)), "{kind} on a subtask");
             assert!(reach.sees(&on(kind, 90, 13)), "{kind} on a granted project");
             assert!(reach.sees(&on(kind, 90, 3)), "{kind} on a folder below");

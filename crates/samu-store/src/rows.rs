@@ -16,8 +16,8 @@ use serde_json::{Map, Value as Json};
 use uuid::Uuid;
 
 use crate::core::api::{
-    AccountSettings, Appointment, Attachment, Calendar, Clock, Comment, Folder, HabitEntry, Id,
-    Link, ObjectKind, Perspective, Project, Reminder, Scope, Tag, Task, Template,
+    AccountSettings, Appointment, Attachment, Calendar, ChecklistItem, Clock, Comment, Folder,
+    HabitEntry, Id, Link, ObjectKind, Perspective, Project, Reminder, Scope, Tag, Task, Template,
 };
 
 /// How one JSON field is kept in the row.
@@ -217,6 +217,14 @@ const HABIT_ENTRY: &[Column] = &[
     col("until", Ty::Text),
 ];
 
+// ADR 0141.
+const CHECKLIST_ITEM: &[Column] = &[
+    col("owner", Ty::Uuid),
+    col("text", Ty::Text),
+    col("checked", Ty::Bool),
+    col("position", Ty::Int),
+];
+
 const SETTINGS: &[Column] = &[
     col("due_soon", Ty::Text),
     col("remind_time", Ty::Text),
@@ -303,6 +311,7 @@ pub(crate) fn layout(kind: ObjectKind) -> Option<(&'static str, &'static [Column
         ObjectKind::Template => ("template", TEMPLATE),
         ObjectKind::Perspective => ("perspective", PERSPECTIVE),
         ObjectKind::HabitEntry => ("habit_entry", HABIT_ENTRY),
+        ObjectKind::ChecklistItem => ("checklist_item", CHECKLIST_ITEM),
         ObjectKind::Unknown => return None,
     })
 }
@@ -316,6 +325,8 @@ pub(crate) fn settable(kind: ObjectKind, field: &str) -> bool {
         ObjectKind::Attachment => field == "name",
         // An entry is deleted, never changed (ADR 0091 §2).
         ObjectKind::HabitEntry => false,
+        // The owner stays; text, tick and place change (ADR 0141 §1).
+        ObjectKind::ChecklistItem => matches!(field, "text" | "checked" | "position"),
         // In a writable calendar, these alone (ADR 0068 §3).
         ObjectKind::Appointment => crate::core::api::APPOINTMENT_FIELDS.contains(&field),
         ObjectKind::Calendar if CALENDAR_SERVER_FIELDS.contains(&field) => false,
@@ -532,6 +543,7 @@ pub enum Object {
     Template(Template),
     Perspective(Perspective),
     HabitEntry(HabitEntry),
+    ChecklistItem(ChecklistItem),
 }
 
 impl Object {
@@ -554,6 +566,7 @@ impl Object {
             Self::Template(_) => ObjectKind::Template,
             Self::Perspective(_) => ObjectKind::Perspective,
             Self::HabitEntry(_) => ObjectKind::HabitEntry,
+            Self::ChecklistItem(_) => ObjectKind::ChecklistItem,
         }
     }
 
@@ -576,6 +589,7 @@ impl Object {
             Self::Template(o) => o.id,
             Self::Perspective(o) => o.id,
             Self::HabitEntry(o) => o.id,
+            Self::ChecklistItem(o) => o.id,
         }
     }
 
@@ -598,6 +612,7 @@ impl Object {
             Self::Template(o) => serde_json::to_value(o),
             Self::Perspective(o) => serde_json::to_value(o),
             Self::HabitEntry(o) => serde_json::to_value(o),
+            Self::ChecklistItem(o) => serde_json::to_value(o),
         }
         .map_err(|e| e.to_string())?;
         match value {
@@ -625,6 +640,7 @@ impl Object {
             ObjectKind::Template => serde_json::from_value(value).map(Self::Template),
             ObjectKind::Perspective => serde_json::from_value(value).map(Self::Perspective),
             ObjectKind::HabitEntry => serde_json::from_value(value).map(Self::HabitEntry),
+            ObjectKind::ChecklistItem => serde_json::from_value(value).map(Self::ChecklistItem),
             ObjectKind::Unknown => return Err("an object kind this server does not know".into()),
         };
         typed.map_err(|e| e.to_string())
@@ -655,6 +671,7 @@ pub(crate) fn kind_of(name: &str) -> ObjectKind {
         "template" => ObjectKind::Template,
         "perspective" => ObjectKind::Perspective,
         "habit_entry" => ObjectKind::HabitEntry,
+        "checklist_item" => ObjectKind::ChecklistItem,
         _ => ObjectKind::Unknown,
     }
 }
@@ -678,6 +695,7 @@ impl From<Object> for crate::core::api::AnyObject {
             Object::Template(o) => Self::Template(o),
             Object::Perspective(o) => Self::Perspective(o),
             Object::HabitEntry(o) => Self::HabitEntry(o),
+            Object::ChecklistItem(o) => Self::ChecklistItem(o),
         }
     }
 }

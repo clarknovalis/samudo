@@ -22,6 +22,7 @@ pub mod blockers;
 pub mod blocks;
 pub mod calendar;
 pub mod capture;
+pub mod checklist;
 pub mod clock;
 pub mod clocking;
 pub mod close;
