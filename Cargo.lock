@@ -1849,7 +1849,7 @@ dependencies = [
 
 [[package]]
 name = "samu-cli"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "clap",
@@ -1869,7 +1869,7 @@ dependencies = [
 
 [[package]]
 name = "samu-client"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "rustls",
  "rustls-native-certs",
@@ -1882,7 +1882,7 @@ dependencies = [
 
 [[package]]
 name = "samu-core"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hmac",
  "icalendar",
@@ -1898,7 +1898,7 @@ dependencies = [
 
 [[package]]
 name = "samu-mobile"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "jiff",
  "rusqlite",
@@ -1914,7 +1914,7 @@ dependencies = [
 
 [[package]]
 name = "samu-replica"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "jiff",
  "rusqlite",
@@ -1927,7 +1927,7 @@ dependencies = [
 
 [[package]]
 name = "samu-server"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "axum",
@@ -1953,7 +1953,7 @@ dependencies = [
 
 [[package]]
 name = "samu-store"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "argon2",
  "chacha20poly1305",

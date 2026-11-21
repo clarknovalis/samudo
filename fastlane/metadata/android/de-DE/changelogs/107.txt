@@ -1,0 +1,1 @@
+Checklisten: Eine Aufgabe führt eine Liste kurzer Punkte zum Abhaken. Je Zeile ein Punkt, eine eingefügte Liste zerfällt in Punkte, umsortieren, der Stand steht neben der Aufgabe. Ein Punkt wird mit einem Tipp zur Unteraufgabe, ein Knopf macht die ganze Liste zu Unteraufgaben oder alle schlichten Unteraufgaben zu Punkten. In App, Web und CLI (samu checklist).

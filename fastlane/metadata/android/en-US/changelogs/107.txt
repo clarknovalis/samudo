@@ -1,0 +1,1 @@
+Checklists: a task keeps a list of short items to tick off. Type one per line, paste a list and it splits into items, reorder them, and see the count beside the task. One tap turns an item into a subtask, one button turns the whole list into subtasks or all plain subtasks into items. In the app, web UI and CLI (samu checklist).
