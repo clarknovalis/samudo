@@ -68,6 +68,13 @@
 (declare-function org-link-store-props "ol")
 (declare-function org-link-make-string "ol")
 (declare-function org-read-date "org")
+(declare-function org-back-to-heading "org")
+(declare-function org-get-heading "org")
+(declare-function org-get-tags "org")
+(declare-function org-entry-get "org")
+(declare-function org-entry-put "org")
+(declare-function org-entry-end-position "org")
+(declare-function org-end-of-meta-data "org")
 (declare-function evil-set-initial-state "evil-core")
 
 ;;;; Settings
@@ -2758,6 +2765,84 @@ Without `samu-web-url' or `samu-profile' it stays a `samu:' link."
                            :export #'samu-export-link
                            :store #'samu-store-link
                            :complete #'samu-complete-link))
+
+;;;; From an Org heading
+
+(defconst samu--org-property "SAMU"
+  "The property of an Org heading that names the task made from it.")
+
+(defun samu--org-date (property)
+  "The day of the heading's PROPERTY, SCHEDULED or DEADLINE, or nil.
+A time of day and a repeater are left behind."
+  (let ((stamp (org-entry-get nil property)))
+    (and stamp
+         (string-match "[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}" stamp)
+         (match-string 0 stamp))))
+
+(defun samu--org-body ()
+  "The text below the heading at point, without planning and drawers.
+It ends where the next heading starts, so subheadings are not in it."
+  (save-excursion
+    (let ((end (org-entry-end-position)))
+      (org-end-of-meta-data t)
+      (string-trim (buffer-substring-no-properties (min (point) end) end)))))
+
+(defun samu--org-tags (tags)
+  "TAGS of a heading as (PATHS . UNKNOWN): tags of samudo, and the rest.
+A tag is taken when exactly one tag of samudo has its name, at any
+depth and in any case; none is made."
+  (let ((paths (samu--plain-tag-paths)) (found nil) (unknown nil))
+    (dolist (tag tags)
+      (let ((hits (cl-remove-if-not
+                   (lambda (path)
+                     (string= (downcase tag)
+                              (downcase (car (last (split-string path "/"))))))
+                   paths)))
+        (if (= (length hits) 1)
+            (push (car hits) found)
+          (push tag unknown))))
+    (cons (nreverse found) (nreverse unknown))))
+
+;;;###autoload
+(defun samu-org-capture-heading ()
+  "Make a task of samudo from the Org heading at point.
+The title is the heading without keyword, priority and tags, the note
+the text below it.  SCHEDULED becomes planned and DEADLINE due, as
+days.  Tags are put on where samudo has a tag of that name.  The task
+goes to the inbox, and its `samu:' link is stored in the property SAMU
+of the heading: asked again there, the command opens the task instead
+of making a second one.  The heading itself stays as it is."
+  (interactive)
+  (unless (derived-mode-p 'org-mode) (user-error "Not in an Org buffer"))
+  (require 'ol)
+  (let ((known (save-excursion
+                 (org-back-to-heading t)
+                 (org-entry-get nil samu--org-property))))
+    (if (and known (string-match "samu:\\([0-9a-f-]+\\)" known))
+        (samu-show (match-string 1 known))
+      (save-excursion
+        (org-back-to-heading t)
+        (let* ((title (substring-no-properties (org-get-heading t t t t)))
+               (body (samu--org-body))
+               (planned (samu--org-date "SCHEDULED"))
+               (due (samu--org-date "DEADLINE"))
+               (tags (samu--org-tags (org-get-tags nil t)))
+               (id (samu--get (samu-add title :literal t
+                                        :note (and (not (string-empty-p body)) body))
+                              'id)))
+          ;; first, so a failure below leaves no task without its heading
+          (org-entry-put nil samu--org-property
+                         (org-link-make-string (concat "samu:" id)))
+          (when planned (samu--bulk "date" (list id) "planned" planned))
+          (when due (samu--bulk "date" (list id) "due" due))
+          (when (car tags)
+            (apply #'samu--bulk "tag" (list id)
+                   (cl-mapcan (lambda (path) (list "--add" path)) (car tags))))
+          (samu--changed)
+          (message "Captured: %s%s" title
+                   (if (cdr tags)
+                       (format "  (no such tag: %s)" (string-join (cdr tags) ", "))
+                     "")))))))
 
 ;;;; In the Org agenda
 

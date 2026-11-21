@@ -168,6 +168,25 @@ fills when you switch back to it. Only a key that changes something waits,
 for its one call, so that its error shows at once. A task's buffer fills
 from a single call, `samu show --full`.
 
+## From an Org heading
+
+`M-x samu-org-capture-heading` on a heading of an Org file makes a task
+of it, in the inbox:
+
+| In Org | In samudo |
+|---|---|
+| the heading, without keyword, priority and tags | title |
+| the text below it, up to the next heading | note |
+| `SCHEDULED` | planned, as a day |
+| `DEADLINE` | due, as a day |
+| tags | the tags of that name that exist; the others are named in the echo area, none is made |
+
+The task's `samu:` link is stored in the property `SAMU` of the heading.
+On a heading that has it, the command opens the task instead of making a
+second one. The heading stays as it is, and nothing flows back: after
+that the task lives in samudo. A time of day, a repeater and the priority
+are not taken along.
+
 ## In the Org agenda
 
 `samu-org-agenda` shows samudo's tasks in the Org agenda, read-only. Put

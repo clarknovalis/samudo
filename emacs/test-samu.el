@@ -1358,3 +1358,68 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
         (let ((date (list 11 day 2026)))
           (should (null (samu-org-agenda)))))
       (should (= (length (samu-test--called '("forecast"))) 1)))))
+
+;;;; From an Org heading
+
+(defconst samu-test--heading
+  "* Other
+* TODO [#A] Call the plumber :home:Calls:nowhere:
+SCHEDULED: <2026-11-23 Mon 09:30 +1w> DEADLINE: <2026-11-27 Fri>
+:PROPERTIES:
+:CUSTOM_ID: plumber
+:END:
+The tap in the kitchen drips.
+
+Number is on the fridge.
+** A step
+Not part of the note.
+"
+  "An Org file with a heading that has all a task can take.")
+
+(ert-deftest samu-test-heading-becomes-a-task-and-keeps-its-link ()
+  (require 'org)
+  (samu-test--with-cli
+      `((("tag" "list") 0 ,(concat "[{\"id\":\"1\",\"path\":\"Places/Home\",\"marks\":\"\"},"
+                                    "{\"id\":\"2\",\"path\":\"calls\",\"marks\":\"\"}]") "")
+        (("add") 0 "[{\"id\":\"01a1-77\",\"short\":\"77\"}]" ""))
+    (with-temp-buffer
+      (insert samu-test--heading)
+      (org-mode)
+      (goto-char (point-min))
+      (search-forward "kitchen")
+      (cl-letf (((symbol-function 'samu--refresh-all) #'ignore))
+        (samu-org-capture-heading))
+      (should (equal (car (samu-test--called '("add")))
+                     '("add" "--note"
+                       "The tap in the kitchen drips.\n\nNumber is on the fridge."
+                       "--literal" "Call the plumber" "--format" "json")))
+      (should (equal (samu-test--called '("bulk"))
+                     '(("bulk" "date" "planned" "2026-11-23" "01a1-77" "--format" "json")
+                       ("bulk" "date" "due" "2026-11-27" "01a1-77" "--format" "json")
+                       ("bulk" "tag" "--add" "Places/Home" "--add" "calls" "01a1-77"
+                        "--format" "json"))))
+      (goto-char (point-min))
+      (search-forward "kitchen")
+      (should (equal (org-entry-get nil "SAMU") "[[samu:01a1-77]]"))
+      (should (equal (org-entry-get nil "CUSTOM_ID") "plumber"))
+      ;; asked again, it opens the task and makes none
+      (let ((shown nil))
+        (cl-letf (((symbol-function 'samu-show) (lambda (id &rest _) (setq shown id))))
+          (samu-org-capture-heading))
+        (should (equal shown "01a1-77"))
+        (should (= (length (samu-test--called '("add"))) 1))))))
+
+(ert-deftest samu-test-heading-without-anything-is-only-a-title ()
+  (require 'org)
+  (samu-test--with-cli '((("add") 0 "[{\"id\":\"01a1-78\",\"short\":\"78\"}]" ""))
+    (with-temp-buffer
+      (insert "* Plain\n* Next\n")
+      (org-mode)
+      (goto-char (point-min))
+      (cl-letf (((symbol-function 'samu--refresh-all) #'ignore))
+        (samu-org-capture-heading))
+      (should (equal (car (samu-test--called '("add")))
+                     '("add" "--literal" "Plain" "--format" "json")))
+      (should (null (samu-test--called '("bulk"))))
+      (should (equal (buffer-string)
+                     "* Plain\n:PROPERTIES:\n:SAMU:     [[samu:01a1-78]]\n:END:\n* Next\n")))))

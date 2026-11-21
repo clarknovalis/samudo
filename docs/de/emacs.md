@@ -175,6 +175,25 @@ zurückwechselt. Nur eine Taste, die etwas ändert, wartet auf ihren einen
 Aufruf, damit ihr Fehler sofort zu sehen ist. Der Puffer einer Aufgabe
 füllt sich aus einem einzigen Aufruf, `samu show --full`.
 
+## Aus einer Org-Überschrift
+
+`M-x samu-org-capture-heading` auf einer Überschrift einer Org-Datei
+macht daraus eine Aufgabe, im Eingang:
+
+| In Org | In samudo |
+|---|---|
+| die Überschrift, ohne Schlüsselwort, Priorität und Tags | Titel |
+| der Text darunter, bis zur nächsten Überschrift | Notiz |
+| `SCHEDULED` | geplant, als Tag |
+| `DEADLINE` | fällig, als Tag |
+| Tags | die Tags dieses Namens, die es gibt; die übrigen nennt der Echo-Bereich, angelegt wird keiner |
+
+Der `samu:`-Link der Aufgabe steht danach in der Property `SAMU` der
+Überschrift. Auf einer Überschrift, die sie hat, öffnet das Kommando die
+Aufgabe, statt eine zweite anzulegen. Die Überschrift bleibt, wie sie
+ist, und nichts fließt zurück: von da an lebt die Aufgabe in samudo.
+Uhrzeit, Wiederholung und Priorität werden nicht übernommen.
+
 ## In der Org-Agenda
 
 `samu-org-agenda` zeigt die Aufgaben von samudo in der Org-Agenda, nur
