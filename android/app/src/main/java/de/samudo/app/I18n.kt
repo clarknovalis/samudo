@@ -120,6 +120,7 @@ private val MESSAGES: List<Pair<Said, String>> = listOf(
     "nothing to capture" to "Nichts zu erfassen.",
     "a comment needs a text" to "Ein Kommentar braucht einen Text.",
     "a checklist item needs a text" to "Ein Checkpunkt braucht einen Text.",
+    "a checklist item is one line of text" to "Ein Checkpunkt ist eine Zeile Text.",
     "the task is not a subtask" to "Die Aufgabe ist keine Unteraufgabe.",
     "the task has subtasks of its own" to "Die Aufgabe hat eigene Unteraufgaben.",
     "the task is a habit" to "Die Aufgabe ist ein Habit.",

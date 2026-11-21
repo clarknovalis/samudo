@@ -5142,6 +5142,11 @@ fn a_checklist_is_made_offline_and_reaches_the_server() {
     samu.checklist_edit(ids[2].clone(), " Sonnenbrille! ".into())
         .unwrap();
     assert!(samu.checklist_edit(ids[2].clone(), " ".into()).is_err());
+    // One line: a break is refused here as the CLI and the server do.
+    assert!(
+        samu.checklist_edit(ids[2].clone(), "Brille\nHut".into())
+            .is_err()
+    );
     samu.checklist_move(ids[2].clone(), 0).unwrap();
     let texts: Vec<String> = samu
         .checklist(task.clone())

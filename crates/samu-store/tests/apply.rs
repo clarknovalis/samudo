@@ -3430,3 +3430,91 @@ fn a_checklist_item_belongs_to_a_task_and_goes_with_it() {
     assert_eq!(store.deleted(milk_id).unwrap(), Some(true));
     assert_eq!(store.deleted(bread_id).unwrap(), Some(true));
 }
+
+/// An item is one line with something on it (ADR 0141 §1): the server
+/// refuses an empty text and a line break, on create and on a rename. An
+/// empty item from before the rule still takes a tick and a text.
+#[test]
+fn a_checklist_item_without_a_text_is_refused() {
+    struct Dir(PathBuf);
+    impl Drop for Dir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let dir = Dir(std::env::temp_dir().join(format!("samu-store-item-{}", Id::new())));
+    std::fs::create_dir_all(&dir.0).unwrap();
+    let path = dir.0.join("account.db");
+    let mut store = AccountStore::open(&path).unwrap();
+    let task = fixture("task/inbox.json");
+    let owner = id_of(&task).to_string();
+    assert!(is_applied(&create(
+        &mut store,
+        ObjectKind::Task,
+        task,
+        stamp(1, "a")
+    )));
+    let item = |n: u8, text: &str| {
+        json!({"id": format!("01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f{n:02x}"),
+               "created": "2026-11-21T09:00:00Z", "modified": "2026-11-21T09:00:00Z",
+               "owner": owner, "text": text, "position": 0})
+    };
+    for (n, bad) in [(0x61, ""), (0x62, "  "), (0x63, "Milch\nEier")] {
+        let outcome = create(
+            &mut store,
+            ObjectKind::ChecklistItem,
+            item(n, bad),
+            stamp(2, "a"),
+        );
+        assert!(
+            matches!(&outcome, ChangeOutcome::Rejected { reason } if reason.contains("one line")),
+            "{bad:?}: {outcome:?}"
+        );
+    }
+    let milk = item(0x64, "Milch");
+    let milk_id = id_of(&milk);
+    assert!(is_applied(&create(
+        &mut store,
+        ObjectKind::ChecklistItem,
+        milk,
+        stamp(3, "a")
+    )));
+    for bad in ["", " ", "a\nb"] {
+        assert!(
+            is_rejected(&set(&mut store, milk_id, "text", json!(bad), stamp(4, "a"))),
+            "{bad:?}"
+        );
+    }
+    // The empty item an older web UI left behind.
+    drop(store);
+    let conn = rusqlite::Connection::open(&path).unwrap();
+    assert_eq!(
+        conn.execute("UPDATE checklist_item SET text = ''", [])
+            .unwrap(),
+        1,
+        "a probe that must find the row"
+    );
+    drop(conn);
+    let mut store = AccountStore::open(&path).unwrap();
+    assert!(is_applied(&set(
+        &mut store,
+        milk_id,
+        "checked",
+        json!(true),
+        stamp(5, "a")
+    )));
+    assert!(is_applied(&set(
+        &mut store,
+        milk_id,
+        "position",
+        json!(3),
+        stamp(6, "a")
+    )));
+    assert!(is_applied(&set(
+        &mut store,
+        milk_id,
+        "text",
+        json!("Hafermilch"),
+        stamp(7, "a")
+    )));
+}

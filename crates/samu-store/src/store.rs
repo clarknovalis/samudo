@@ -2070,6 +2070,13 @@ fn check_values(object: &Object, field: Option<&str>) -> Result<(), Refused> {
     {
         return Err("a report_worked this server does not know".into());
     }
+    // An item is one line with something on it (ADR 0141 §1). An old empty
+    // one still takes a tick, a place and its deletion.
+    if let Object::ChecklistItem(item) = object
+        && field.is_none_or(|f| f == "text")
+    {
+        crate::core::checklist::check_text(&item.text).map_err(|e| e.to_string())?;
+    }
     if let Object::Clock(clock) = object
         && clock.end.is_some_and(|end| end < clock.start)
     {
@@ -3097,7 +3104,7 @@ fn delete(
     Ok(ChangeOutcome::Applied { seq: as_seq(seq) })
 }
 
-/// Makes tombstones of the checklist items of a deleted task (ADR 0141 §1).
+/// Makes tombstones of the checklist items of a deleted task (ADR 0141 §2).
 fn forget_items(tx: &Transaction<'_>, task: Id, hlc: &Hlc, now: Timestamp) -> Result<()> {
     let rows: Vec<i64> = tx
         .prepare(

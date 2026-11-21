@@ -184,9 +184,7 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
         ChecklistCommand::Edit { item, text } => {
             let id = resolve(&client, &item)?;
             let text = text.trim();
-            if text.is_empty() || text.contains('\n') {
-                bail!("an item is one line of text");
-            }
+            checklist::check_text(text)?;
             find_item(&objects(&client)?, id)?;
             set_field(&client, id, "text", json!(text))
         }

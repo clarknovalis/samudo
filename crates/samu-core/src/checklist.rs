@@ -98,6 +98,8 @@ pub enum ChecklistError {
     Dropped,
     #[error("the task has {0}, which a checklist item cannot keep")]
     Carries(&'static str),
+    #[error("a checklist item is one line of text")]
+    NotOneLine,
     #[error("the task has no checklist items")]
     NoItems,
     #[error("the task has no subtask that a checklist item could take over")]
@@ -403,6 +405,19 @@ pub fn all_from_subtasks(
 pub fn progress(items: &[ChecklistItem], task: Id) -> (usize, usize) {
     let mine = items.iter().filter(|i| i.owner == task);
     (mine.clone().filter(|i| i.checked).count(), mine.count())
+}
+
+/// Checks the text of an item: one line, and something on it (ADR 0141
+/// §1). The server refuses anything else, whichever client wrote it.
+///
+/// # Errors
+///
+/// When the text is empty, only whitespace, or has a line break.
+pub fn check_text(text: &str) -> Result<(), ChecklistError> {
+    if text.trim().is_empty() || text.contains(['\n', '\r']) {
+        return Err(ChecklistError::NotOneLine);
+    }
+    Ok(())
 }
 
 /// The change that puts a new item at the end of a task's list.
@@ -762,6 +777,15 @@ mod tests {
                 .unwrap_err(),
             ChecklistError::NoPlainSubtasks
         );
+    }
+
+    #[test]
+    fn an_item_is_one_line_with_something_on_it() {
+        assert_eq!(check_text("Milch"), Ok(()));
+        assert_eq!(check_text("  zwei Wörter "), Ok(()));
+        for bad in ["", "   ", "\t", "Milch\nEier", "Milch\r\n", "\n"] {
+            assert_eq!(check_text(bad), Err(ChecklistError::NotOneLine), "{bad:?}");
+        }
     }
 
     #[test]

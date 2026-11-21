@@ -99,9 +99,7 @@ impl Samu {
     /// An item's new text.
     pub fn checklist_edit(&self, id: String, text: String) -> Result<(), MobileError> {
         let text = text.trim().to_string();
-        if text.is_empty() {
-            return Err(input("a checklist item needs a text"));
-        }
+        checklist::check_text(&text).map_err(|e| input(e.to_string()))?;
         self.set_item(&id, "text", Value::String(text))
     }
 

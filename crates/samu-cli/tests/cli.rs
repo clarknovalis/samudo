@@ -5568,6 +5568,15 @@ fn a_checklist_is_typed_ticked_moved_and_converted() {
         code(&server.samu(&["checklist", "edit", &eier, "Zehn Eier"], None)),
         0
     );
+    // An item is one line with something on it, here and on the server.
+    for bad in ["", "  ", "Zehn\nEier"] {
+        let out = server.samu(&["checklist", "edit", &eier, bad], None);
+        assert_eq!(code(&out), 1, "{bad:?}");
+        assert!(
+            String::from_utf8_lossy(&out.stderr).contains("one line of text"),
+            "{bad:?}"
+        );
+    }
     assert_eq!(
         code(&server.samu(&["checklist", "move", &eier, "1"], None)),
         0
