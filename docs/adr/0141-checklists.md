@@ -1,7 +1,7 @@
 ---
 number: 0141
 title: Checklists – items of a task as objects of their own, typed fast, turned into subtasks and back
-status: draft
+status: accepted
 date: 2026-11-21
 adds_to: ["0006", "0016", "0058", "0091"]
 ---
@@ -70,3 +70,4 @@ items.
 ## Changes
 
 - 2026-11-21: draft.
+- 2026-11-21: accepted. Built in the core, the CLI, the web UI and the Android app; the Emacs package, the user documentation and the bulk conversion in both directions in the app and the CLI follow.
