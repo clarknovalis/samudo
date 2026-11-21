@@ -3,13 +3,25 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // The checklist of a task in the inspector (ADR 0141): a line to tick off
-// each, typed fast. Enter makes the next item, Backspace on an empty one
-// removes it, a pasted list splits into items (the rules of
-// checklist.js), a handle or Alt+↑/↓ moves one, and one becomes a subtask.
+// each, typed fast. Enter opens the next line, which becomes an item once
+// it has a text, Backspace on an empty one removes it, a pasted list
+// splits into items (the rules of checklist.js), a handle or Alt+↑/↓
+// moves one, and one becomes a subtask.
 
 import { api, change } from "./api.js";
 import { $, el, uuidv7 } from "./dom.js";
-import { allFromSubtasks, allToSubtasks, fromSubtask, itemsOf, lines, progress, toSubtask } from "./checklist.js";
+import {
+  allFromSubtasks,
+  allToSubtasks,
+  fromSubtask,
+  itemsOf,
+  lines,
+  pasted,
+  placing as places,
+  progress,
+  spliced,
+  toSubtask,
+} from "./checklist.js";
 import { state, update } from "./state.js";
 import { tr } from "./i18n.js";
 
@@ -56,27 +68,89 @@ const newItem = (owner, text, checked, position) => {
 
 // The changes that give `order` (items, some of them new values to create)
 // their places 0, 1, 2 …; only what is not there yet.
-function placing(order) {
-  const changes = [];
-  order.forEach((item, position) => {
-    if (item.isNew) changes.push(change.create("checklist_item", { ...item.value, position }));
-    else if (item.position !== position) changes.push(change.set(item.id, "position", position));
-  });
-  return changes;
-}
+const placing = (order) =>
+  places(order).map((step) =>
+    step.create ? change.create("checklist_item", step.create) : change.set(step.set, "position", step.position),
+  );
 
-// New items after `at` (an item id, or null for the end), from text.
-async function insertAfter(task, at, texts, then = null) {
+// The line Enter opens under an item: { task, after, text, typing }. It is
+// only here, in the page, until it has a text; an item without one never
+// reaches the server, which would refuse it. `text` and `typing` carry what
+// is typed across a redraw of the page.
+let draft = null;
+
+// New items after `at` (an item id, or null for the end), from text, with
+// `first` (changes to the item pasted into) in the same write. `then`: where
+// the cursor goes instead of the last new item, as an id of `cl-…`; the
+// adder and the draft keep it to type the next one, `false` leaves it.
+async function insertAfter(task, at, texts, then = null, first = []) {
   const list = itemsOf(state.checklist, task);
-  const index = at ? list.findIndex((i) => i.id === at) + 1 : list.length;
   const fresh = texts.map((l) => {
     const value = newItem(task, l.text, l.checked, 0);
     return { id: value.id, isNew: true, value };
   });
-  const order = [...list.slice(0, index), ...fresh, ...list.slice(index)];
-  // `then`: where the cursor goes instead of the last new item, as an id of
-  // `cl-…`; the adder keeps it to type the next one.
-  if (await write(placing(order))) focus(then ?? fresh.at(-1).id);
+  const last = fresh.at(-1)?.id ?? at;
+  // The draft goes on under what it just made.
+  if (then === "draft") draft = { task, after: last, text: "", typing: true };
+  const ok = await write([...first, ...placing(spliced(list, at, fresh))]);
+  if (!ok && then === "draft") draft = { task, after: at, text: texts.map((l) => l.text).join(" "), typing: true };
+  if (ok && then !== false) focus(then ?? last);
+}
+
+function closeDraft(back) {
+  draft = null;
+  update({});
+  if (back) focus(back);
+}
+
+// The draft under the item `after` of `task`.
+function draftRow(task, after) {
+  const commit = (text, then) => insertAfter(task, after, lines(text), then);
+  const input = el("input", {
+    type: "text",
+    class: "cl-text",
+    id: "cl-draft",
+    value: draft.text,
+    placeholder: tr("Punkt hinzufügen …"),
+    "aria-label": tr("Punkt hinzufügen …"),
+    oninput: (event) => {
+      if (draft) draft.text = event.target.value;
+    },
+    onfocus: () => {
+      if (draft) draft.typing = true;
+    },
+    onblur: (event) => {
+      const left = event.target;
+      // A redraw takes the field out of the page; that is not leaving it.
+      setTimeout(() => {
+        if (!left.isConnected || !draft || document.activeElement === left) return;
+        const text = left.value.trim();
+        draft = null;
+        left.closest("li")?.remove();
+        if (text) commit(text, false);
+      }, 0);
+    },
+    onkeydown: (event) => {
+      const text = event.target.value.trim();
+      if (event.key === "Enter" && !event.isComposing) {
+        event.preventDefault();
+        if (text) commit(text, "draft");
+        else closeDraft(after);
+      } else if (event.key === "Escape" || (event.key === "Backspace" && event.target.value === "")) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDraft(after);
+      }
+    },
+    onpaste: (event) => {
+      const got = lines(event.clipboardData?.getData("text") ?? "");
+      if (got.length < 2) return;
+      event.preventDefault();
+      insertAfter(task, after, got, "draft");
+    },
+  });
+  if (draft.typing) focus("draft");
+  return el("li", { class: "cl-item cl-draft" }, [input]);
 }
 
 async function move(task, id, to) {
@@ -106,11 +180,10 @@ function itemRow(task, item, list) {
       const text = event.target.value.trim();
       if (event.key === "Enter" && !event.isComposing) {
         event.preventDefault();
-        const rest = text !== item.text && text ? [change.set(item.id, "text", text)] : [];
-        // A change of the text goes with the new item, in one write.
-        const fresh = newItem(task, "", false, 0);
-        const order = [...list.slice(0, index + 1), { id: fresh.id, isNew: true, value: fresh }, ...list.slice(index + 1)];
-        write([...rest, ...placing(order)]).then((ok) => ok && focus(fresh.id));
+        // The next line opens here and is written once it has a text.
+        draft = { task, after: item.id, text: "", typing: true };
+        if (text && text !== item.text) write([change.set(item.id, "text", text)]);
+        else update({});
       } else if (event.key === "Backspace" && event.target.value === "") {
         event.preventDefault();
         const before = list[index - 1] ?? list[index + 1];
@@ -121,14 +194,16 @@ function itemRow(task, item, list) {
       }
     },
     onpaste: (event) => {
-      const pasted = event.clipboardData?.getData("text") ?? "";
-      const got = lines(pasted);
-      if (!/\r?\n/.test(pasted.trim()) || got.length < 2) return;
+      const clip = event.clipboardData?.getData("text") ?? "";
+      const got = lines(clip);
+      if (!/\r?\n/.test(clip.trim()) || got.length < 2) return;
       event.preventDefault();
-      // Into an empty item the first line goes itself.
-      const own = event.target.value.trim() === "" ? got.shift() : null;
-      if (own) write([change.set(item.id, "text", own.text), ...(own.checked ? [change.set(item.id, "checked", true)] : [])]);
-      insertAfter(task, item.id, got);
+      // Into an empty item the first line goes itself, in the same write.
+      const { own, rest } = pasted(event.target.value, got);
+      const first = own
+        ? [change.set(item.id, "text", own.text), ...(own.checked ? [change.set(item.id, "checked", true)] : [])]
+        : [];
+      insertAfter(task, item.id, rest, null, first);
     },
   });
   return el(
@@ -218,7 +293,16 @@ export function checklistBody(task) {
     },
   });
   return el("div", { class: "checklist" }, [
-    list.length ? el("ul", { class: "cl-items" }, list.map((item) => itemRow(task, item, list))) : null,
+    list.length
+      ? el(
+          "ul",
+          { class: "cl-items" },
+          list.flatMap((item) => [
+            itemRow(task, item, list),
+            ...(draft?.task === task && draft.after === item.id ? [draftRow(task, item.id)] : []),
+          ]),
+        )
+      : null,
     adder,
     list.length > 1
       ? el("button", {

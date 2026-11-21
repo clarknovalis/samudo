@@ -57,6 +57,32 @@ export function progress(items, task) {
 // One past the last position, 0 for none.
 export const after = (positions) => (positions.length ? Math.max(...positions) + 1 : 0);
 
+// What gives `order` its places 0, 1, 2 …, only what is not there yet, as
+// plain steps for the page to stamp: { create: value } for an entry
+// { isNew, value }, { set: id, position } for an item at another place.
+export function placing(order) {
+  const steps = [];
+  order.forEach((entry, position) => {
+    if (entry.isNew) steps.push({ create: { ...entry.value, position } });
+    else if (entry.position !== position) steps.push({ set: entry.id, position });
+  });
+  return steps;
+}
+
+// `list` with `fresh` after the item `at`; at the end for null or an item
+// that is gone.
+export function spliced(list, at, fresh) {
+  const found = at ? list.findIndex((i) => i.id === at) : -1;
+  const index = found < 0 ? list.length : found + 1;
+  return [...list.slice(0, index), ...fresh, ...list.slice(index)];
+}
+
+// Pasted lines for an item that holds `value`: an empty item takes the
+// first line itself (`own`), the others follow as new items (`rest`).
+export function pasted(value, got) {
+  return value.trim() === "" ? { own: got[0] ?? null, rest: got.slice(1) } : { own: null, rest: got };
+}
+
 // What an item cannot keep, named; null for a plain subtask. `around` is
 // what hangs on tasks as objects of their own and would go with the task:
 // { items, comments, attachments, clocks, reminders, links }.

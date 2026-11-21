@@ -8,7 +8,8 @@
 import assert from "node:assert/strict";
 
 const root = new URL("../../", import.meta.url);
-const { lines, itemsOf, progress, toSubtask, fromSubtask, carries, allToSubtasks, allFromSubtasks } = await import(
+const { lines, itemsOf, progress, toSubtask, fromSubtask, carries, allToSubtasks, allFromSubtasks, placing, spliced, pasted } =
+  await import(
   new URL("web/lib/checklist.js", root)
 );
 
@@ -152,3 +153,42 @@ assert.throws(
 );
 
 console.log("checklist ok");
+
+// New lines go after the item they were typed under, and only what gets
+// another place is written.
+{
+  const list = [
+    { id: "a", position: 0 },
+    { id: "b", position: 1 },
+    { id: "c", position: 2 },
+  ];
+  const fresh = [{ id: "n", isNew: true, value: { id: "n", text: "neu" } }];
+  assert.deepEqual(
+    spliced(list, "a", fresh).map((i) => i.id),
+    ["a", "n", "b", "c"],
+  );
+  assert.deepEqual(
+    spliced(list, null, fresh).map((i) => i.id),
+    ["a", "b", "c", "n"],
+  );
+  assert.deepEqual(
+    spliced(list, "gone", fresh).map((i) => i.id),
+    ["a", "b", "c", "n"],
+    "after an item that is gone: at the end",
+  );
+  assert.deepEqual(placing(spliced(list, "a", fresh)), [
+    { create: { id: "n", text: "neu", position: 1 } },
+    { set: "b", position: 2 },
+    { set: "c", position: 3 },
+  ]);
+  assert.deepEqual(placing(list), [], "nothing moves, nothing is written");
+  assert.deepEqual(placing(spliced(list, "c", [])), [], "no line, no item");
+}
+
+// Pasting into an empty item: the first line is its own text, the others
+// follow; into one with a text, all follow.
+{
+  const got = lines("Milch\n[x] Brot\nEier");
+  assert.deepEqual(pasted("  ", got), { own: got[0], rest: [got[1], got[2]] });
+  assert.deepEqual(pasted("Käse", got), { own: null, rest: got });
+}

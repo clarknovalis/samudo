@@ -1394,6 +1394,8 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 .cl-items { list-style: none; margin: 0 0 4px; padding: 0; }
 .cl-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
 .cl-item.done .cl-text { color: var(--muted); text-decoration: line-through; }
+/* The line Enter opens: under the texts, without handle, tick and tools. */
+.cl-draft { padding-left: 55px; padding-right: 51px; }
 .cl-handle { cursor: grab; color: var(--muted); user-select: none; letter-spacing: -2px; }
 .cl-text, .cl-add { flex: 1; min-width: 0; }
 .cl-add { width: 100%; box-sizing: border-box; }
