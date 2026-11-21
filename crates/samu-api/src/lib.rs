@@ -75,7 +75,7 @@ pub use model::{
     PerspectiveTable, PerspectiveView, Priority, Project, ProjectKind, ProjectStatus, Reminder,
     ReminderAnchor, Schedule, Scope, ScopeCapture, ScopeChip, ScopeChipKind, ScopeColor,
     ScopeLayout, ScopeMode, ScopeWindow, Tag, TagStatus, Tagging, Task, Template, TemplateReminder,
-    Weekday,
+    TranscriptState, Weekday,
 };
 pub use page::{AnyObject, ChangesPage};
 pub use pair::{PairCode, PairCodeRequest, PairRequest};

@@ -1038,6 +1038,9 @@ impl<'a> Seeder<'a> {
             name: attachment.name.clone(),
             media_type: media_type.into(),
             size: written.size,
+            transcript: None,
+            transcript_state: None,
+            transcript_error: None,
         };
         self.apply(create_of(
             ObjectKind::Attachment,

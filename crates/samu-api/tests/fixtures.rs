@@ -268,6 +268,7 @@ fn unknown_enum_values_read_as_unknown() {
         ),
         ("document/markdown.json", &["blocks", "3", "align", "1"]),
         ("render_request/two.json", &["texts", "1", "format"]),
+        ("attachment/transcript_pending.json", &["transcript_state"]),
     ];
     for (file, pointer) in cases {
         let dir = file.split('/').next().unwrap();

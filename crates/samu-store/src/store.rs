@@ -27,9 +27,11 @@ use crate::{DatabaseLock, Error, Result, open};
 
 mod calendar;
 mod export;
+mod transcript;
 
 pub use calendar::{Fetched, KnownResource, Pending, SecretKey, StoredSource, Synced, WriteJob};
 pub use export::RestoreRefused;
+pub use transcript::{Asked, Transcribed};
 
 /// One account's database, open for writing.
 #[derive(Debug)]
@@ -1637,6 +1639,11 @@ fn create(
     {
         return Ok(rejected(format!("{field} of a calendar is the server's")));
     }
+    if kind == ObjectKind::Attachment
+        && let Err(reason) = transcript::check_create(value)
+    {
+        return Ok(rejected(reason));
+    }
     if let Some(existing) = head(tx, id)? {
         // Idempotent by the id (ADR 0004 §8).
         return Ok(if existing.deleted {
@@ -3189,7 +3196,8 @@ pub(crate) mod tests {
                 "0024_own_scope",
                 "0025_appointment_alarms",
                 "0026_perspective_table",
-                "0027_perspective_blocks"
+                "0027_perspective_blocks",
+                "0028_transcript"
             ]
         );
         drop(store);
@@ -3236,7 +3244,8 @@ pub(crate) mod tests {
                     "0024_own_scope",
                     "0025_appointment_alarms",
                     "0026_perspective_table",
-                    "0027_perspective_blocks"
+                    "0027_perspective_blocks",
+                    "0028_transcript"
                 ]
             );
             // The settings object, made on opening (ADR 0045 §4).
@@ -3250,7 +3259,7 @@ pub(crate) mod tests {
         let history: i64 = conn
             .query_row("SELECT count(*) FROM schema_history", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(history, 27);
+        assert_eq!(history, 28);
         let journal: String = conn
             .query_row("PRAGMA journal_mode", [], |r| r.get(0))
             .unwrap();
@@ -3361,7 +3370,8 @@ pub(crate) mod tests {
                 "0024_own_scope",
                 "0025_appointment_alarms",
                 "0026_perspective_table",
-                "0027_perspective_blocks"
+                "0027_perspective_blocks",
+                "0028_transcript"
             ]
         );
         let id: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3459,7 +3469,8 @@ pub(crate) mod tests {
                 "0024_own_scope",
                 "0025_appointment_alarms",
                 "0026_perspective_table",
-                "0027_perspective_blocks"
+                "0027_perspective_blocks",
+                "0028_transcript"
             ]
         );
         let reminder: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e22".parse().unwrap();
@@ -3560,7 +3571,8 @@ pub(crate) mod tests {
                 "0024_own_scope",
                 "0025_appointment_alarms",
                 "0026_perspective_table",
-                "0027_perspective_blocks"
+                "0027_perspective_blocks",
+                "0028_transcript"
             ]
         );
 
@@ -3761,7 +3773,8 @@ pub(crate) mod tests {
                 "0024_own_scope",
                 "0025_appointment_alarms",
                 "0026_perspective_table",
-                "0027_perspective_blocks"
+                "0027_perspective_blocks",
+                "0028_transcript"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3870,7 +3883,8 @@ pub(crate) mod tests {
                 "0024_own_scope",
                 "0025_appointment_alarms",
                 "0026_perspective_table",
-                "0027_perspective_blocks"
+                "0027_perspective_blocks",
+                "0028_transcript"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();

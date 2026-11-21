@@ -45,6 +45,11 @@ struct Server {
 impl Server {
     /// A server with one account `privat`, or none.
     fn start(with_account: bool) -> Self {
+        Self::start_with_env(with_account, &[])
+    }
+
+    /// The same, with settings from the environment.
+    fn start_with_env(with_account: bool, env: &[(&str, &str)]) -> Self {
         let dir =
             std::env::temp_dir().join(format!("samu-cli-{}-{}", std::process::id(), unique()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -74,6 +79,7 @@ impl Server {
                 "SAMU_SECRET_KEY",
                 "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
             )
+            .envs(env.iter().copied())
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
@@ -5357,4 +5363,173 @@ fn done_with_open_children_asks_for_children() {
         "{rest}"
     );
     assert!(rest.get("dropped_at").is_none(), "{rest}");
+}
+
+/// A transcript service for one test: answers every request with `text`
+/// and counts them. It reads a request to the end of its body, as far as
+/// `Content-Length` says.
+fn transcript_service(
+    text: &'static str,
+) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+    use std::io::Read;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!(
+        "http://{}/v1/audio/transcriptions",
+        listener.local_addr().unwrap()
+    );
+    let asked = std::sync::Arc::new(AtomicUsize::new(0));
+    let counted = asked.clone();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut request = Vec::new();
+            let mut buffer = [0u8; 4096];
+            while let Ok(n) = stream.read(&mut buffer) {
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buffer[..n]);
+                let Some(end) = request.windows(4).position(|w| w == b"\r\n\r\n") else {
+                    continue;
+                };
+                let head = String::from_utf8_lossy(&request[..end]).to_ascii_lowercase();
+                let length: usize = head
+                    .lines()
+                    .find_map(|line| line.strip_prefix("content-length:"))
+                    .and_then(|v| v.trim().parse().ok())
+                    .unwrap_or(0);
+                if request.len() >= end + 4 + length {
+                    break;
+                }
+            }
+            counted.fetch_add(1, Ordering::SeqCst);
+            let body = serde_json::json!({ "text": text }).to_string();
+            let _ = write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\
+                 Connection: close\r\n\r\n{body}",
+                body.len()
+            );
+        }
+    });
+    (url, asked)
+}
+
+/// The attachments of a task once `done` holds for the first: the
+/// transcript is made in the background.
+fn attachments_when(
+    server: &Server,
+    task: &str,
+    done: impl Fn(&serde_json::Value) -> bool,
+) -> serde_json::Value {
+    for _ in 0..200 {
+        let all = json_out(&server.samu(&["attachments", task, "--format", "json"], None));
+        if all.as_array().is_some_and(|a| a.first().is_some_and(&done)) {
+            return all;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    panic!("the attachment of {task} never got there");
+}
+
+/// ADR 0140 §3: `samu attach --transcribe` asks with the attachment,
+/// `samu transcribe` for one that is there; the text shows in
+/// `samu attachments`.
+#[test]
+fn transcribe_asks_and_attachments_show_the_text() {
+    let (url, asked) = transcript_service("Buy oat milk.");
+    let server = Server::start_with_env(true, &[("SAMU_TRANSCRIBE_URL", &url)]);
+    assert_eq!(
+        code(&server.samu(&["login", "--password-stdin"], Some(PASSWORD))),
+        0
+    );
+    let task = json_out(&server.samu(&["add", "Offer", "--format", "json"], None));
+    let task = task[0]["id"].as_str().unwrap().to_string();
+    let file = server.dir.join("memo.m4a");
+    std::fs::write(&file, b"not really sound").unwrap();
+    let attached = json_out(&server.samu(
+        &[
+            "attach",
+            &task,
+            file.to_str().unwrap(),
+            "--transcribe",
+            "--format",
+            "json",
+        ],
+        None,
+    ));
+    let id = attached[0]["id"].as_str().unwrap().to_string();
+    let all = attachments_when(&server, &task, |a| a["transcript"].is_string());
+    assert_eq!(all[0]["transcript"], "Buy oat milk.");
+    assert!(all[0]["transcript_state"].is_null(), "{all}");
+    assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 1);
+
+    // Asked again by the end of its id: it waits, then the text is there.
+    let again = server.samu(
+        &["transcribe", &id[id.len() - 8..], "--format", "json"],
+        None,
+    );
+    assert_eq!(
+        code(&again),
+        0,
+        "{}",
+        String::from_utf8_lossy(&again.stderr)
+    );
+    let again = json_out(&again);
+    assert_eq!(again[0]["id"], id.as_str());
+    assert_eq!(again[0]["transcript_state"], "pending");
+    attachments_when(&server, &task, |a| a["transcript_state"].is_null());
+    assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 2);
+
+    // The task is no attachment; an id that names nothing is not found.
+    assert_eq!(code(&server.samu(&["transcribe", &task], None)), 3);
+    assert_eq!(
+        code(&server.samu(
+            &["transcribe", "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f99"],
+            None
+        )),
+        3
+    );
+    // A picture has no transcript.
+    let picture = server.dir.join("board.png");
+    std::fs::write(&picture, b"not really a picture").unwrap();
+    let refused = server.samu(
+        &["attach", &task, picture.to_str().unwrap(), "--transcribe"],
+        None,
+    );
+    assert_eq!(code(&refused), 1);
+}
+
+/// ADR 0140 §1: a server without a transcript service drops what an
+/// attachment asked for, and `samu transcribe` says what is missing.
+#[test]
+fn transcribe_without_a_service_says_so() {
+    let server = Server::start(true);
+    assert_eq!(
+        code(&server.samu(&["login", "--password-stdin"], Some(PASSWORD))),
+        0
+    );
+    let task = json_out(&server.samu(&["add", "Offer", "--format", "json"], None));
+    let task = task[0]["id"].as_str().unwrap().to_string();
+    let file = server.dir.join("memo.m4a");
+    std::fs::write(&file, b"not really sound").unwrap();
+    let attached = json_out(&server.samu(
+        &[
+            "attach",
+            &task,
+            file.to_str().unwrap(),
+            "--transcribe",
+            "--format",
+            "json",
+        ],
+        None,
+    ));
+    let id = attached[0]["id"].as_str().unwrap().to_string();
+    let all = attachments_when(&server, &task, |a| a["transcript_state"].is_null());
+    assert!(all[0]["transcript"].is_null(), "{all}");
+    let refused = server.samu(&["transcribe", &id], None);
+    assert_eq!(code(&refused), 1);
+    let said = String::from_utf8_lossy(&refused.stderr);
+    assert!(said.contains("SAMU_TRANSCRIBE_URL"), "{said}");
 }

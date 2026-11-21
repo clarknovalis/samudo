@@ -17,6 +17,7 @@ mod hooks;
 mod import;
 mod register;
 mod replica;
+mod transcribe;
 mod web;
 mod writer;
 
@@ -68,6 +69,8 @@ enum Command {
         trust_proxy: bool,
         #[command(flatten)]
         limits: Limits,
+        #[command(flatten)]
+        transcribe: Transcribe,
     },
     /// The replica on a computer (ADR 0066): the same API and web UI on
     /// the loopback, from a mirror of the server, also while it is away.
@@ -120,6 +123,48 @@ enum Command {
     /// (ADR 0099).
     #[command(subcommand)]
     Account(AccountCommand),
+}
+
+/// The transcript service (ADR 0140 §1); without an address no recording
+/// leaves the server.
+#[derive(Debug, Clone, Default, clap::Args)]
+struct Transcribe {
+    /// Where recordings are sent for a transcript: an endpoint in the
+    /// format of OpenAI's `POST /v1/audio/transcriptions`, like
+    /// `http://whisper:8080/v1/audio/transcriptions`.
+    #[arg(long = "transcribe-url", env = "SAMU_TRANSCRIBE_URL")]
+    url: Option<String>,
+    /// The model the service is asked for; `whisper-1` without it.
+    #[arg(long = "transcribe-model", env = "SAMU_TRANSCRIBE_MODEL")]
+    model: Option<String>,
+    /// A file with the bearer token of the service, if it wants one.
+    #[arg(long = "transcribe-token-file", env = "SAMU_TRANSCRIBE_TOKEN_FILE")]
+    token_file: Option<PathBuf>,
+    /// The language spoken, like `de`; the service detects it without.
+    #[arg(long = "transcribe-language", env = "SAMU_TRANSCRIBE_LANGUAGE")]
+    language: Option<String>,
+}
+
+impl Transcribe {
+    fn service(&self) -> Result<Option<transcribe::Service>> {
+        let Some(url) = self.url.as_deref().filter(|u| !u.trim().is_empty()) else {
+            return Ok(None);
+        };
+        let token = self
+            .token_file
+            .as_ref()
+            .map(|path| {
+                std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))
+            })
+            .transpose()?;
+        transcribe::Service::new(
+            url,
+            self.model.as_deref(),
+            token.as_deref(),
+            self.language.as_deref(),
+        )
+        .map(Some)
+    }
 }
 
 /// What a public instance limits (ADR 0097); without any, nothing more
@@ -370,6 +415,7 @@ fn profile(name: &str, command: Option<ProfileCommand>) -> Result<()> {
                 // A profile is asked on the loopback, never through a proxy.
                 false,
                 &Limits::default(),
+                &Transcribe::default(),
                 Some(Some(host)),
             ))
         }
@@ -385,6 +431,7 @@ async fn serve(
     secret_key: Option<String>,
     trust_proxy: bool,
     limits: &Limits,
+    transcribe: &Transcribe,
     loopback: Option<Option<String>>,
 ) -> Result<()> {
     let key = secret_key
@@ -396,6 +443,7 @@ async fn serve(
         app::AppState::new(&data)?
             .with_secret_key(key)
             .with_trust_proxy(trust_proxy)
+            .with_transcriber(transcribe.service()?)
             .with_blob_limits(limits.blobs())
             .with_calendar_hosts(limits.calendar_hosts())?
             .with_unbraked(&limits.brake_exempt)
@@ -420,6 +468,7 @@ async fn serve(
     }
     tokio::spawn(calendar::run(state.clone()));
     tokio::spawn(writer::run(state.clone()));
+    tokio::spawn(transcribe::resume(state.clone()));
     tokio::spawn(app::close_idle_accounts(state.clone()));
     tokio::spawn(app::expire_demo_accounts(state.clone()));
     let mut router = app::router(state);
@@ -529,12 +578,14 @@ fn main() -> Result<()> {
             secret_key,
             trust_proxy,
             limits,
+            transcribe,
         } => tokio::runtime::Runtime::new()?.block_on(serve(
             args.data,
             listen,
             secret_key,
             trust_proxy,
             &limits,
+            &transcribe,
             None,
         )),
         Command::Replica {

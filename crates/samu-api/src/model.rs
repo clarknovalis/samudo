@@ -882,6 +882,35 @@ pub struct Attachment {
     pub media_type: String,
     /// In bytes.
     pub size: u64,
+    /// What is said in an audio file (ADR 0140 §2); absent until a
+    /// transcript service has answered. The empty text when nothing was
+    /// said. Only the server writes it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcript: Option<String>,
+    /// Whether a transcript is on its way (ADR 0140 §3). A client may
+    /// create an attachment with `pending`, which asks for the transcript;
+    /// everything else is the server's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcript_state: Option<TranscriptState>,
+    /// Why the last try failed, with `transcript_state` `failed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transcript_error: Option<String>,
+}
+
+/// Where the transcript of an attachment stands while there is none
+/// (ADR 0140 §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TranscriptState {
+    /// Asked for; the server is at it or will be.
+    Pending,
+    /// The service refused or could not be reached; asking again tries
+    /// again.
+    Failed,
+    /// A value from a newer samu that this reader does not know (ADR 0015).
+    /// Read, never written.
+    #[serde(other)]
+    Unknown,
 }
 
 /// `PUT /blobs/{sha256}` answers with this (ADR 0039 §4), the same whether

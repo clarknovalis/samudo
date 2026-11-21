@@ -377,6 +377,9 @@ impl Samu {
             },
             media_type: media_type.clone(),
             size,
+            transcript: None,
+            transcript_state: None,
+            transcript_error: None,
         };
         let id = attachment.id;
         let value = serde_json::to_value(&attachment).map_err(|e| input(e.to_string()))?;

@@ -400,6 +400,13 @@ enum Command {
         #[arg(add = ArgValueCompleter::new(complete::task))]
         id: String,
     },
+    /// Ask for the transcript of an audio attachment
+    /// (POST /attachments/{id}/transcribe, ADR 0140 §3); the text shows in
+    /// `samu attachments` once the server's transcript service answered.
+    Transcribe {
+        /// The attachment, by id or the start or end of one.
+        attachment: String,
+    },
     /// The files behind attachments (ADR 0039 §4).
     #[command(subcommand)]
     Blob(comments::BlobCommand),
@@ -758,6 +765,7 @@ const COVERAGE: &[(&str, &str, &str)] = &[
     ("GET", "/export", "export"),
     ("PUT", "/blobs/{sha256}", "attach"),
     ("GET", "/blobs/{sha256}", "blob get"),
+    ("POST", "/attachments/{id}/transcribe", "transcribe"),
     ("PUT", "/calendars/{id}/source", "calendar source"),
     ("POST", "/calendars/{id}/refresh", "calendar refresh"),
     ("POST", "/calendars/discover", "calendar discover"),
@@ -2150,6 +2158,9 @@ fn run(args: Args) -> Result<()> {
         }
         Command::Attachments { id } => {
             comments::attachments(&signed_in(&config)?, args.format, &id)?;
+        }
+        Command::Transcribe { attachment } => {
+            comments::transcribe(&signed_in(&config)?, args.format, &attachment)?;
         }
         Command::Blob(command) => {
             comments::blob(&signed_in(&config)?, &command)?;

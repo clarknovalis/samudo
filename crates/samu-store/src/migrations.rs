@@ -191,6 +191,12 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0027_perspective_blocks.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 28,
+        name: "0028_transcript",
+        sql: include_str!("migrations/0028_transcript.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The migrations of the server file: accounts and sessions (ADR 0019 §2).

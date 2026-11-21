@@ -47,6 +47,11 @@ pub(crate) struct AppState {
     fetcher: crate::calendar::Fetcher,
     /// One writer of appointments at a time (ADR 0068 §6).
     writing: tokio::sync::Mutex<()>,
+    /// The transcript service (ADR 0140 §1); none without
+    /// `SAMU_TRANSCRIBE_URL`.
+    transcriber: Option<crate::transcribe::Service>,
+    /// One recording at the service at a time.
+    transcribing: tokio::sync::Mutex<()>,
     /// Failed sign-ins by account name (ADR 0097 §1).
     sign_ins: crate::brake::Brake,
     /// Failed pairing codes, all under one key (ADR 0097 §1).
@@ -130,6 +135,8 @@ impl AppState {
             secret_key: None,
             fetcher: crate::calendar::Fetcher::new()?,
             writing: tokio::sync::Mutex::new(()),
+            transcriber: None,
+            transcribing: tokio::sync::Mutex::new(()),
             sign_ins: crate::brake::Brake::new(crate::brake::PER_ACCOUNT, crate::brake::WINDOW),
             pairings: crate::brake::Brake::new(crate::brake::PAIRING, crate::brake::WINDOW),
             checks: tokio::sync::Semaphore::new(crate::brake::CHECKS_AT_ONCE),
@@ -141,6 +148,13 @@ impl AppState {
             touched: Mutex::new(HashMap::new()),
             trust_proxy: false,
         })
+    }
+
+    /// With the service that makes transcripts (ADR 0140 §1).
+    #[must_use]
+    pub(crate) fn with_transcriber(mut self, service: Option<crate::transcribe::Service>) -> Self {
+        self.transcriber = service;
+        self
     }
 
     /// With the key that seals calendar sources.
@@ -287,6 +301,14 @@ impl AppState {
 
     pub(crate) fn fetcher(&self) -> &crate::calendar::Fetcher {
         &self.fetcher
+    }
+
+    pub(crate) const fn transcriber(&self) -> Option<&crate::transcribe::Service> {
+        self.transcriber.as_ref()
+    }
+
+    pub(crate) const fn transcribing(&self) -> &tokio::sync::Mutex<()> {
+        &self.transcribing
     }
 
     pub(crate) fn writing(&self) -> &tokio::sync::Mutex<()> {
@@ -812,6 +834,7 @@ fn signed_in_answer(token: String, row: samu_store::SessionRow, state: &AppState
             replica: None,
             grant: row.grant,
             demo_until: None,
+            transcribe: false,
         },
         state,
     );
@@ -970,6 +993,7 @@ async fn session(
             replica: None,
             grant: session.grant,
             demo_until: None,
+            transcribe: false,
         },
         &state,
     ))
@@ -1034,6 +1058,7 @@ fn with_settings(mut info: SessionInfo, state: &AppState) -> SessionInfo {
     info.due_soon = Some(Period(settings.due_soon));
     info.remind_time = Some(settings.remind_time);
     info.demo_until = demo_until(state, &info.account, &settings.zone);
+    info.transcribe = state.transcriber().is_some();
     info
 }
 
@@ -1087,6 +1112,7 @@ async fn post_changes(
     let mut store = lock(&store)?;
     let mut reach = session_reach(&session, &store)?;
     let mut outcomes = Vec::with_capacity(changes.len());
+    let mut heard = false;
     for change in changes {
         // A restricted session's change outside its grant (ADR 0095 §3).
         if let Some(reach) = &reach
@@ -1108,6 +1134,17 @@ async fn post_changes(
             bound_to(change, &session.device)
         };
         let outcome = store.apply(&change, &session.author(), now)?;
+        // An attachment may ask for its transcript (ADR 0140 §3).
+        heard |= matches!(
+            (&change, &outcome),
+            (
+                Change::Create {
+                    kind: samu_store::core::api::ObjectKind::Attachment,
+                    ..
+                },
+                ChangeOutcome::Applied { .. }
+            )
+        );
         if let Some(reach) = &mut reach
             && matches!(outcome, ChangeOutcome::Applied { .. })
         {
@@ -1118,6 +1155,9 @@ async fn post_changes(
     drop(store);
     // An appointment changed in a writable calendar goes back at once.
     crate::writer::kick(&state, &session.account);
+    if heard {
+        crate::transcribe::kick(&state, &session.account);
+    }
     Ok(Json(outcomes))
 }
 
@@ -2369,6 +2409,10 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route(
             "/calendars/{id}/refresh",
             post(crate::calendar::post_refresh),
+        )
+        .route(
+            "/attachments/{id}/transcribe",
+            post(crate::transcribe::post_transcribe),
         )
         .route("/appointments", get(crate::calendar::appointments))
         .route("/appointments/{id}/edit", post(edit_appointment))

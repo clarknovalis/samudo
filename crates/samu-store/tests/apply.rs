@@ -3207,6 +3207,10 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
              ALTER TABLE appointment DROP COLUMN alarms; \
              ALTER TABLE perspective DROP COLUMN table_view; \
              ALTER TABLE perspective DROP COLUMN blocks; ALTER TABLE perspective DROP COLUMN dedupe; \
+             DROP INDEX attachment_by_transcript_state; \
+             ALTER TABLE attachment DROP COLUMN transcript; \
+             ALTER TABLE attachment DROP COLUMN transcript_state; \
+             ALTER TABLE attachment DROP COLUMN transcript_error; \
              DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
         )
         .unwrap();
@@ -3222,7 +3226,8 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
             "0024_own_scope",
             "0025_appointment_alarms",
             "0026_perspective_table",
-            "0027_perspective_blocks"
+            "0027_perspective_blocks",
+            "0028_transcript"
         ]
     );
     assert_eq!(
@@ -3297,6 +3302,10 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
              ALTER TABLE appointment DROP COLUMN alarms; \
              ALTER TABLE perspective DROP COLUMN table_view; \
              ALTER TABLE perspective DROP COLUMN blocks; ALTER TABLE perspective DROP COLUMN dedupe; \
+             DROP INDEX attachment_by_transcript_state; \
+             ALTER TABLE attachment DROP COLUMN transcript; \
+             ALTER TABLE attachment DROP COLUMN transcript_state; \
+             ALTER TABLE attachment DROP COLUMN transcript_error; \
              DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
             id_of(&calendar).to_string().replace('-', "")
         ))
@@ -3308,7 +3317,8 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
         vec![
             "0025_appointment_alarms",
             "0026_perspective_table",
-            "0027_perspective_blocks"
+            "0027_perspective_blocks",
+            "0028_transcript"
         ]
     );
     drop(store);

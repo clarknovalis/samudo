@@ -358,12 +358,12 @@ fn server_set(
     write_fields(tx, h.rowid, &Object::Calendar(after), &fields, now)
 }
 
-fn corrupt(what: String) -> Error {
+pub(super) fn corrupt(what: String) -> Error {
     Error::Corrupt { what }
 }
 
 /// The fields whose values differ, besides id and times.
-fn differing(a: &Map<String, Json>, b: &Map<String, Json>) -> Vec<String> {
+pub(super) fn differing(a: &Map<String, Json>, b: &Map<String, Json>) -> Vec<String> {
     let mut keys: Vec<&String> = a.keys().chain(b.keys()).collect();
     keys.sort();
     keys.dedup();
@@ -375,7 +375,7 @@ fn differing(a: &Map<String, Json>, b: &Map<String, Json>) -> Vec<String> {
 }
 
 /// Writes the row and one stamp per field, at one change number.
-fn write_fields(
+pub(super) fn write_fields(
     tx: &Transaction<'_>,
     rowid: i64,
     object: &Object,

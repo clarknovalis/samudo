@@ -64,14 +64,20 @@ Android gives the assistant role to one app at a time.
      `transcript_state` (`pending`, `failed`); a failure keeps its
      reason, and asking again tries again. Pending requests are picked
      up again after a restart.
+   - A client asks the same by creating the attachment with
+     `transcript_state` `pending`. That request travels like any
+     change, through an outbox too, so a recording made offline is
+     transcribed once it has arrived. A server without a service drops
+     it.
    - `503` when no service is configured. The session tells clients
      whether one is, so that they offer the action only then.
    - An empty answer (nothing was said) is a result, not a failure:
      the transcript is the empty text.
 4. **A voice note** is a task that was created from a recording (web
    button, the app's recorder, shared audio). Its capture asks for
-   the transcript itself. When the text arrives and the title is
-   still the placeholder, the first line becomes the title, cut at a
+   the transcript itself and marks the task with the property
+   `source=voice`. When the text arrives and nobody has changed the
+   title since the task was made, the first line becomes the title, cut at a
    word boundary to at most 80 characters, and the whole text the
    note if the note is still empty (as 0010 §3). A title or note that
    someone has changed in the meantime stays. The capture parser does
@@ -109,7 +115,9 @@ Android gives the assistant role to one app at a time.
    recording is a task is known while speaking; an import would
    decide it afterwards and leave every to-do in the archive. A
    recording that turns out to be a task later goes the way of 0013,
-   as text with its link.
+   as text with its link. A voice note that is worth keeping gets
+   there from samudo's side: catastr's connector reads the tasks that
+   carry a tag chosen for it, with their attachments.
 10. **The ring** keeps the text of its own app (0010). Sending its
     audio through this service is possible later and not part of this
     record.
@@ -137,4 +145,8 @@ Android gives the assistant role to one app at a time.
 
 ## Changes
 
-None yet.
+- 2026-11-21, while building: §3 names the second way to ask (an
+  attachment created with `pending`), §4 the property that marks a
+  voice note and "not changed since" instead of "still the
+  placeholder", which the server cannot tell in every language. §9
+  names catastr's connector.

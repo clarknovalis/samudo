@@ -1,0 +1,16 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f44",
+  "created": "2026-11-21T09:06:00Z",
+  "modified": "2026-11-21T09:07:30Z",
+  "created_by": {
+    "device": "pixel",
+    "kind": "human"
+  },
+  "owner": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01",
+  "blob": "60303ae22b998861bce3b28f33eec1be758a213c86c93c076dbe9f558c11c752",
+  "name": "voice-2026-11-21-1006.m4a",
+  "media_type": "audio/mp4",
+  "size": 48211,
+  "transcript_state": "failed",
+  "transcript_error": "the transcript service answered 503"
+}

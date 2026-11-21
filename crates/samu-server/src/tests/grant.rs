@@ -698,6 +698,74 @@ async fn blobs_follow_their_attachments() {
     assert_eq!(status, 200);
 }
 
+/// ADR 0140 §3: a transcript is asked for only where the session may
+/// write; outside its grant the attachment does not exist.
+#[tokio::test]
+async fn a_transcript_is_asked_for_only_inside() {
+    // A service nothing listens at: no request to it is awaited here.
+    let service = crate::transcribe::Service::new(
+        "http://127.0.0.1:9/v1/audio/transcriptions",
+        None,
+        None,
+        None,
+    )
+    .unwrap();
+    let (address, _dir) =
+        super::start_with(true, |state| state.with_transcriber(Some(service))).await;
+    let whole = sign_in(address).await;
+    let account = account(address, &whole).await;
+    let file = b"sound".to_vec();
+    let hash = sha256(&file);
+    let (status, _, _) = call_bytes(
+        address,
+        "PUT",
+        &format!("/blobs/{hash}"),
+        &format!("Authorization: Bearer {whole}\r\nContent-Type: audio/mp4\r\n"),
+        &file,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let (inside, outside) = (new_id(), new_id());
+    let changes: Vec<Value> = [(&inside, &account.a), (&outside, &account.b)]
+        .into_iter()
+        .map(|(id, owner)| {
+            made(
+                "attachment",
+                id,
+                json!({"owner": owner, "blob": hash, "name": "memo.m4a",
+                       "media_type": "audio/mp4", "size": file.len()}),
+            )
+        })
+        .collect();
+    let answer = call(
+        address,
+        "POST",
+        "/changes?stamp=server",
+        Some(&whole),
+        Some(&Value::Array(changes)),
+    )
+    .await;
+    assert_eq!(outcomes(&answer), ["applied", "applied"]);
+
+    let ask = |token: String, id: String| async move {
+        call(
+            address,
+            "POST",
+            &format!("/attachments/{id}/transcribe"),
+            Some(&token),
+            None,
+        )
+        .await
+        .status
+    };
+    let ro = restricted(address, &[&account.ai], "ro").await;
+    assert_eq!(ask(ro.clone(), inside.clone()).await, 403);
+    assert_eq!(ask(ro, outside.clone()).await, 404);
+    let rw = restricted(address, &[&account.ai], "rw").await;
+    assert_eq!(ask(rw.clone(), outside).await, 404);
+    assert_eq!(ask(rw, inside).await, 200);
+}
+
 /// §7: a person's session of the whole account lists the sessions without
 /// tokens and ends one by its id; a restricted or an agent's session may
 /// not. An ended session is signed out.

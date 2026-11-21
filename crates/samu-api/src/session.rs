@@ -82,6 +82,10 @@ pub struct SessionInfo {
     /// used before (ADR 0099 §4), in the account's zone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub demo_until: Option<jiff::civil::Date>,
+    /// Whether the server has a transcript service (ADR 0140 §3); a client
+    /// offers transcripts only then.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub transcribe: bool,
 }
 
 /// One session of the account in `GET /sessions` (ADR 0095 §7), without
@@ -324,6 +328,10 @@ pub const ROUTES: &[Route] = &[
     Route {
         method: "POST",
         path: "/calendars/{id}/refresh",
+    },
+    Route {
+        method: "POST",
+        path: "/attachments/{id}/transcribe",
     },
     Route {
         method: "GET",

@@ -275,7 +275,14 @@ const ATTACHMENT: &[Column] = &[
     col("name", Ty::Text),
     col("media_type", Ty::Text),
     col("size", Ty::Int),
+    col("transcript", Ty::Text),
+    col("transcript_state", Ty::Text),
+    col("transcript_error", Ty::Text),
 ];
+
+/// The fields of an attachment only the server writes (ADR 0140 §2, §3).
+pub(crate) const ATTACHMENT_SERVER_FIELDS: &[&str] =
+    &["transcript", "transcript_state", "transcript_error"];
 
 /// The table and columns of a kind; `None` for `unknown`.
 pub(crate) fn layout(kind: ObjectKind) -> Option<(&'static str, &'static [Column])> {

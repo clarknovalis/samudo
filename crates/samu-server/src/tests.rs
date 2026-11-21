@@ -2837,6 +2837,7 @@ mod export;
 mod grant;
 mod register;
 mod replica;
+mod transcribe;
 mod writer;
 
 /// `POST /render` (ADR 0058 §4): one tree per text, the format read off the

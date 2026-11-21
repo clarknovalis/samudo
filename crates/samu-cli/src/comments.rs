@@ -14,6 +14,7 @@ use anyhow::{Context, Result, bail};
 use clap::{Args, Subcommand};
 use samu_api::{
     AnyObject, Attachment, Author, AuthorKind, Blob, Change, ChangesPage, Comment, Id, ObjectKind,
+    TranscriptState,
 };
 use samu_client::Client;
 use serde_json::{Value, json};
@@ -41,6 +42,10 @@ pub(crate) struct Attach {
     /// The media type, like `image/jpeg`; guessed from the name by default.
     #[arg(long = "type")]
     pub(crate) media_type: Option<String>,
+    /// Ask for the transcript of an audio file (ADR 0140 §3). A server
+    /// without a transcript service drops the request.
+    #[arg(long)]
+    pub(crate) transcribe: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -242,6 +247,9 @@ pub(crate) fn attach(client: &Client, format: Format, attach: &Attach) -> Result
         // What the server recorded first; a blob never changes.
         media_type: blob.media_type,
         size: blob.size,
+        transcript: None,
+        transcript_state: attach.transcribe.then_some(TranscriptState::Pending),
+        transcript_error: None,
     };
     write(
         client,
@@ -272,7 +280,37 @@ pub(crate) fn attachments(client: &Client, format: Format, owner: &str) -> Resul
     emit(
         format,
         &records,
-        &["short", "on", "name", "media_type", "size", "blob"],
+        &[
+            "short",
+            "on",
+            "name",
+            "media_type",
+            "size",
+            "blob",
+            "transcript_state",
+            "transcript",
+        ],
+    )
+}
+
+/// `samu transcribe <attachment>`: asks for the transcript of an audio
+/// attachment (POST /attachments/{id}/transcribe, ADR 0140 §3). The
+/// answer is the attachment as it waits; the text comes later and shows
+/// in `samu attachments`.
+pub(crate) fn transcribe(client: &Client, format: Format, attachment: &str) -> Result<()> {
+    let id = resolve(client, attachment)?;
+    let answer = client.call("POST", &format!("/attachments/{id}/transcribe"), None)?;
+    let asked: Attachment = serde_json::from_value(answer.json()?)?;
+    emit(
+        format,
+        &[json!({
+            "id": asked.id,
+            "short": short(&asked.id),
+            "name": asked.name,
+            "transcript_state": asked.transcript_state,
+            "transcript": asked.transcript,
+        })],
+        &["short", "name", "transcript_state"],
     )
 }
 
@@ -306,6 +344,9 @@ pub(crate) fn attachment_records(objects: &[AnyObject], owner: Id) -> Vec<Value>
                 "media_type": a.media_type,
                 "size": a.size,
                 "blob": a.blob,
+                "transcript": a.transcript,
+                "transcript_state": a.transcript_state,
+                "transcript_error": a.transcript_error,
                 "created": a.created.to_string(),
                 "author": author_text(a.created_by.as_ref()),
                 "created_by": author_value(a.created_by.as_ref()),

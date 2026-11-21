@@ -111,6 +111,8 @@ pub(crate) fn locality(route: &Route) -> Option<Where> {
         | ("POST", "/calendars/discover")
         | ("POST", "/calendars/{id}/discover")
         | ("POST", "/calendars/{id}/import") => Relay,
+        // The transcript service is the server's (ADR 0140 §1).
+        ("POST", "/attachments/{id}/transcribe") => Relay,
         _ => return None,
     })
 }
@@ -736,6 +738,7 @@ fn session_info(replica: &Replica, account: &str, device: &str) -> Result<Sessio
         replica: Some(replica.state()?),
         grant: None,
         demo_until: None,
+        transcribe: false,
     })
 }
 
@@ -1581,6 +1584,10 @@ pub(crate) fn router(replica: Arc<Replica>) -> Router {
         )
         .route(
             "/calendars/{id}/refresh",
+            post(relay_as_is).layer(axum::extract::DefaultBodyLimit::max(RELAY_MAX_BYTES)),
+        )
+        .route(
+            "/attachments/{id}/transcribe",
             post(relay_as_is).layer(axum::extract::DefaultBodyLimit::max(RELAY_MAX_BYTES)),
         )
         .route(

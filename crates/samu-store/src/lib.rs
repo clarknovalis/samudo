@@ -28,6 +28,6 @@ pub use server::{
     ServerStore, SessionRow, is_reserved_device, new_token, token_digest, valid_account_name,
 };
 pub use store::{
-    AccountStore, Changed, Delivered, Fetched, KnownResource, LogFilter, OwnedSnapshot, Pending,
-    RestoreRefused, SecretKey, StoredSource, Synced, WriteJob,
+    AccountStore, Asked, Changed, Delivered, Fetched, KnownResource, LogFilter, OwnedSnapshot,
+    Pending, RestoreRefused, SecretKey, StoredSource, Synced, Transcribed, WriteJob,
 };
