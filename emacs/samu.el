@@ -181,24 +181,40 @@ clock is in the mode line.  `samu-toggle-live' switches it."
     ('none (list "--no-scope"))
     (scope (list "--scope" scope))))
 
+(defvar samu--answers nil
+  "While `samu--fetch-async' runs a fetch: the answers it has so far.
+A hash table from (ARGS INPUT) to (CODE OUT ERR).  `samu--run' then
+answers from it and starts nothing.")
+
+(defvar samu--missing nil
+  "The calls a fetch made that `samu--answers' has no answer for.")
+
 (defun samu--run (args &optional input)
-  "Run the CLI with ARGS, INPUT on stdin; return (CODE OUT ERR)."
-  (let ((err (make-temp-file "samu-err")))
-    (unwind-protect
-        (with-temp-buffer
-          (let* ((coding-system-for-read 'utf-8)
-                 (coding-system-for-write 'utf-8)
-                 (all (append (samu--global-args) args))
-                 (code (if input
-                           (apply #'call-process-region input nil samu-executable
-                                  nil (list t err) nil all)
-                         (apply #'call-process samu-executable nil (list t err)
-                                nil all))))
-            (list code (buffer-string)
-                  (with-temp-buffer
-                    (insert-file-contents err)
-                    (string-trim (buffer-string))))))
-      (delete-file err))))
+  "Run the CLI with ARGS, INPUT on stdin; return (CODE OUT ERR).
+Emacs waits for it.  Inside `samu--fetch-async' nothing runs: the
+answer comes from `samu--answers', and a call without one is noted
+in `samu--missing' and answered as if the CLI had printed nothing."
+  (if samu--answers
+      (let ((key (list args input)))
+        (or (gethash key samu--answers)
+            (progn (cl-pushnew key samu--missing :test #'equal)
+                   (list 0 "" ""))))
+    (let ((err (make-temp-file "samu-err")))
+      (unwind-protect
+          (with-temp-buffer
+            (let* ((coding-system-for-read 'utf-8)
+                   (coding-system-for-write 'utf-8)
+                   (all (append (samu--global-args) args))
+                   (code (if input
+                             (apply #'call-process-region input nil samu-executable
+                                    nil (list t err) nil all)
+                           (apply #'call-process samu-executable nil (list t err)
+                                  nil all))))
+              (list code (buffer-string)
+                    (with-temp-buffer
+                      (insert-file-contents err)
+                      (string-trim (buffer-string))))))
+        (delete-file err)))))
 
 (defun samu--parse (text)
   "TEXT read as JSON: objects as alists, arrays as lists, null and false nil."
@@ -241,6 +257,144 @@ INPUT goes to stdin.  With NOT-FOUND-OK, exit code 3 returns nil."
   (cond ((null value) "")
         ((stringp value) value)
         (t (format "%s" value))))
+
+;;;; Asking without waiting
+
+;; Writing waits for the CLI: one call, and its error belongs to the
+;; key just pressed.  Reading does not: what a buffer shows takes
+;; several calls, and Emacs stays usable while they run (ADR 0082 §1).
+
+(defvar samu--sync nil
+  "Non-nil makes every call of the CLI wait for its answer.
+The tests set it: they answer in place of the CLI.")
+
+(defconst samu--max-processes 6
+  "How many calls of the CLI run side by side; more wait their turn.")
+
+(defconst samu--max-rounds 8
+  "How often a fetch runs again for answers before it counts as failed.")
+
+(defvar samu--running 0
+  "How many calls of the CLI run without Emacs waiting.")
+
+(defvar samu--waiting nil
+  "The calls waiting for their turn, oldest first: (COMMAND INPUT CALLBACK).")
+
+(defun samu--run-async (args input callback)
+  "Run the CLI with ARGS and INPUT on stdin without waiting for it.
+CALLBACK gets (CODE OUT ERR), what `samu--run' returns, once it ended."
+  (if samu--sync
+      (funcall callback (samu--run args input))
+    (setq samu--waiting
+          (nconc samu--waiting
+                 (list (list (cons samu-executable (append (samu--global-args) args))
+                             input callback))))
+    (samu--run-waiting)))
+
+(defun samu--run-waiting ()
+  "Start waiting calls while fewer than `samu--max-processes' run."
+  (while (and samu--waiting (< samu--running samu--max-processes))
+    (apply #'samu--spawn (pop samu--waiting))))
+
+(defun samu--error-text (err)
+  "What to show for the error ERR: the CLI's own line for a `samu-error'."
+  (if (and (eq (car err) 'samu-error) (stringp (cadr err)))
+      (cadr err)
+    (error-message-string err)))
+
+(defun samu--answer (callback answer)
+  "Give ANSWER to CALLBACK; an error there becomes a message."
+  (condition-case err
+      (funcall callback answer)
+    (error (message "%s" (samu--error-text err)))))
+
+(defun samu--spawn (command input callback)
+  "Start COMMAND with INPUT on stdin; CALLBACK gets (CODE OUT ERR)."
+  (let ((out (generate-new-buffer " *samu-out*" t))
+        (err (generate-new-buffer " *samu-err*" t)))
+    (cl-incf samu--running)
+    (condition-case failure
+        ;; stderr through a pipe of its own with a sentinel that does
+        ;; nothing: the default one writes "Process finished" into it
+        (let* ((errors (make-pipe-process :name "samu-err" :buffer err
+                                          :noquery t :coding 'utf-8
+                                          :sentinel #'ignore))
+               (process (make-process
+                         :name "samu" :command command :buffer out
+                         :stderr errors :connection-type 'pipe
+                         :noquery t :coding 'utf-8
+                         :sentinel (lambda (process _event)
+                                     (unless (process-live-p process)
+                                       (samu--finish process errors callback))))))
+          ;; it may have ended already; then the sentinel answers
+          (ignore-errors
+            (when input (process-send-string process input))
+            (process-send-eof process)))
+      (error
+       (kill-buffer out)
+       (kill-buffer err)
+       (setq samu--running (max 0 (1- samu--running)))
+       ;; later, so a caller never gets its answer before it returns
+       (run-at-time 0 nil #'samu--answer callback
+                    (list 127 "" (error-message-string failure)))))))
+
+(defun samu--finish (process errors callback)
+  "PROCESS ended, its stderr in ERRORS: give CALLBACK (CODE OUT ERR)."
+  (while (accept-process-output errors 0))
+  (let ((answer (list (process-exit-status process)
+                      (with-current-buffer (process-buffer process) (buffer-string))
+                      (with-current-buffer (process-buffer errors)
+                        (string-trim (buffer-string))))))
+    (kill-buffer (process-buffer errors))
+    (kill-buffer (process-buffer process))
+    (setq samu--running (max 0 (1- samu--running)))
+    (samu--run-waiting)
+    (samu--answer callback answer)))
+
+(defun samu--fetch-async (fetch done &optional fail answers round)
+  "Call DONE with what FETCH returns, without waiting for the CLI.
+FETCH is plain code that asks the CLI through `samu--run' and returns
+what it found; it changes nothing.  It runs once to see what it asks,
+those calls run side by side, and it runs again with their answers,
+until it has an answer for every call.  An error in a run that still
+misses answers does not count.
+
+If FETCH fails with every answer there, the error is shown as a
+message and FAIL gets it.  ANSWERS and ROUND are for the next run.
+With `samu--sync', FETCH runs once and waits, and its error is
+signaled after FAIL."
+  (if samu--sync
+      (funcall done (condition-case err
+                        (funcall fetch)
+                      (error (when fail (funcall fail err))
+                             (signal (car err) (cdr err)))))
+    (let* ((answers (or answers (make-hash-table :test #'equal)))
+           (round (or round 1))
+           (missing nil)
+           (result (let ((samu--answers answers)
+                         (samu--missing nil))
+                     (prog1 (condition-case err
+                                (cons 'ok (funcall fetch))
+                              (error (cons 'error err)))
+                       (setq missing samu--missing)))))
+      (cond
+       ((and missing (< round samu--max-rounds))
+        (let ((left (length missing)))
+          (dolist (key missing)
+            (samu--run-async
+             (car key) (cadr key)
+             (lambda (answer)
+               (puthash key answer answers)
+               (when (zerop (cl-decf left))
+                 (samu--fetch-async fetch done fail answers (1+ round))))))))
+       ((and (null missing) (eq (car result) 'ok))
+        (funcall done (cdr result)))
+       (t
+        (let ((err (if missing
+                       '(samu-error "samu: this view never stops asking")
+                     (cdr result))))
+          (message "%s" (samu--error-text err))
+          (when fail (funcall fail err))))))))
 
 ;;;; What completion offers
 
@@ -451,9 +605,57 @@ Only this asks the CLI, drawing does not."
         (samu--task-id (samu--fetch-task))
         (t (samu--fetch-view))))
 
+(defvar-local samu--fetching nil
+  "Non-nil while this buffer waits for the CLI to be filled anew.
+`again' when it was asked to fill anew once more meanwhile.")
+
 (defun samu--render ()
-  "Fill this samu buffer anew: a view, a task's or a habit's buffer."
-  (samu--draw (samu--fetch)))
+  "Fill this samu buffer anew: a view, a task's or a habit's buffer.
+Emacs does not wait: the buffer keeps what it shows until the CLI
+has answered.  Asked again meanwhile, it fills once more afterwards."
+  (if samu--fetching
+      (setq samu--fetching 'again)
+    (let ((buffer (current-buffer)))
+      (setq samu--fetching t
+            mode-line-process " …")
+      (when (and (zerop (buffer-size)) (not samu--sync))
+        (samu--placeholder "Loading …"))
+      (samu--fetch-async
+       (lambda ()
+         (if (buffer-live-p buffer)
+             (with-current-buffer buffer (samu--fetch))
+           (signal 'samu-error (list "samu: the buffer is gone"))))
+       (lambda (data) (samu--fetched buffer data nil))
+       (lambda (err) (samu--fetched buffer nil err))))))
+
+(defvar-local samu--unfilled nil
+  "Non-nil while this buffer shows a placeholder and was never filled.")
+
+(defun samu--placeholder (text)
+  "Show TEXT in this buffer in place of what it has yet to be filled with."
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (propertize text 'face 'samu-meta) "\n")
+    (setq samu--unfilled t)))
+
+(defun samu--fetched (buffer data err)
+  "The CLI answered for BUFFER: draw DATA, or ERR came instead.
+A buffer filled before keeps what it shows on an error; one never
+filled shows the error.  Then fill again if asked to meanwhile."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (let ((again (eq samu--fetching 'again)))
+        (setq samu--fetching nil
+              mode-line-process nil)
+        (unwind-protect
+            (cond ((null err)
+                   (setq samu--unfilled nil)
+                   (samu--draw data))
+                  (samu--unfilled
+                   (samu--placeholder (concat (samu--error-text err)
+                                              "\n\ng asks again"))))
+          (force-mode-line-update)
+          (when again (samu--render)))))))
 
 (defun samu--draw (data)
   "Fill this samu buffer from DATA, what `samu--fetch' returned.
@@ -1380,12 +1582,17 @@ your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
 (defvar samu-clock-mode-line-mode)
 
 (defun samu--clock-update ()
-  "Look at the running clock again, quietly, if the mode line shows it."
+  "Look at the running clock again, quietly, if the mode line shows it.
+Emacs does not wait for the answer."
   (when samu-clock-mode-line-mode
-    (setq samu--clock (condition-case nil
-                          (car (samu--call '("clock" "status")))
-                        (error samu--clock)))
-    (force-mode-line-update t)))
+    (samu--run-async
+     '("clock" "status" "--format" "json") nil
+     (lambda (answer)
+       (when (eql (car answer) 0)
+         (condition-case nil
+             (setq samu--clock (car (samu--parse (nth 1 answer))))
+           (error nil))
+         (force-mode-line-update t))))))
 
 (defun samu--clock-tick ()
   "Every `samu-clock-interval': count on; ask the CLI only without live updates."
@@ -1607,7 +1814,10 @@ more."
           (dolist (record (samu--call (append '("habit" "list") scope-args)))
             (puthash (samu--get record 'id) record table))
           table)
-      (samu-error (message "%s" (error-message-string err)) nil))))
+      (samu-error
+       ;; once, not in every run of `samu--fetch-async'
+       (unless samu--missing (message "%s" (error-message-string err)))
+       nil))))
 
 (defun samu--habit-goal (habit)
   "The goal of HABIT in words, as the web says it.

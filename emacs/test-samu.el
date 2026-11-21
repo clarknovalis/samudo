@@ -20,6 +20,9 @@
 ;; No test starts `samu events' unless it says so.
 (setq samu-live nil)
 
+;; Every call waits for its answer unless a test says otherwise.
+(setq samu--sync t)
+
 (defvar samu-test--calls nil
   "The calls of the CLI, newest first, as (ARGS INPUT).")
 
@@ -594,6 +597,203 @@ Each answer is (ARGS-PREFIX CODE STDOUT STDERR)."
     (should (equal (samu--note-format "x") "markdown"))
     (should (equal (samu--note-format "x") "markdown"))
     (should (= (length (samu-test--called '("render"))) 2))))
+
+;;;; Asking without waiting
+
+;; These tests run a real process: a shell script in place of the CLI
+;; that notes when each call starts and ends, sleeps and prints
+;; synthetic JSON.
+
+(defvar samu-test--log nil
+  "The file the script in place of the CLI notes its calls in.")
+
+(defconst samu-test--script
+  "sleep 0.2
+case \"$1\" in
+  show) echo '[{\"kind\":\"task\",\"title\":\"Milch\",\"object\":{\"id\":\"t1\",\"title\":\"Milch\",\"note\":\"eine Notiz\"}}]' ;;
+  list) echo '[{\"id\":\"t1\",\"short\":\"t1\",\"title\":\"Milch\",\"available\":true,\"project\":\"\",\"status\":{\"task\":{\"id\":\"t1\",\"title\":\"Milch\"}}}]' ;;
+  comments) echo '[{\"author\":\"wer\",\"created\":\"2026-11-01T10:00:00Z\",\"body\":\"ein Kommentar\"}]' ;;
+  render) cat >/dev/null; echo markdown ;;
+  *) echo '[]' ;;
+esac
+"
+  "What the script in place of the CLI does by default.")
+
+(defmacro samu-test--with-script (script &rest body)
+  "Run BODY with a shell script in place of the CLI, without `samu--sync'.
+SCRIPT is what it does after noting \"+ ARGS\"; it notes \"- ARGS\" at its end."
+  (declare (indent 1))
+  `(let* ((dir (make-temp-file "samu-test" t))
+          (samu-executable (expand-file-name "samu" dir))
+          (samu-test--log (expand-file-name "log" dir))
+          (samu--sync nil)
+          (samu--cache nil)
+          (samu--note-formats (make-hash-table :test #'equal))
+          (samu-profile nil) (samu-server nil) (samu-account nil) (samu-scope nil))
+     (unwind-protect
+         (progn (samu-test--write-script ,script)
+                ,@body)
+       (samu-test--wait (lambda () (zerop samu--running)))
+       (delete-directory dir t))))
+
+(defun samu-test--write-script (script)
+  "Make SCRIPT what the script in place of the CLI does."
+  (with-temp-file samu-executable
+    (insert "#!/bin/sh\necho \"+ $*\" >> " samu-test--log "\n"
+            "trap 'echo \"- $*\" >> " samu-test--log "' EXIT\n"
+            script))
+  (set-file-modes samu-executable #o700))
+
+(defun samu-test--wait (done)
+  "Let processes and timers run until DONE returns non-nil, at most 10 s."
+  (let ((end (+ (float-time) 10)))
+    (while (and (not (funcall done)) (< (float-time) end))
+      (accept-process-output nil 0.02))
+    (funcall done)))
+
+(defun samu-test--log-lines ()
+  "The lines the script noted, oldest first."
+  (and (file-exists-p samu-test--log)
+       (with-temp-buffer
+         (insert-file-contents samu-test--log)
+         (split-string (buffer-string) "\n" t))))
+
+(defun samu-test--started (command)
+  "How many calls of COMMAND the script noted."
+  (cl-count-if (lambda (line) (string-prefix-p (concat "+ " command) line))
+               (samu-test--log-lines)))
+
+(defun samu-test--most-at-once ()
+  "The most calls of the script that ran at the same time."
+  (let ((now 0) (most 0))
+    (dolist (line (samu-test--log-lines))
+      (setq now (if (string-prefix-p "+" line) (1+ now) (1- now))
+            most (max most now)))
+    most))
+
+(ert-deftest samu-test-run-async-gives-code-stdout-and-stderr ()
+  (samu-test--with-script "cat; echo 'samu: nein' >&2; exit 3\n"
+    (let ((answer nil))
+      (samu--run-async '("comment" "t1" "-") "Größe" (lambda (a) (setq answer a)))
+      (should (null answer))
+      (should (samu-test--wait (lambda () answer)))
+      (should (equal answer '(3 "Größe" "samu: nein")))
+      (should (equal (samu-test--log-lines) '("+ comment t1 -" "- comment t1 -"))))))
+
+(ert-deftest samu-test-run-async-without-the-cli-answers-with-an-error ()
+  (samu-test--with-script ""
+    (let ((samu-executable (concat samu-executable "-missing")) (answer nil))
+      (samu--run-async '("list") nil (lambda (a) (setq answer a)))
+      (should (null answer))
+      (should (samu-test--wait (lambda () answer)))
+      (should (= (car answer) 127))
+      (should (zerop samu--running)))))
+
+(ert-deftest samu-test-run-async-runs-six-at-once-and-no-more ()
+  (samu-test--with-script "sleep 0.1\n"
+    (let ((answers 0))
+      (dotimes (i 14)
+        (samu--run-async (list "show" (number-to-string i)) nil
+                         (lambda (_) (cl-incf answers))))
+      (should (= samu--running 6))
+      (should (samu-test--wait (lambda () (= answers 14))))
+      (should (= (samu-test--most-at-once) 6))
+      (should (zerop samu--running))
+      (should (null samu--waiting)))))
+
+(ert-deftest samu-test-a-task-buffer-fills-without-emacs-waiting ()
+  (samu-test--with-script samu-test--script
+    (let ((buffer (samu-show "t1")))
+      (unwind-protect
+          (with-current-buffer buffer
+            ;; `samu-show' is back before the first call ended
+            (should (string-match-p "Loading" (buffer-string)))
+            (should-not (cl-some (lambda (line) (string-prefix-p "-" line))
+                                 (samu-test--log-lines)))
+            (should samu--fetching)
+            (should (samu-test--wait (lambda () (not samu--fetching))))
+            (let ((text (buffer-string)))
+              (should (string-match-p "\\`Milch" text))
+              (should (string-match-p "eine Notiz" text))
+              (should (string-match-p "ein Kommentar" text))
+              (should-not (string-match-p "Loading" text)))
+            (should (equal (buffer-name) "*samu: Milch*"))
+            ;; each call once, and those of a round side by side
+            (should (= (samu-test--started "show") 1))
+            (should (= (samu-test--started "comments") 1))
+            (should (= (samu-test--started "render") 2))
+            (should (> (samu-test--most-at-once) 3))
+            ;; drawing asked nothing more
+            (should (zerop samu--running)))
+        (kill-buffer buffer)))))
+
+(ert-deftest samu-test-asked-again-while-filling-fills-once-more ()
+  (samu-test--with-script samu-test--script
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--view (list :title "T" :fetch (lambda () (list (cons nil (samu--list))))))
+      (samu--render)
+      (samu--render)
+      (samu--render)
+      (should (eq samu--fetching 'again))
+      (should (samu-test--wait (lambda () (not samu--fetching))))
+      (should (= (samu-test--started "list") 2))
+      (should (string-match-p "Milch" (buffer-string))))))
+
+(ert-deftest samu-test-a-buffer-killed-while-filling-is-left-alone ()
+  (samu-test--with-script samu-test--script
+    (let ((messages nil))
+      (cl-letf (((symbol-function 'message)
+                 (lambda (&rest args) (push (apply #'format args) messages))))
+        (kill-buffer (samu-show "t1"))
+        (should (samu-test--wait (lambda () (and (zerop samu--running)
+                                                 (null samu--waiting))))))
+      ;; it stopped after the call that was running: nothing more was asked
+      (should (= (length (samu-test--log-lines)) 2)))))
+
+(ert-deftest samu-test-a-failing-refill-keeps-what-the-buffer-shows ()
+  (samu-test--with-script samu-test--script
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--view (list :title "T" :fetch (lambda () (list (cons nil (samu--list))))))
+      (samu--render)
+      (should (samu-test--wait (lambda () (not samu--fetching))))
+      (let ((before (buffer-string)) (messages nil))
+        (should (string-match-p "Milch" before))
+        (samu-test--write-script "echo 'samu: kein Netz' >&2; exit 1\n")
+        (cl-letf (((symbol-function 'message)
+                   (lambda (&rest args) (push (apply #'format args) messages))))
+          (samu--render)
+          (should (samu-test--wait (lambda () (not samu--fetching)))))
+        (should (equal (buffer-string) before))
+        (should (equal messages '("samu: kein Netz")))
+        (should (null mode-line-process))))))
+
+(ert-deftest samu-test-a-buffer-never-filled-shows-the-error ()
+  (samu-test--with-script "echo 'samu: kein Netz' >&2; exit 1\n"
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--view (list :title "T" :fetch (lambda () (list (cons nil (samu--list))))))
+      (cl-letf (((symbol-function 'message) #'ignore))
+        (samu--render)
+        (should (string-match-p "Loading" (buffer-string)))
+        (should (samu-test--wait (lambda () (not samu--fetching)))))
+      (should (string-match-p "\\`samu: kein Netz" (buffer-string)))
+      ;; and `g' fills it once the CLI answers
+      (samu-test--write-script samu-test--script)
+      (samu-refresh)
+      (should (samu-test--wait (lambda () (not samu--fetching))))
+      (should (string-match-p "Milch" (buffer-string)))
+      (should-not (string-match-p "kein Netz" (buffer-string))))))
+
+(ert-deftest samu-test-the-clock-is-asked-without-waiting ()
+  (samu-test--with-script
+      "sleep 0.1; echo '[{\"owner\":\"t1\",\"title\":\"Milch\",\"start\":\"2026-11-01T10:00:00Z\"}]'\n"
+    (let ((samu-clock-mode-line-mode t) (samu--clock nil))
+      (samu--clock-update)
+      (should (null samu--clock))
+      (should (samu-test--wait (lambda () samu--clock)))
+      (should (equal (samu--get samu--clock 'title) "Milch")))))
 
 (ert-deftest samu-test-live-command ()
   (let ((samu-executable "samu") (samu-server "http://127.0.0.1:1") (samu-account nil))
