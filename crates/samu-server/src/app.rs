@@ -1111,7 +1111,7 @@ async fn post_changes(
     let store = state.account(&session.account)?;
     let mut store = lock(&store)?;
     let mut reach = session_reach(&session, &store)?;
-    let mut outcomes = Vec::with_capacity(changes.len());
+    let mut outcomes = Vec::new();
     let mut heard = false;
     for change in changes {
         // A restricted session's change outside its grant (ADR 0095 §3).
