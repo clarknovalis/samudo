@@ -36,7 +36,8 @@
 ;;   m C-c C-w move                      e         edit by marks
 ;;   ,         priority                  :         tags
 ;;   C-c C-s   planned                   C-c C-d   due
-;;   a A       capture / capture below   /         search
+;;   a A       capture / capture below   C         capture from a template
+;;   /         search                    R         mark as reviewed
 ;;   X         drop                      DEL       delete
 ;;   w         copy the samu: link       S         scope
 ;;   M u U B   mark, unmark, unmark all, act on the marked
@@ -59,6 +60,9 @@
 (require 'json)
 (require 'parse-time)
 (require 'text-property-search)
+;; The faces below inherit from those of Org.  They are in a file of
+;; their own, which does not load Org.
+(require 'org-faces)
 
 (declare-function org-link-set-parameters "ol")
 (declare-function org-link-store-props "ol")
@@ -194,6 +198,11 @@ answers from it and starts nothing.")
 (defvar samu--missing nil
   "The calls a fetch made that `samu--answers' has no answer for.")
 
+(defun samu--no-executable ()
+  "What to say when `samu-executable' is not to be found."
+  (format "samu: no command `%s'; install the CLI or set `samu-executable'"
+          samu-executable))
+
 (defun samu--run (args &optional input)
   "Run the CLI with ARGS, INPUT on stdin; return (CODE OUT ERR).
 Emacs waits for it.  Inside `samu--fetch-async' nothing runs: the
@@ -210,11 +219,14 @@ in `samu--missing' and answered as if the CLI had printed nothing."
             (let* ((coding-system-for-read 'utf-8)
                    (coding-system-for-write 'utf-8)
                    (all (append (samu--global-args) args))
-                   (code (if input
-                             (apply #'call-process-region input nil samu-executable
-                                    nil (list t err) nil all)
-                           (apply #'call-process samu-executable nil (list t err)
-                                  nil all))))
+                   (code (condition-case nil
+                             (if input
+                                 (apply #'call-process-region input nil
+                                        samu-executable nil (list t err) nil all)
+                               (apply #'call-process samu-executable nil
+                                      (list t err) nil all))
+                           (file-missing
+                            (signal 'samu-error (list (samu--no-executable)))))))
               (list code (buffer-string)
                     (with-temp-buffer
                       (insert-file-contents err)
@@ -335,7 +347,9 @@ CALLBACK gets (CODE OUT ERR), what `samu--run' returns, once it ended."
        (setq samu--running (max 0 (1- samu--running)))
        ;; later, so a caller never gets its answer before it returns
        (run-at-time 0 nil #'samu--answer callback
-                    (list 127 "" (error-message-string failure)))))))
+                    (list 127 "" (if (eq (car failure) 'file-missing)
+                                     (samu--no-executable)
+                                   (error-message-string failure))))))))
 
 (defun samu--finish (process errors callback)
   "PROCESS ended, its stderr in ERRORS: give CALLBACK (CODE OUT ERR)."
@@ -410,10 +424,14 @@ signaled after FAIL."
 
 (defun samu--cached (kind args)
   "The records of KIND, from the CLI with ARGS the first time."
-  (or (alist-get kind samu--cache)
+  ;; `assq', not the value: an account without templates has none to
+  ;; remember, and that is an answer too
+  (let ((known (assq kind samu--cache)))
+    (if known
+        (cdr known)
       (let ((records (samu--call args)))
-        (setf (alist-get kind samu--cache) records)
-        records)))
+        (push (cons kind records) samu--cache)
+        records))))
 
 (defun samu--projects ()
   "Every project with its availability."
@@ -1576,7 +1594,7 @@ A small window lists the templates with a key; \\[keyboard-quit] gives up."
 ;;;###autoload
 (defun samu-capture-template ()
   "Capture a task with a template chosen by its key, like `org-capture'.
-`C h' in the views, as in the web (ADR 0084 §5); bind it globally to
+`C' in the views (ADR 0084 §5); bind it globally to
 your liking, e.g. (global-set-key (kbd \"C-c S\") #\='samu-capture-template)."
   (interactive)
   (samu-capture nil (samu--template-line (samu--choose-template))))

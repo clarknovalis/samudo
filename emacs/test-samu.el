@@ -1238,3 +1238,30 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
       (cl-letf (((symbol-function 'samu--refresh-all) #'ignore))
         (samu-mark-reviewed))
       (should (equal (car (last (samu-test--called '("review")))) '("review" "p2"))))))
+
+(ert-deftest samu-test-an-empty-answer-is-remembered ()
+  (samu-test--with-cli '((("template" "list") 0 "[]" ""))
+    (should (null (samu--templates)))
+    (should (null (samu--templates)))
+    (should (= (length (samu-test--called '("template" "list"))) 1))))
+
+(ert-deftest samu-test-a-missing-command-says-what-to-set ()
+  (let* ((samu-executable "/nonexistent/samu")
+         (samu--answers nil)
+         (err (should-error (samu--call-text '("session")) :type 'samu-error)))
+    (should (equal (error-message-string err)
+                   (concat "samu: no command `/nonexistent/samu'; "
+                           "install the CLI or set `samu-executable'")))))
+
+(ert-deftest samu-test-a-missing-command-in-the-background ()
+  (let ((samu-executable "/nonexistent/samu") (answer nil))
+    (samu--spawn (list samu-executable "session") nil
+                 (lambda (given) (setq answer given)))
+    (should (samu-test--wait (lambda () answer)))
+    (should (equal (car answer) 127))
+    (should (equal (nth 2 answer) (samu--no-executable)))))
+
+(ert-deftest samu-test-faces-need-no-org ()
+  (should-not (featurep 'org))
+  (dolist (face '(samu-section samu-state samu-priority samu-done samu-title))
+    (should (facep (face-attribute face :inherit)))))
