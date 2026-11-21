@@ -15,8 +15,8 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use serde_json::Value as Json;
 
 use crate::core::api::{
-    AccountLogEntry, Author, AuthorKind, Change, ChangeOutcome, Clock, Hlc, Id, Link, LogEntry,
-    LogKind, ObjectKind, Project, Reminder, ReminderAnchor, Scope, Tagging, Task,
+    AccountLogEntry, Author, AuthorKind, Change, ChangeOutcome, ChecklistItem, Clock, Hlc, Id,
+    Link, LogEntry, LogKind, ObjectKind, Project, Reminder, ReminderAnchor, Scope, Tagging, Task,
 };
 use crate::core::availability::Settings;
 use crate::core::clock::wins;
@@ -2526,7 +2526,7 @@ fn chain_length(tx: &Connection, task: &Task) -> Result<u32> {
 }
 
 /// Makes the next task of a repetition that was just completed, with its
-/// relative reminders (ADR 0033). `Some` says why none was made, for the
+/// relative reminders (ADR 0033) and its checklist (ADR 0141 §7). `Some` says why none was made, for the
 /// logbook; an earlier next task, even a deleted one, makes none and says
 /// nothing.
 fn follow_up(
@@ -2579,7 +2579,7 @@ fn follow_up(
         ..task.clone()
     };
     let mut owned: Vec<Vec<u8>> = Vec::new();
-    for table in ["link", "reminder"] {
+    for table in ["link", "reminder", "checklist_item"] {
         let mut stmt = tx.prepare(&format!(
             "SELECT o.uuid FROM {table} x JOIN object o ON o.id = x.object \
              WHERE x.owner = ?1 AND o.deleted_at IS NULL ORDER BY o.id"
@@ -2609,8 +2609,8 @@ fn follow_up(
     }
 }
 
-/// Creates the next task and copies its links and the reminders relative
-/// to its dates; `Some` is why the store refused.
+/// Creates the next task and copies its links, the reminders relative to
+/// its dates and its checklist, unticked; `Some` is why the store refused.
 fn make_follow_up(
     tx: &Connection,
     next: &Task,
@@ -2661,6 +2661,24 @@ fn make_follow_up(
                         modified: now,
                         owner: next.id,
                         ..reminder
+                    }),
+                )
+            }
+            // The list starts over (ADR 0141 §7). An item from before the
+            // server checked the text stays behind: refused here, it would
+            // take the whole next task with it.
+            Object::ChecklistItem(item)
+                if crate::core::checklist::check_text(&item.text).is_ok() =>
+            {
+                (
+                    ObjectKind::ChecklistItem,
+                    serde_json::to_value(ChecklistItem {
+                        id: Id::new(),
+                        created: now,
+                        modified: now,
+                        owner: next.id,
+                        checked: false,
+                        ..item
                     }),
                 )
             }

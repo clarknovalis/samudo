@@ -231,6 +231,76 @@ fn completing_makes_the_next_task_with_what_belongs_to_it() {
     assert_eq!(last_note(&store, id), None);
 }
 
+fn item(store: &mut AccountStore, owner: Id, text: &str, checked: bool, position: i64) -> Id {
+    let id = Id::new();
+    let outcome = create(
+        store,
+        ObjectKind::ChecklistItem,
+        json!({
+            "id": id.to_string(),
+            "created": "2026-11-01T08:00:00Z",
+            "modified": "2026-11-01T08:00:00Z",
+            "owner": owner.to_string(),
+            "text": text,
+            "checked": checked,
+            "position": position
+        }),
+        1_300,
+    );
+    assert!(
+        matches!(outcome, ChangeOutcome::Applied { .. }),
+        "{outcome:?}"
+    );
+    id
+}
+
+/// The items of a task as (text, checked), in list order.
+fn items_of(store: &AccountStore, owner: Id) -> Vec<(String, bool)> {
+    let mut items: Vec<_> = store
+        .snapshot()
+        .unwrap()
+        .checklist_items
+        .iter()
+        .filter(|i| i.owner == owner)
+        .cloned()
+        .collect();
+    items.sort_by_key(|i| i.position);
+    items.into_iter().map(|i| (i.text, i.checked)).collect()
+}
+
+/// A packing list was empty the next time (ADR 0141 §7).
+#[test]
+fn the_next_task_takes_the_checklist_along_unticked() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let id = repeating(&mut store, "FREQ=WEEKLY", json!({}));
+    // Created out of order: the list order is the position.
+    item(&mut store, id, "Badehose", false, 2);
+    item(&mut store, id, "Handtuch", true, 1);
+    let gone = item(&mut store, id, "Schnorchel", true, 3);
+    apply(
+        &mut store,
+        &Change::Delete {
+            object: gone,
+            hlc: stamp(1_400),
+        },
+    );
+
+    complete(&mut store, id, 2_000);
+
+    let next = next_of(&store, id);
+    assert_eq!(next.len(), 1);
+    assert_eq!(
+        items_of(&store, next[0].id),
+        [("Handtuch".into(), false), ("Badehose".into(), false)]
+    );
+    // The completed task keeps its list as it was ticked.
+    assert_eq!(
+        items_of(&store, id),
+        [("Handtuch".into(), true), ("Badehose".into(), false)]
+    );
+    assert_eq!(last_note(&store, id), None);
+}
+
 #[test]
 fn never_a_second_next_task() {
     let mut store = AccountStore::open_in_memory().unwrap();

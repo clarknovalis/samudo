@@ -69,6 +69,12 @@ items.
 6. **Not changed:** checkboxes in notes stay as they are (0058); no
    migration turns them into items. `samu import org` leaves them in
    the note.
+7. **A repeating task takes its list along.** Completing it makes the
+   next task (0007 §4) with a copy of every item, same text and order,
+   none ticked: a weekly routine or a packing list starts over. The
+   completed task keeps its items as they were ticked. An item without a
+   text from before §1 was enforced is not copied. Templates are not
+   decided here.
 
 ## Consequences
 
@@ -86,3 +92,4 @@ items.
 - 2026-11-21: user documentation (concepts, web UI, Android app, CLI, API; English and German).
 - 2026-11-21: §1: the server refuses an item without a text or with a line break; before, each client checked for itself and the web UI did not. §5: the order of the two changes of a conversion and what a refused second one leaves, written down; the sentence about the missing route back in its place.
 - 2026-11-21: §5 also refuses a subtask with objects attached to it (comments, attachments, clocked time, reminders, links, a checklist of its own, a task that waits for it). Before, only its fields were checked and those objects were lost with the task.
+- 2026-11-21: §7: the next task of a repetition takes the checklist along, unticked. Before, it started without one.

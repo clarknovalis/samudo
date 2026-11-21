@@ -140,6 +140,9 @@ sie waren: Text.
   Zeile setzt (`- `, `* `, `+ `, `1. `, `1) `, eine Checkbox), fällt weg,
   `[x]` hakt den Punkt ab, leere Zeilen werden übersprungen und Einrückung
   wird ignoriert. Es gibt eine Ebene.
+- **Eine wiederholte Aufgabe nimmt ihre Liste mit.** Die nächste Aufgabe
+  beginnt mit denselben Punkten in derselben Reihenfolge, keiner abgehakt;
+  die erledigte behält ihre Haken.
 - **Fortschritt** steht neben der Aufgabe als `☑ 2/5`, aus den Punkten
   gezählt.
 - **Punkte zu Unteraufgaben und zurück.** Ein Punkt kann eine Unteraufgabe

@@ -127,6 +127,9 @@ other renames, both win. Checkboxes in a note stay what they were: text.
   Org, Markdown or note-app list puts in front of a line (`- `, `* `,
   `+ `, `1. `, `1) `, a checkbox) is dropped, `[x]` ticks the item, blank
   lines are skipped and indentation is ignored. There is one level.
+- **A repeating task takes its list along.** The next task starts with
+  the same items in the same order, none ticked; the completed one keeps
+  its ticks.
 - **Progress** is shown beside the task as `☑ 2/5`, counted from the
   items.
 - **Turning items into subtasks and back.** An item can become a subtask
