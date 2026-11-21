@@ -1,7 +1,7 @@
 ---
 number: 0140
 title: Voice capture – a transcript service, the assistant role, handing a recording on
-status: draft
+status: accepted
 date: 2026-11-21
 adds_to: ["0010", "0013", "0039", "0063"]
 ---
@@ -128,13 +128,12 @@ Android gives the assistant role to one app at a time.
 - The assistant role is exclusive on Android. Who gives it to samudo
   loses the previous assistant on that key.
 
-## Open
+## Not now
 
-- Whether an audio attachment of a comment gets its transcript
-  automatically or only on request. Proposed: on request, a button
-  beside the player.
-- A quick-settings tile for the recorder. Proposed: later, if the
-  assistant key and the shortcut are not enough.
+- An audio attachment of a comment gets its transcript on request
+  only, with a button beside the player, not automatically.
+- A quick-settings tile for the recorder: later, if the assistant key
+  and the shortcut are not enough.
 
 ## Changes
 
