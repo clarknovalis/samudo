@@ -28,7 +28,8 @@ items.
 ## Decision
 
 1. **A new kind of object, `checklist_item`.** `owner` (a task), `text`
-   (one line), `checked` (default false), `position` (order among the
+   (one line with something on it; the server refuses an empty text and
+   a line break, whichever client writes it), `checked` (default false), `position` (order among the
    items of the owner). Each field has its own stamp, so two devices
    ticking different items, or one ticking while the other renames,
    both win (0004, 0016). `owner` never changes; the others may.
@@ -53,14 +54,18 @@ items.
    (note, dates, tags, estimate, flag, priority, properties) nor attached
    to it as objects of their own, which would go with the deleted task
    (comments, attachments, clocked time, reminders, links, a checklist of
-   its own, a `blocked_by` link of another task that names it). Anything else is refused and
-   says why, instead of losing it silently. Both are one batch of
-   ordinary changes, and so is converting a whole list: every item becomes
-   a subtask in list order, and every plain subtask becomes an item; the
-   subtasks that carry something an item cannot keep stay and are named,
-   and the conversion is refused only when none can be converted, so there is no route of their own; `samu-core`
+   its own, a `blocked_by` link of another task that names it). Anything
+   else is refused and says why, instead of losing it silently. Both are
+   one batch of ordinary changes, so there is no route of their own, and
+   so is converting a whole list: every item becomes a subtask in list
+   order, and every plain subtask becomes an item; the subtasks that
+   carry something an item cannot keep stay and are named, and the
+   conversion is refused only when none can be converted. `samu-core`
    plans them (`checklist::to_subtask`, `from_subtask`) and the web UI
-   repeats the few lines, held to the same cases.
+   repeats the few lines, held to the same cases. The batch is not one
+   transaction: each conversion creates first and deletes second, so
+   when the server refuses the second, the item and the subtask both
+   stand; nothing is lost, and the refusal is shown.
 6. **Not changed:** checkboxes in notes stay as they are (0058); no
    migration turns them into items. `samu import org` leaves them in
    the note.
@@ -79,4 +84,5 @@ items.
 - 2026-11-21: accepted. Built in the core, the CLI, the web UI and the Android app; the Emacs package, the user documentation and the bulk conversion in both directions in the app and the CLI follow.
 - 2026-11-21: converting a whole list in both directions (§5) in the core, the CLI, the web UI and the Android app.
 - 2026-11-21: user documentation (concepts, web UI, Android app, CLI, API; English and German).
+- 2026-11-21: §1: the server refuses an item without a text or with a line break; before, each client checked for itself and the web UI did not. §5: the order of the two changes of a conversion and what a refused second one leaves, written down; the sentence about the missing route back in its place.
 - 2026-11-21: §5 also refuses a subtask with objects attached to it (comments, attachments, clocked time, reminders, links, a checklist of its own, a task that waits for it). Before, only its fields were checked and those objects were lost with the task.

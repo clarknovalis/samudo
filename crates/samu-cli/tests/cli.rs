@@ -5568,6 +5568,23 @@ fn a_checklist_is_typed_ticked_moved_and_converted() {
         code(&server.samu(&["checklist", "edit", &eier, "Zehn Eier"], None)),
         0
     );
+    // Only an item is ticked, renamed or removed: a task is refused, by
+    // its full id (one request for the object) and by a short one.
+    for reference in [task.as_str(), &task[task.len() - 8..]] {
+        for command in [
+            vec!["checklist", "check", reference],
+            vec!["checklist", "uncheck", reference],
+            vec!["checklist", "edit", reference, "x"],
+            vec!["checklist", "rm", reference],
+        ] {
+            let out = server.samu(&command, None);
+            assert_eq!(code(&out), 1, "{command:?}");
+            assert!(
+                String::from_utf8_lossy(&out.stderr).contains("is not a checklist item"),
+                "{command:?}: {out:?}"
+            );
+        }
+    }
     // An item is one line with something on it, here and on the server.
     for bad in ["", "  ", "Zehn\nEier"] {
         let out = server.samu(&["checklist", "edit", &eier, bad], None);

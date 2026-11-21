@@ -141,6 +141,20 @@ fn find_item(objects: &Objects, id: Id) -> Result<&ChecklistItem> {
     }
 }
 
+/// Fails unless `id` is a checklist item. One small request: what only
+/// ticks, renames or removes an item does not fetch the account for it.
+fn require_item(client: &Client, id: Id) -> Result<()> {
+    let object: AnyObject = serde_json::from_value(
+        client
+            .call("GET", &format!("/objects/{id}"), None)?
+            .json()?,
+    )?;
+    match object {
+        AnyObject::ChecklistItem(_) => Ok(()),
+        _ => bail!("{id} is not a checklist item"),
+    }
+}
+
 pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) -> Result<()> {
     let client = signed_in(config)?;
     match command {
@@ -185,7 +199,7 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
             let id = resolve(&client, &item)?;
             let text = text.trim();
             checklist::check_text(text)?;
-            find_item(&objects(&client)?, id)?;
+            require_item(&client, id)?;
             set_field(&client, id, "text", json!(text))
         }
         ChecklistCommand::Move { item, place } => {
@@ -223,7 +237,7 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
         }
         ChecklistCommand::Rm { item } => {
             let id = resolve(&client, &item)?;
-            find_item(&objects(&client)?, id)?;
+            require_item(&client, id)?;
             write(
                 &client,
                 &[Change::Delete {
@@ -302,6 +316,6 @@ pub(crate) fn run(config: &Config, format: Format, command: ChecklistCommand) ->
 
 fn tick(client: &Client, item: &str, checked: bool) -> Result<()> {
     let id = resolve(client, item)?;
-    find_item(&objects(client)?, id)?;
+    require_item(client, id)?;
     set_field(client, id, "checked", json!(checked))
 }
