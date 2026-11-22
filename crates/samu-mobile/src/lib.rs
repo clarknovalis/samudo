@@ -254,6 +254,9 @@ pub struct TaskRow {
     pub state: Option<String>,
     /// It has children: an action group (ADR 0021).
     pub group: bool,
+    /// Its children come one after the other; says something for a group
+    /// only.
+    pub sequential: bool,
     /// How deep under other tasks in this list.
     pub depth: u32,
     /// Waiting in the outbox: not yet on the server.
@@ -2431,6 +2434,12 @@ impl Samu {
         self.set_field_numbered(&id, "flagged", json!(flagged))
     }
 
+    /// An action group does its children one after the other, or in any
+    /// order (ADR 0021).
+    pub fn set_sequential(&self, id: String, sequential: bool) -> Result<(), MobileError> {
+        self.set_field(&id, "sequential", json!(sequential))
+    }
+
     /// Takes changes made here back out of the outbox before they are
     /// sent, all or none (ADR 0104 §3). `false` when one has left or is on
     /// its way: then only a change against it undoes it.
@@ -4577,6 +4586,7 @@ fn row(
             .collect(),
         state: placed.state.map(|s| names.tag_path(s)),
         group: objects.tasks.iter().any(|t| t.parent == Some(task.id)),
+        sequential: task.sequential,
         depth,
         pending: touched.contains(&task.id),
         why: None,

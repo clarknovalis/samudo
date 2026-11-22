@@ -383,6 +383,8 @@ val EN: Map<String, String> = mapOf(
     "Seine Aufgaben, und die der Tags darunter, stehen unter Heute." to "Its tasks, and those of the tags below it, are under Today.",
     "Senden" to "Send",
     "Sequenziell" to "Sequential",
+    "Sequenziell stellen" to "Make sequential",
+    "Parallel stellen" to "Make parallel",
     "Serie" to "Series",
     "SERIE" to "STREAK",
     "Server nicht erreichbar: {reason}" to "Server not reachable: {reason}",

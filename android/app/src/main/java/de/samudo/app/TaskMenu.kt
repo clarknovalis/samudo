@@ -103,6 +103,13 @@ internal fun TaskMenu(row: TaskRow, act: (Samu.() -> Unit) -> Unit, flag: () -> 
             item(tr("Bearbeiten")) { close(); TaskMenus.editing.value = row }
             if (open) item(tr("Unteraufgabe anlegen")) { close(); TaskMenus.under.value = row }
             item(if (row.flagged) tr("Markierung weg") else tr("⚑ Markieren")) { flag(); close() }
+            // An action group (ADR 0021): its children in order, or any of them.
+            if (open && row.group) {
+                item(if (row.sequential) tr("Parallel stellen") else tr("Sequenziell stellen")) {
+                    act { setSequential(row.id, !row.sequential) }
+                    close()
+                }
+            }
             if (open) {
                 item(tr("Zurückstellen bis …")) {
                     pickDay(context, row.defer) { day -> act { setDate(row.id, "defer", day) } }

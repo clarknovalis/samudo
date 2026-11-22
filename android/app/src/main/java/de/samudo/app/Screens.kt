@@ -720,6 +720,12 @@ fun TaskScreen(id: String, tick: Int, changed: () -> Unit, open: (String) -> Uni
                 }) { Text(tr("Verwerfen")) }
             }
             OutlinedButton(onClick = { act { setFlag(id, !row.flagged) } }) { Text(if (row.flagged) tr("Markierung weg") else tr("⚑ Markieren")) }
+            // An action group (ADR 0021): its children in order, or any of them.
+            if (row.group && !row.done && !row.dropped) {
+                OutlinedButton(onClick = { act { setSequential(id, !row.sequential) } }) {
+                    Text(if (row.sequential) tr("Parallel stellen") else tr("Sequenziell stellen"))
+                }
+            }
             if (e.subtask && !row.dropped) ToItemButton(id, changed, back)
         }
         DeleteButton(id, changed, back)

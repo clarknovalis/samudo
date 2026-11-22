@@ -278,6 +278,37 @@ fn completing_offline_waits_in_the_outbox_and_reaches_the_server() {
 }
 
 #[test]
+fn a_group_turns_sequential_offline_and_back() {
+    let server = Server::start();
+    let other = server.other_client();
+    let group = make_task(&other, "Umzug", json!({}));
+    let first = make_task(&other, "Kisten holen", json!({"parent": group}));
+    let second = make_task(&other, "Kisten packen", json!({"parent": group}));
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    let row = |id: &String| samu.task(id.clone()).unwrap().row;
+    assert!(row(&group).group && !row(&group).sequential);
+    assert!(!row(&first).group, "a leaf is no group");
+    assert!(row(&first).available && row(&second).available);
+
+    samu.set_sequential(group.clone(), true).unwrap();
+    assert!(row(&group).sequential && row(&group).pending);
+    assert!(
+        row(&first).available && !row(&second).available,
+        "only the first child is available at once"
+    );
+    assert_eq!(stored(&other, &group)["sequential"], false, "not sent yet");
+    let report = samu.sync().unwrap();
+    assert_eq!((report.pushed, report.rejected), (1, 0));
+    assert_eq!(stored(&other, &group)["sequential"], true);
+
+    samu.set_sequential(group.clone(), false).unwrap();
+    samu.sync().unwrap();
+    assert_eq!(stored(&other, &group)["sequential"], false);
+    assert!(row(&second).available);
+}
+
+#[test]
 fn capture_offline_makes_tag_and_task_on_the_next_sync() {
     let server = Server::start();
     let other = server.other_client();
