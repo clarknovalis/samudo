@@ -576,6 +576,8 @@ val EN: Map<String, String> = mapOf(
     "Datum" to "Date",
     "Zurücksetzen" to "Reset",
     "Zeigen" to "Show",
+    "aufklappen" to "unfold",
+    "zuklappen" to "fold",
     "Verbleibend" to "Remaining",
     "Alle" to "All",
     "Ordnung ist eindeutig" to "Order is unique",

@@ -500,6 +500,7 @@ internal fun SwipeRow(row: TaskRow, changed: () -> Unit, why: String? = null, pl
                 why = why,
                 place = place,
                 picked = Picks.has(row.id),
+                fold = row.folded?.let { folded -> { act { setTaskFolded(row.id, !folded) } } },
             ) { if (Picks.active) Picks.toggle(row) else menu = true }
             if (habit != null) HabitMenu(row.id, habit, menu, { menu = false }, act)
             else if (menu) TaskMenu(row, act, flag) { menu = false }
@@ -509,10 +510,16 @@ internal fun SwipeRow(row: TaskRow, changed: () -> Unit, why: String? = null, pl
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: String? = null, place: String? = null, picked: Boolean = false, longPress: () -> Unit) {
+private fun TaskLine(
+    row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: String? = null, place: String? = null, picked: Boolean = false,
+    // Folds or unfolds a group with children in this list (ADR 0021 §1).
+    fold: (() -> Unit)? = null,
+    longPress: () -> Unit,
+) {
     val t = LocalTokens.current
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val dim = !row.available && !row.done
+    // A group that is only context for its children is dimmed like what waits (ADR 0021 §2).
+    val dim = (!row.available && !row.done) || row.context
     Row(
         Modifier.fillMaxWidth().background(if (picked) t.select else t.pane)
             .combinedClickable(onClick = open, onLongClick = {
@@ -573,9 +580,11 @@ private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: St
                     }
                 }
             }
-            // Line 2: why it stands in Forecast, the fields placed there,
-            // and „nicht gesynct“ always; one line, cut with ….
-            val second = listOfNotNull(why?.let { RowPart(it, it) }) + rowParts(row, Slot.LINE2, place) +
+            // Line 2: why it stands in Forecast, what a folded group holds
+            // (ADR 0021 §3), the fields placed there, and „nicht gesynct“
+            // always; one line, cut with ….
+            val second = listOfNotNull(why?.let { RowPart(it, it) }, row.summary?.let { RowPart(it, it) }) +
+                rowParts(row, Slot.LINE2, place) +
                 listOfNotNull(if (row.pending) RowPart(tr("nicht gesynct"), tr("nicht gesynct")) else null)
             if (second.isNotEmpty()) {
                 Text(
@@ -587,6 +596,15 @@ private fun TaskLine(row: TaskRow, toggle: () -> Unit, open: () -> Unit, why: St
         }
         row.habit?.takeIf { !row.done && !row.dropped }?.let { HabitFigures(it) }
         if (row.flagged) Text("⚑", color = t.flag, fontSize = 16.sp)
+        // The arrow at the edge, where the thumb is; the indent stays the tree's.
+        if (fold != null && row.folded != null) {
+            val folded = row.folded == true
+            Box(
+                Modifier.padding(start = 4.dp).size(40.dp).clickable(onClick = fold)
+                    .semantics { contentDescription = if (folded) tr("aufklappen") else tr("zuklappen") },
+                contentAlignment = Alignment.Center,
+            ) { Text(if (folded) "▸" else "▾", color = t.muted, fontSize = 18.sp) }
+        }
     }
     Box(Modifier.fillMaxWidth().heightIn(max = 1.dp).background(t.rowline)) { Spacer(Modifier.heightIn(min = 1.dp)) }
 }

@@ -259,6 +259,15 @@ pub struct TaskRow {
     pub sequential: bool,
     /// How deep under other tasks in this list.
     pub depth: u32,
+    /// It stands here only as the group above a task the list shows
+    /// (ADR 0021 §2): the list's filter would leave it out.
+    pub context: bool,
+    /// A group with children in this list: whether it is folded on this
+    /// phone (ADR 0021 §4). None where there is nothing to fold.
+    pub folded: Option<bool>,
+    /// What a folded group says instead of its children (ADR 0021 §3):
+    /// the next action of a sequential one, else how many are available.
+    pub summary: Option<String>,
     /// Waiting in the outbox: not yet on the server.
     pub pending: bool,
     /// In Forecast: why it stands there (ADR 0045), `due`, `planned`,
@@ -1139,8 +1148,20 @@ impl Samu {
         })
     }
 
+    /// The action groups folded on this phone (ADR 0021 §4).
+    fn folded_tasks(cache: &Cache) -> Result<HashSet<Id>, MobileError> {
+        Ok(cache
+            .meta(FOLDED_TASKS)?
+            .and_then(|s| serde_json::from_str::<Vec<Id>>(&s).ok())
+            .unwrap_or_default()
+            .into_iter()
+            .collect())
+    }
+
     /// Sections by project of the tasks `pick` takes, and only those with
-    /// `tag` or a tag below it, when one is given.
+    /// `tag` or a tag below it, when one is given. A group stands above
+    /// its children also when `pick` or the tag leaves it out, as context
+    /// (ADR 0021 §2); folded, it stands for them (§3).
     fn rows(
         &self,
         tag: Option<&str>,
@@ -1154,6 +1175,8 @@ impl Samu {
         let names = Names::new(&objects);
         let wanted = tag_filter(tag, &objects.tags)?;
         let visible = Self::visible(&cache, &objects, &evaluation, now, &settings)?;
+        let folded = Self::folded_tasks(&cache)?;
+        let lang = self.ui_lang();
         let mut projects: Vec<Option<&Project>> = vec![None];
         let mut open: Vec<&Project> = objects
             .projects
@@ -1179,21 +1202,51 @@ impl Samu {
             if tasks.is_empty() {
                 continue;
             }
+            // The groups above them, as far as the scope shows them.
+            let mut here: HashSet<Id> = tasks.iter().map(|t| t.id).collect();
+            let mut context: HashSet<Id> = HashSet::new();
+            for i in 0..tasks.len() {
+                let mut parent = tasks[i].parent;
+                while let Some(group) = parent.and_then(|p| visible.iter().find(|t| t.id == p)) {
+                    // Known already, or a cycle (ADR 0017 §9).
+                    if !here.insert(group.id) {
+                        break;
+                    }
+                    context.insert(group.id);
+                    tasks.push(group);
+                    parent = group.parent;
+                }
+            }
             tasks.sort_by_key(|t| (t.position, t.id));
-            let rows = tree(&tasks)
-                .into_iter()
-                .map(|(task, depth)| {
-                    row(
-                        task,
-                        depth,
-                        &objects,
-                        &evaluation,
-                        &names,
-                        &touched,
-                        &settings.zone,
-                    )
-                })
-                .collect();
+            let tree = tree(&tasks);
+            let mut rows = Vec::with_capacity(tree.len());
+            // Below a folded group nothing shows, down to its depth again.
+            let mut hidden_below: Option<u32> = None;
+            for (i, (task, depth)) in tree.iter().enumerate() {
+                if hidden_below.is_some_and(|d| *depth > d) {
+                    continue;
+                }
+                hidden_below = None;
+                let mut row = row(
+                    task,
+                    *depth,
+                    &objects,
+                    &evaluation,
+                    &names,
+                    &touched,
+                    &settings.zone,
+                );
+                row.context = context.contains(&task.id);
+                if tree.get(i + 1).is_some_and(|(_, below)| below > depth) {
+                    let is_folded = folded.contains(&task.id);
+                    row.folded = Some(is_folded);
+                    if is_folded {
+                        hidden_below = Some(*depth);
+                        row.summary = group_line(task, &objects, &evaluation, lang);
+                    }
+                }
+                rows.push(row);
+            }
             sections.push(Section {
                 project_id: pid.map(|id| id.to_string()),
                 title: project.map(|p| p.title.clone()),
@@ -2188,6 +2241,26 @@ impl Samu {
         list.sort();
         let text = serde_json::to_string(&list).map_err(|e| input(e.to_string()))?;
         cache.set_meta("folded_places", (!list.is_empty()).then_some(text.as_str()))?;
+        Ok(())
+    }
+
+    /// Folds or unfolds an action group in the lists, on this phone only
+    /// (ADR 0021 §4). What is no longer there leaves the set on the way.
+    pub fn set_task_folded(&self, id: String, folded: bool) -> Result<(), MobileError> {
+        let id = parse_id(&id)?;
+        let cache = self.cache()?;
+        let (objects, _) = Self::view(&cache)?;
+        let mut set = Self::folded_tasks(&cache)?;
+        set.retain(|t| objects.tasks.iter().any(|o| o.id == *t));
+        if folded {
+            set.insert(id);
+        } else {
+            set.remove(&id);
+        }
+        let mut list: Vec<Id> = set.into_iter().collect();
+        list.sort();
+        let text = serde_json::to_string(&list).map_err(|e| input(e.to_string()))?;
+        cache.set_meta(FOLDED_TASKS, (!list.is_empty()).then_some(text.as_str()))?;
         Ok(())
     }
 
@@ -4507,6 +4580,30 @@ pub(crate) fn when_text(when: &When) -> String {
     String::new()
 }
 
+/// What the meta of this phone keeps the folded action groups under.
+const FOLDED_TASKS: &str = "fold:tasks";
+
+/// What a folded group says (ADR 0021 §3): a sequential one its next
+/// action, a parallel one how many of its children are available.
+fn group_line(
+    group: &Task,
+    objects: &Objects,
+    evaluation: &Evaluation,
+    lang: samu_core::query::Lang,
+) -> Option<String> {
+    let summary = samu_core::availability::group_summary(&objects.tasks, evaluation, group)?;
+    if group.sequential {
+        let next = objects.tasks.iter().find(|t| Some(t.id) == summary.next)?;
+        Some(format!("{}: {}", say(lang, "nächste", "next"), next.title))
+    } else {
+        Some(format!(
+            "{} {}",
+            summary.available,
+            say(lang, "verfügbar", "available")
+        ))
+    }
+}
+
 /// Tasks in tree order with their depth among the given ones; a task whose
 /// parent is not among them stands at the top.
 fn tree<'a>(tasks: &[&'a Task]) -> Vec<(&'a Task, u32)> {
@@ -4594,6 +4691,9 @@ fn row(
         group: objects.tasks.iter().any(|t| t.parent == Some(task.id)),
         sequential: task.sequential,
         depth,
+        context: false,
+        folded: None,
+        summary: None,
         pending: touched.contains(&task.id),
         why: None,
         why_date: None,

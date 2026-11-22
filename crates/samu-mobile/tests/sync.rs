@@ -5394,3 +5394,172 @@ fn a_list_shows_available_remaining_or_all_as_chosen() {
     samu.sync().unwrap();
     assert_eq!(stored(&other, &id)["filter"], "available");
 }
+
+/// Title, depth, context and fold of every row, whatever its section.
+fn outline(sections: &[samu_mobile::Section]) -> Vec<(&str, u32, bool, Option<bool>)> {
+    sections
+        .iter()
+        .flat_map(|s| &s.rows)
+        .map(|r| (r.title.as_str(), r.depth, r.context, r.folded))
+        .collect()
+}
+
+/// ADR 0021: a group stands above its children, as context when the
+/// filter leaves it out, and folds on this phone with a summary.
+#[test]
+fn a_group_stands_above_its_children_and_folds() {
+    let server = Server::start();
+    let other = server.other_client();
+    let garden = make_project(&other, "Garten");
+    let office = make_tag(&other, "Büro", None);
+    let later = json!({"date": "2999-01-01"});
+    // A deferred group: not available, but its children are their own.
+    let bed = make_task(
+        &other,
+        "Beet",
+        json!({"project": garden, "sequential": true, "flagged": true}),
+    );
+    let dig = make_task(
+        &other,
+        "umgraben",
+        json!({"project": garden, "parent": bed, "tags": [{"tag": office, "position": 0}]}),
+    );
+    make_task(
+        &other,
+        "säen",
+        json!({"project": garden, "parent": bed, "position": 1}),
+    );
+    let fence = make_task(&other, "Zaun", json!({"project": garden, "position": 1}));
+    let posts = make_task(
+        &other,
+        "Pfosten",
+        json!({"project": garden, "parent": fence}),
+    );
+    make_task(
+        &other,
+        "setzen",
+        json!({"project": garden, "parent": posts}),
+    );
+    make_task(
+        &other,
+        "streichen",
+        json!({"project": garden, "parent": posts, "position": 1}),
+    );
+    make_task(
+        &other,
+        "Tor",
+        json!({"project": garden, "parent": fence, "position": 1, "defer": later}),
+    );
+    make_task(&other, "mähen", json!({"project": garden, "position": 2}));
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    let project = || samu.project(garden.clone(), None).unwrap();
+
+    // Everything open: the tree, no row as context, groups unfolded.
+    assert_eq!(
+        outline(&project()),
+        [
+            ("Beet", 0, false, Some(false)),
+            ("umgraben", 1, false, None),
+            ("säen", 1, false, None),
+            ("Zaun", 0, false, Some(false)),
+            ("Pfosten", 1, false, Some(false)),
+            ("setzen", 2, false, None),
+            ("streichen", 2, false, None),
+            ("Tor", 1, false, None),
+            ("mähen", 0, false, None),
+        ]
+    );
+
+    // Available: a sequential group gives its first child only, and the
+    // groups, not available themselves, stand above as context.
+    let available = samu.available(None).unwrap();
+    let rows = outline(&available);
+    assert_eq!(
+        rows,
+        [
+            ("Beet", 0, true, Some(false)),
+            ("umgraben", 1, false, None),
+            ("Zaun", 0, true, Some(false)),
+            ("Pfosten", 1, true, Some(false)),
+            ("setzen", 2, false, None),
+            ("streichen", 2, false, None),
+            ("mähen", 0, false, None),
+        ]
+    );
+
+    // A tag narrows the hits, not the group above them.
+    assert_eq!(
+        outline(&samu.tagged(office.clone()).unwrap()),
+        [("Beet", 0, true, Some(false)), ("umgraben", 1, false, None)]
+    );
+    // A group that is a hit itself, its children not: nothing to fold.
+    samu.set_show("flagged".into(), "remaining".into()).unwrap();
+    assert_eq!(
+        outline(&samu.flagged(None).unwrap()),
+        [("Beet", 0, false, None)]
+    );
+
+    // Folded, a group stands for its children: the sequential one names
+    // its next action, the parallel one counts its own children that are
+    // available; a group among them is not (ADR 0006).
+    samu.set_task_folded(bed.clone(), true).unwrap();
+    samu.set_task_folded(fence.clone(), true).unwrap();
+    let folded = project();
+    assert_eq!(
+        outline(&folded),
+        [
+            ("Beet", 0, false, Some(true)),
+            ("Zaun", 0, false, Some(true)),
+            ("mähen", 0, false, None),
+        ]
+    );
+    let summaries: Vec<Option<&str>> = folded[0]
+        .rows
+        .iter()
+        .map(|r| r.summary.as_deref())
+        .collect();
+    assert_eq!(
+        summaries,
+        [Some("nächste: umgraben"), Some("0 verfügbar"), None]
+    );
+    samu.set_lang("en".into());
+    assert_eq!(project()[0].rows[1].summary.as_deref(), Some("0 available"));
+    samu.set_lang("de".into());
+
+    // A group folded inside an open one hides only what is below it.
+    samu.set_task_folded(fence.clone(), false).unwrap();
+    samu.set_task_folded(posts.clone(), true).unwrap();
+    assert_eq!(
+        outline(&project())[1..],
+        [
+            ("Zaun", 0, false, Some(false)),
+            ("Pfosten", 1, false, Some(true)),
+            ("Tor", 1, false, None),
+            ("mähen", 0, false, None),
+        ]
+    );
+    assert_eq!(project()[0].rows[2].summary.as_deref(), Some("2 verfügbar"));
+
+    // On this phone only, and still there when it opens again.
+    assert_eq!(samu.outbox_count().unwrap(), 0);
+    let again = Samu::open(server.dir.join("phone").display().to_string()).unwrap();
+    assert_eq!(
+        outline(&again.project(garden.clone(), None).unwrap())[0],
+        ("Beet", 0, false, Some(true))
+    );
+
+    // Arranged any other way a list is flat: no context, nothing to fold.
+    samu.set_arrange("available".into(), arranged("none", "title", None, false))
+        .unwrap();
+    assert_eq!(
+        outline(&samu.available(None).unwrap()),
+        [
+            ("mähen", 0, false, None),
+            ("setzen", 0, false, None),
+            ("streichen", 0, false, None),
+            ("umgraben", 0, false, None),
+        ]
+    );
+    let _ = dig;
+}
