@@ -35,14 +35,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.samudo.app.mobile.Arrange
+import de.samudo.app.mobile.Show
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
  * Anordnen (ADR 0125): group, sort and a second key for a list, as the web
- * does it (ADR 0064). samu-mobile arranges and keeps it: a perspective's on
- * the server, a view's on this phone. [rev] is bumped on each change, so the
+ * does it (ADR 0064), and which tasks it shows (ADR 0020 §1). samu-mobile
+ * arranges, filters and keeps it: a perspective's on the server, a view's
+ * on this phone. [rev] is bumped on each change, so the
  * lists load again; [open] is the key whose sheet is up.
  */
 object Arranging {
@@ -50,6 +52,11 @@ object Arranging {
     var open by mutableStateOf<String?>(null)
 
     val DEFAULT = Arrange("project", "position", false, null, false)
+
+    /** Zeigen: available, remaining or all (ADR 0020 §1). */
+    fun shows() = listOf(
+        "available" to tr("Verfügbar"), "remaining" to tr("Verbleibend"), "all" to tr("Alle"),
+    )
 
     /** Gruppieren, in the web's order; „Tag“ is the same word in English. */
     fun groups() = listOf(
@@ -66,23 +73,28 @@ object Arranging {
     private fun label(list: List<Pair<String, String>>, key: String) = list.find { it.first == key }?.second ?: key
     private fun arrow(desc: Boolean) = if (desc) "↓" else "↑"
 
-    /** `⇅ Zustand · Priorität ↑, Fällig ↓`; without a grouping, no part before the dot. */
-    fun summary(a: Arrange): String {
+    /**
+     * `⇅ Alle · Zustand · Priorität ↑, Fällig ↓`: the filter when it was
+     * chosen, the grouping when there is one, the sorting.
+     */
+    fun summary(a: Arrange, show: Show? = null): String {
         val sorts = mutableListOf("${label(sorts(), a.sort)} ${arrow(a.desc)}")
         a.then?.let { sorts += "${label(sorts(), it)} ${arrow(a.thenDesc)}" }
         val group = if (a.group == "none") null else label(groups(), a.group)
-        return "⇅ " + listOfNotNull(group, sorts.joinToString(", ")).joinToString(" · ")
+        val chosen = show?.takeIf { !it.standard }?.let { label(shows(), it.value) }
+        return "⇅ " + listOfNotNull(chosen, group, sorts.joinToString(", ")).joinToString(" · ")
     }
 }
 
-/** The arrangement under the title when it is not the default; tapping opens the sheet. */
+/** Arrangement and filter under the title when one is not the default; tapping opens the sheet. */
 @Composable
 fun ArrangeLine(tick: Int, key: String) {
     val t = LocalTokens.current
-    val (a, _) = loaded(tick, key to Arranging.rev.intValue) { it.arrange(key) }
-    if (a == null || a == Arranging.DEFAULT) return
+    val (found, _) = loaded(tick, key to Arranging.rev.intValue) { it.arrange(key) to it.show(key) }
+    val (a, show) = found ?: return
+    if (a == Arranging.DEFAULT && show?.standard != false) return
     Text(
-        Arranging.summary(a), color = t.accent, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        Arranging.summary(a, show), color = t.accent, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().clickable { Arranging.open = key }.padding(16.dp, 6.dp),
     )
 }
@@ -98,11 +110,23 @@ fun ArrangeSheet(key: String, changed: () -> Unit, close: () -> Unit) {
     val t = LocalTokens.current
     val scope = rememberCoroutineScope()
     val (loadedValue, error) = loaded(0, key to Arranging.rev.intValue) { it.arrange(key) }
+    // None for a list without a choice (Verfügbar, Heute).
+    val (show, _) = loaded(0, key to Arranging.rev.intValue) { it.show(key) }
     var failed by remember { mutableStateOf<String?>(null) }
     val set: (Arrange) -> Unit = { next ->
         scope.launch {
             val ok = withContext(Dispatchers.IO) {
                 runCatching { Store.get(context).setArrange(key, next) }
+            }
+            failed = ok.exceptionOrNull()?.let { said(it) }
+            Arranging.rev.intValue++
+            if (key.startsWith("perspective:")) changed()
+        }
+    }
+    val setShow: (String) -> Unit = { next ->
+        scope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                runCatching { Store.get(context).setShow(key, next) }
             }
             failed = ok.exceptionOrNull()?.let { said(it) }
             Arranging.rev.intValue++
@@ -115,6 +139,7 @@ fun ArrangeSheet(key: String, changed: () -> Unit, close: () -> Unit) {
             (error ?: failed)?.let { Text(it, color = t.overdue, fontSize = 13.sp) }
             val a = loadedValue ?: return@Column
             val noThen = a.sort == "position"
+            show?.let { ArrangeRow(tr("Zeigen"), Arranging.shows(), it.value, setShow) }
             ArrangeRow(tr("Gruppieren"), Arranging.groups(), a.group, { set(a.copy(group = it)) })
             ArrangeRow(
                 tr("Sortieren"), Arranging.sorts(), a.sort, { set(a.copy(sort = it, then = a.then.takeIf { k -> k != it })) },
@@ -130,6 +155,7 @@ fun ArrangeSheet(key: String, changed: () -> Unit, close: () -> Unit) {
             )
             Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 Spacer(Modifier.weight(1f))
+                // The arrangement only: what a list shows is not how it stands.
                 TextButton(onClick = { set(Arranging.DEFAULT) }) { Text(tr("Zurücksetzen"), color = t.muted) }
                 TextButton(onClick = close) { Text(tr("Fertig"), color = t.accent, fontWeight = FontWeight.SemiBold) }
             }

@@ -135,12 +135,14 @@ impl Samu {
         )
     }
 
-    /// Markiert: open, available and flagged, by project.
+    /// Markiert: flagged, by project; open and available until another
+    /// filter is chosen ([`Samu::set_show`]).
     pub fn flagged(&self, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
+        let show = self.shown("flagged")?.unwrap_or_default();
         self.listed(
             "flagged",
             tag.as_deref(),
-            |t, s| is_open(t) && s.available && t.flagged,
+            |t, s| t.flagged && crate::arrange::passes(show, t, s),
             |_| true,
         )
     }

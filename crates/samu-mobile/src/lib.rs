@@ -31,7 +31,7 @@ mod rowfields;
 mod search;
 mod views;
 
-pub use arrange::Arrange;
+pub use arrange::{Arrange, Show};
 pub use bar::{BarEntry, BarItem};
 pub use checklist::ChecklistRow;
 pub use clocking::{ClockRow, RunningClock};
@@ -1564,13 +1564,15 @@ impl Samu {
         })
     }
 
-    /// Open tasks in the inbox, orphans among them (ADR 0036 §6). `tag` (an id) narrows every list to
-    /// that tag and the tags below it.
+    /// The inbox, orphans among them (ADR 0036 §6): every open task, until
+    /// another filter is chosen ([`Samu::set_show`]). `tag` (an id) narrows
+    /// every list to that tag and the tags below it.
     pub fn inbox(&self, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
+        let show = self.shown("inbox")?.unwrap_or_default();
         self.listed(
             "inbox",
             tag.as_deref(),
-            |t, s| s.inbox && is_open(t),
+            |t, s| s.inbox && arrange::passes(show, t, s),
             |home| home.is_none(),
         )
     }
@@ -1585,13 +1587,16 @@ impl Samu {
         )
     }
 
-    /// Every open task of one project, available or not.
+    /// The tasks of one project: every open one, available or not, until
+    /// another filter is chosen ([`Samu::set_show`]).
     pub fn project(&self, id: String, tag: Option<String>) -> Result<Vec<Section>, MobileError> {
         let id = parse_id(&id)?;
+        let key = format!("project:{id}");
+        let show = self.shown(&key)?.unwrap_or_default();
         self.listed(
-            &format!("project:{id}"),
+            &key,
             tag.as_deref(),
-            |t, _| t.project == Some(id) && is_open(t),
+            |t, s| t.project == Some(id) && arrange::passes(show, t, s),
             |home| home == Some(id),
         )
     }
@@ -1615,11 +1620,12 @@ impl Samu {
         let filter =
             samu_core::query::Filter::new(&chips, &snapshot, Timestamp::now(), &settings.zone);
         let closed = samu_core::query::asks_for_closed(&chips);
+        let show = self.shown("search")?.unwrap_or_default();
         self.listed(
             "search",
             tag.as_deref(),
             |t, s| {
-                (closed || is_open(t))
+                (closed || arrange::passes(show, t, s))
                     && filter.matches(t, s)
                     && samu_core::query::text_matches(&free, t)
             },

@@ -5268,3 +5268,129 @@ fn phone_again(server: &Server) -> Arc<Samu> {
     .unwrap();
     samu
 }
+
+/// Every title a list shows, whatever its section.
+fn listed(sections: &[samu_mobile::Section]) -> Vec<&str> {
+    sections.iter().flat_map(|s| titles(&s.rows)).collect()
+}
+
+fn show(samu: &Samu, key: &str) -> Option<(String, bool)> {
+    samu.show(key.into())
+        .unwrap()
+        .map(|s| (s.value, s.standard))
+}
+
+/// ADR 0020 §1: each list chooses available, remaining or all, a view on
+/// this phone, a perspective through the outbox.
+#[test]
+fn a_list_shows_available_remaining_or_all_as_chosen() {
+    let server = Server::start();
+    let other = server.other_client();
+    let garden = make_project(&other, "Garten");
+    let office = make_tag(&other, "Büro", None);
+    let later = json!({"date": "2999-01-01"});
+    make_task(&other, "Zettel", json!({"flagged": true}));
+    make_task(&other, "Brief", json!({"defer": later, "flagged": true}));
+    let done_note = make_task(&other, "Altpapier", json!({"flagged": true}));
+    make_task(
+        &other,
+        "mähen",
+        json!({"project": garden, "tags": [{"tag": office, "position": 0}]}),
+    );
+    make_task(
+        &other,
+        "säen",
+        json!({"project": garden, "defer": later, "position": 1,
+               "tags": [{"tag": office, "position": 0}]}),
+    );
+    let done = make_task(&other, "jäten", json!({"project": garden, "position": 2}));
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    samu.complete(done.clone()).unwrap();
+    samu.complete(done_note.clone()).unwrap();
+    samu.sync().unwrap();
+    let project = format!("project:{garden}");
+    let tag = format!("tag:{office}");
+
+    // Until someone chooses, each list shows what it always did.
+    assert_eq!(show(&samu, "inbox"), Some(("remaining".into(), true)));
+    assert_eq!(show(&samu, &project), Some(("remaining".into(), true)));
+    assert_eq!(show(&samu, "search"), Some(("remaining".into(), true)));
+    assert_eq!(show(&samu, "flagged"), Some(("available".into(), true)));
+    assert_eq!(show(&samu, &tag), Some(("available".into(), true)));
+    assert_eq!(show(&samu, "available"), None);
+    assert_eq!(show(&samu, "today"), None);
+    assert_eq!(listed(&samu.inbox(None).unwrap()), ["Zettel", "Brief"]);
+    assert_eq!(
+        listed(&samu.project(garden.clone(), None).unwrap()),
+        ["mähen", "säen"]
+    );
+    assert_eq!(listed(&samu.flagged(None).unwrap()), ["Zettel"]);
+    assert_eq!(listed(&samu.tagged(office.clone()).unwrap()), ["mähen"]);
+
+    // A project on what is available, and only that project.
+    samu.set_show(project.clone(), "available".into()).unwrap();
+    assert_eq!(show(&samu, &project), Some(("available".into(), false)));
+    assert_eq!(
+        listed(&samu.project(garden.clone(), None).unwrap()),
+        ["mähen"]
+    );
+    assert_eq!(listed(&samu.inbox(None).unwrap()), ["Zettel", "Brief"]);
+
+    // Everything: what is done too.
+    samu.set_show(project.clone(), "all".into()).unwrap();
+    assert_eq!(
+        listed(&samu.project(garden.clone(), None).unwrap()),
+        ["mähen", "säen", "jäten"]
+    );
+    samu.set_show("inbox".into(), "available".into()).unwrap();
+    assert_eq!(listed(&samu.inbox(None).unwrap()), ["Zettel"]);
+    samu.set_show("flagged".into(), "remaining".into()).unwrap();
+    assert_eq!(listed(&samu.flagged(None).unwrap()), ["Zettel", "Brief"]);
+    samu.set_show("flagged".into(), "all".into()).unwrap();
+    assert_eq!(
+        listed(&samu.flagged(None).unwrap()),
+        ["Zettel", "Brief", "Altpapier"]
+    );
+    samu.set_show(tag.clone(), "remaining".into()).unwrap();
+    assert_eq!(
+        listed(&samu.tagged(office.clone()).unwrap()),
+        ["mähen", "säen"]
+    );
+    samu.set_show("search".into(), "available".into()).unwrap();
+    assert_eq!(listed(&samu.search("en".into(), None).unwrap()), ["mähen"]);
+
+    // The choice stays on this phone, and survives opening it again.
+    assert_eq!(samu.outbox_count().unwrap(), 0);
+    let again = Samu::open(server.dir.join("phone").display().to_string()).unwrap();
+    assert_eq!(show(&again, &project), Some(("all".into(), false)));
+    // Back on its default it is as if nobody chose.
+    samu.set_show(project.clone(), "remaining".into()).unwrap();
+    assert_eq!(show(&samu, &project), Some(("remaining".into(), true)));
+
+    // What it does not know, and a view without a choice, are refused.
+    assert!(samu.set_show(project.clone(), "some".into()).is_err());
+    assert!(samu.set_show(project, "unknown".into()).is_err());
+    assert!(samu.set_show("today".into(), "all".into()).is_err());
+    assert!(samu.set_show("available".into(), "all".into()).is_err());
+    assert!(samu.show("nowhere".into()).is_err());
+
+    // A perspective's filter is its own, for every device.
+    let id = samu
+        .create_perspective("Garten alles".into(), None, "#Garten".into())
+        .unwrap();
+    let key = format!("perspective:{id}");
+    assert_eq!(show(&samu, &key), Some(("remaining".into(), true)));
+    assert_eq!(
+        listed(&samu.perspective(id.clone(), None).unwrap()),
+        ["mähen", "säen"]
+    );
+    samu.set_show(key.clone(), "available".into()).unwrap();
+    assert_eq!(show(&samu, &key), Some(("available".into(), true)));
+    assert_eq!(
+        listed(&samu.perspective(id.clone(), None).unwrap()),
+        ["mähen"]
+    );
+    samu.sync().unwrap();
+    assert_eq!(stored(&other, &id)["filter"], "available");
+}

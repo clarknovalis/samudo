@@ -14,7 +14,9 @@ use std::collections::HashMap;
 
 use jiff::Timestamp;
 use jiff::civil::{Date, Weekday};
-use samu_api::{Id, PerspectiveArrange, PerspectiveGroup, PerspectiveSort, Task};
+use samu_api::{
+    Id, PerspectiveArrange, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, Task,
+};
 use samu_core::availability::TaskState;
 use samu_core::query::Lang;
 use samu_core::workflow::placement;
@@ -44,6 +46,48 @@ pub struct Arrange {
 
 /// What the meta of this phone keeps a view's arrangement under.
 const META: &str = "arrange:";
+
+/// What the meta of this phone keeps a view's filter under.
+const SHOW: &str = "show:";
+
+/// Which tasks a list shows (ADR 0020 §1): `available`, `remaining` or
+/// `all`, and whether that is what the list shows when nobody chose.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Show {
+    pub value: String,
+    pub standard: bool,
+}
+
+/// A filter by its name on the wire; none for a name this samu does not
+/// know.
+fn show_named(name: &str) -> Option<PerspectiveFilter> {
+    serde_json::from_value(Value::String(name.to_owned()))
+        .ok()
+        .filter(|f| *f != PerspectiveFilter::Unknown)
+}
+
+/// What a view shows until someone chooses: the inbox, a project and the
+/// search everything open, the others what is available. None for a view
+/// whose name is its filter (Verfügbar, Heute).
+fn show_default(key: &str) -> Option<PerspectiveFilter> {
+    match key {
+        "available" | "today" => None,
+        "inbox" | "search" => Some(PerspectiveFilter::Remaining),
+        _ if key.starts_with("project:") => Some(PerspectiveFilter::Remaining),
+        _ => Some(PerspectiveFilter::Available),
+    }
+}
+
+/// Whether a task passes a filter, as the web's `passes`.
+pub(crate) fn passes(show: PerspectiveFilter, task: &Task, state: &TaskState) -> bool {
+    match show {
+        PerspectiveFilter::All => true,
+        PerspectiveFilter::Remaining => is_open(task),
+        PerspectiveFilter::Available | PerspectiveFilter::Unknown => {
+            is_open(task) && state.available
+        }
+    }
+}
 
 /// The name on the wire of an enum `serde_json::to_value` made.
 pub(crate) fn wire_name(value: serde_json::Result<Value>) -> String {
@@ -286,6 +330,18 @@ impl Samu {
                 .and_then(|text| serde_json::from_str(&text).ok()),
         };
         Ok(settled(found.unwrap_or_default()))
+    }
+
+    /// What the view `key` shows: its choice on this phone, else its
+    /// default; none for a view without a choice.
+    pub(crate) fn shown(&self, key: &str) -> Result<Option<PerspectiveFilter>, MobileError> {
+        let Some(default) = show_default(key) else {
+            return Ok(None);
+        };
+        let chosen = self.cache()?.meta(&format!("{SHOW}{key}"))?;
+        Ok(Some(
+            chosen.as_deref().and_then(show_named).unwrap_or(default),
+        ))
     }
 
     /// The sections of a list arranged as `key` says: `pick` takes the
@@ -538,10 +594,70 @@ impl Samu {
         }
     }
 
-    /// The available tasks with a tag of the bar, or one below it
-    /// (ADR 0102 §1), arranged as `tag:<id>`.
+    /// The tasks with a tag of the bar, or one below it (ADR 0102 §1),
+    /// arranged and filtered as `tag:<id>`: the available ones until
+    /// another filter is chosen.
     pub fn tagged(&self, id: String) -> Result<Vec<Section>, MobileError> {
         let key = format!("tag:{}", parse_id(&id)?);
-        self.listed(&key, Some(&id), |t, s| is_open(t) && s.available, |_| true)
+        let show = self.shown(&key)?.unwrap_or_default();
+        self.listed(&key, Some(&id), |t, s| passes(show, t, s), |_| true)
+    }
+
+    /// Which tasks a list shows (ADR 0020 §1), by the keys of
+    /// [`Samu::arrange`]: a perspective's filter from the perspective, a
+    /// view's as this phone keeps it. None for a view without a choice,
+    /// `available` and `today`.
+    pub fn show(&self, key: String) -> Result<Option<Show>, MobileError> {
+        let name = |f: PerspectiveFilter| wire_name(serde_json::to_value(f));
+        if let Some(id) = perspective_of(&key)? {
+            let cache = self.cache()?;
+            let (objects, _) = Self::view(&cache)?;
+            let filter = objects
+                .perspectives
+                .iter()
+                .find(|p| p.id == id)
+                .ok_or_else(|| input(format!("no perspective {id}")))?
+                .filter;
+            let filter = match filter {
+                PerspectiveFilter::Unknown => PerspectiveFilter::Available,
+                f => f,
+            };
+            // Its filter is part of what the perspective is.
+            return Ok(Some(Show {
+                value: name(filter),
+                standard: true,
+            }));
+        }
+        Ok(self.shown(&key)?.map(|show| Show {
+            value: name(show),
+            standard: Some(show) == show_default(&key),
+        }))
+    }
+
+    /// Chooses what a list shows: a perspective through the outbox, for
+    /// every device; a view on this phone only. A value it does not
+    /// know, or a view without a choice, is refused.
+    pub fn set_show(&self, key: String, show: String) -> Result<(), MobileError> {
+        let filter = show_named(&show).ok_or_else(|| input(format!("no filter {show:?}")))?;
+        match perspective_of(&key)? {
+            Some(id) => self.queue(|objects, stamp| {
+                if !objects.perspectives.iter().any(|p| p.id == id) {
+                    return Err(input(format!("no perspective {id}")));
+                }
+                Ok(vec![crate::edit::set(
+                    id,
+                    "filter",
+                    Value::String(show.clone()),
+                    stamp(),
+                )])
+            }),
+            None => {
+                let default = show_default(&key)
+                    .ok_or_else(|| input(format!("the list {key:?} has no filter to choose")))?;
+                let text = (filter != default).then_some(show.as_str());
+                self.cache()?.set_meta(&format!("{SHOW}{key}"), text)?;
+                Ok(())
+            }
+        }
     }
 }
