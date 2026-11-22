@@ -41,9 +41,14 @@ out from the workstation (0009). It does not depend on what is published.
    request.
 6. **Later, in this order, each with the same tag and version:** the
    binaries `samu` and `samu-server` and a `.deb` as assets of the GitHub
-   release; then `samu-api` on crates.io through trusted publishing,
-   without a stored token. Whether it keeps its name there is decided
-   when it is published.
+   release.
+7. **The wire types on crates.io, as `samudo-api`**, with `[lib] name =
+   "samu_api"`, so the code keeps its name, as does the crate inside the
+   workspace. It has its own version, not the release's. The first
+   version is uploaded by hand, as crates.io requires; after that a
+   release tag publishes the version in its manifest through trusted
+   publishing, without a stored token, if crates.io does not have it
+   yet. A pre-release tag publishes none. A version there is permanent.
 
 ## Consequences
 
@@ -61,4 +66,7 @@ out from the workstation (0009). It does not depend on what is published.
 
 ## Changes
 
-None yet.
+- 2026-11-22: §6 named the crate after the binaries and the `.deb` and
+  left its name open; §7 now has it, ahead of them. The source has been
+  public since the move to GitHub, but the registry the crate used to
+  be published to is private.

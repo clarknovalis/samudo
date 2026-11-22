@@ -3,9 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR MIT OR Apache-2.0
 
 [package]
-name = "samu-api"
-# Its own semver, independent of the application (ADR 0003 §1): catastr
-# depends on this crate. Removing or reinterpreting a field is a new major
+# On crates.io under the product's name (ADR 0137 §7); in the code and in this
+# workspace it stays samu_api and samu-api.
+name = "samudo-api"
+# Its own semver, independent of the application (ADR 0003 §1): other
+# projects depend on this crate. Removing or reinterpreting a field is a new major
 # version; a fixture changes only together with this number.
 version = "0.1.63"
 edition.workspace = true
@@ -14,12 +16,18 @@ rust-version.workspace = true
 # used under MIT or Apache-2.0, so a client can embed them without copyleft
 # (ADR 0108 §5). Texts: LICENSE-MIT, LICENSE-APACHE beside this file.
 license = "AGPL-3.0-or-later OR MIT OR Apache-2.0"
+homepage = "https://samudo.de/"
 repository.workspace = true
 description = "Wire types of the samu API. serde only, no logic, no I/O."
-publish = ["forgejo"]
+readme = "README.md"
+keywords = ["samudo", "tasks", "todo", "api"]
+publish = ["crates-io"]
 
-# Nothing from this workspace, ever (ADR 0003 §1): the crate is built inside
-# catastr's workspace too.
+[lib]
+name = "samu_api"
+
+# Nothing from this workspace, ever (ADR 0003 §1): other projects build the
+# crate on its own.
 [dependencies]
 serde = { workspace = true }
 uuid = { workspace = true }

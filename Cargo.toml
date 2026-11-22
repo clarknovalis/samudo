@@ -11,7 +11,7 @@ edition = "2024"
 # The same floor as catastr, so the two workspaces build with one toolchain.
 rust-version = "1.89"
 # One version for the application, inherited by every crate except samu-api,
-# which has a semver of its own because catastr depends on it (ADR 0003 §1).
+# which has a semver of its own because others depend on it (ADR 0003 §1).
 version = "0.1.9"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/clarknovalis/samudo"
@@ -35,7 +35,7 @@ dbg_macro = "warn"
 # api <- client <- cli, mobile; core <- mobile (ADR 0028); api, core,
 # client <- replica <- mobile, server (ADR 0066). Nothing depends on
 # samu-server.
-samu-api = { path = "crates/samu-api", version = "0.1.5" }
+samu-api = { package = "samudo-api", path = "crates/samu-api", version = "0.1.63" }
 samu-core = { path = "crates/samu-core" }
 samu-store = { path = "crates/samu-store" }
 samu-client = { path = "crates/samu-client" }

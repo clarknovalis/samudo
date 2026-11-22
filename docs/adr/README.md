@@ -65,6 +65,6 @@ its citations in the code have no target.
 | [0134](0134-one-history-on-github.md) | accepted | One repository with its real history on GitHub; hooks keep private words out; only the maintainer pushes, agents do not |
 | [0135](0135-modules-as-the-one-cut.md) | accepted | One table of modules cuts both what is shown and where code lives; shared files know a module only through a registration |
 | [0136](0136-removing-a-feature.md) | accepted | A feature leaves in three stages: deprecated, retired, removed |
-| [0137](0137-published-container-image.md) | accepted | A container image on ghcr.io for amd64 and arm64: `X.Y.Z`, `X.Y` and `latest` from a release tag, `edge` from `main` after CI |
+| [0137](0137-published-container-image.md) | accepted | A container image on ghcr.io for amd64 and arm64: `X.Y.Z`, `X.Y` and `latest` from a release tag, `edge` from `main` after CI; the wire types on crates.io as `samudo-api` |
 | [0140](0140-voice-capture.md) | accepted | Voice capture: an optional transcript service at the server, a recorder in the app that can be the digital assistant, recordings handed between apps by intent |
 | [0141](0141-checklists.md) | accepted | Checklists: items of a task as objects of their own, typed and pasted fast, turned into subtasks and back |

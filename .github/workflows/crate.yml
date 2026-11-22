@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2026 Marc Seibert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Publishes the wire types to crates.io as samudo-api (ADR 0137 §7): on a
+# release tag v<version>, the version in crates/samu-api/Cargo.toml, if
+# crates.io does not have it yet. Trusted publishing: crates.io trusts this
+# repository and this file's name, and no token is stored. The very first
+# version had to be uploaded by hand.
+name: Crate
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    # A pre-release (v0.2.0-rc.1) publishes none: a version is permanent.
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Tag, and what crates.io has
+        id: v
+        run: |
+          read -r release _ < <(scripts/app-version.sh)
+          if [ "v$release" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not name the version $release in Cargo.toml" >&2
+            exit 1
+          fi
+          git merge-base --is-ancestor HEAD origin/main || {
+            echo "$GITHUB_REF_NAME is not on main" >&2
+            exit 1
+          }
+          version=$(cargo metadata --format-version 1 --no-deps |
+            jq -er '.packages[] | select(.name == "samudo-api") | .version')
+          # The index answers one JSON object per line and version; 404
+          # (no crate yet) fails here, as it must.
+          curl -sSf -A "samudo release workflow" -o index.jsonl \
+            https://index.crates.io/sa/mu/samudo-api
+          have=$(jq -s --arg v "$version" 'any(.[]; .vers == $v)' index.jsonl)
+          echo "samudo-api $version, already on crates.io: $have"
+          echo "have=$have" >> "$GITHUB_OUTPUT"
+
+      - name: Rust
+        if: steps.v.outputs.have == 'false'
+        run: rustup toolchain install
+
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+        if: steps.v.outputs.have == 'false'
+        id: auth
+
+      - name: cargo publish
+        if: steps.v.outputs.have == 'false'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish -p samudo-api --locked

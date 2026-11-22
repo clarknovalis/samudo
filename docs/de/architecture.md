@@ -78,7 +78,8 @@ Schlüssel; eine englische Tabelle übersetzt sie.
 
 ```
 crates/
-  samu-api/      Wire-Typen (nur serde), eigens versioniert und veröffentlicht
+  samu-api/      Wire-Typen (nur serde), eigens versioniert; das Paket für
+                 crates.io heißt `samudo-api`
   samu-core/     Modellregeln, Verfügbarkeit, Wiederholung, Schnellerfassung,
                  Suche, Forecast, Erinnerungen, Bericht, Gewohnheiten; kein I/O, kein async
   samu-store/    SQLite (rusqlite), nummerierte Migrationen

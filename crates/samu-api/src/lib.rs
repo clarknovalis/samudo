@@ -8,14 +8,19 @@
 //! them (ADR 0003). Rules that hold here:
 //!
 //! - **serde types only.** No logic, no I/O, no async runtime, nothing from
-//!   the samu workspace. It is published to the Forgejo Cargo registry and
-//!   built inside catastr's workspace as well.
+//!   the samu workspace. It is published on crates.io as `samudo-api`, and
+//!   other projects build it on its own.
 //! - **Fixtures are the contract.** Every type has JSON examples under
 //!   `tests/fixtures/`, checked in both directions. A fixture changes only
 //!   with a new version of this crate.
 //! - **Unknown fields are skipped, not rejected,** so samu can add a field
 //!   without breaking a reader. Removing or reinterpreting one is a new major
 //!   version.
+
+// The example in the README, compiled with the doc tests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct Readme;
 
 mod calendar;
 mod capture;

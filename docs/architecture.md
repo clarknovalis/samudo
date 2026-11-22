@@ -75,7 +75,8 @@ texts are German and serve as keys; an English table translates them.
 
 ```
 crates/
-  samu-api/      wire types (serde only), versioned and published on its own
+  samu-api/      wire types (serde only), versioned on its own; the package
+                 for crates.io is `samudo-api`
   samu-core/     model rules, availability, repetition, quick capture,
                  search, forecast, reminders, report, habits; no I/O, no async
   samu-store/    SQLite (rusqlite), numbered migrations

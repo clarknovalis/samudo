@@ -3,7 +3,8 @@
 Every client of samudo, the web UI included, uses this API and nothing
 else. The [command line](cli.md) covers all of it, so `samu <command>
 --format json` is the quickest way to see a response. The wire types are
-the Rust crate `samu-api` (serde only, versioned on its own); JSON
+the Rust crate `samu-api` (serde only, versioned on its own, named
+`samudo-api` for crates.io); JSON
 examples of every type are in
 [`crates/samu-api/tests/fixtures/`](../crates/samu-api/tests/fixtures/).
 

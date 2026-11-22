@@ -25,12 +25,12 @@ clippy:
 test:
 	cargo test --workspace
 
-# samu-api is published on its own and built inside catastr's workspace
-# (ADR 0003 §1). This build makes sure it carries nothing from this
+# samu-api is published on its own, on crates.io as samudo-api
+# (ADR 0003 §1, ADR 0137 §7). This build makes sure it carries nothing from this
 # workspace's other crates and still packages: `cargo package` verifies the
 # crate builds from exactly the files that would be uploaded.
 api-standalone:
-	cargo package -p samu-api --allow-dirty
+	cargo package -p samudo-api --allow-dirty
 
 # The crates that may also be used under MIT must not depend on one that
 # is only AGPL (ADR 0117).
