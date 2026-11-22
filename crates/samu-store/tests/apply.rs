@@ -3220,7 +3220,7 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
              ALTER TABLE attachment DROP COLUMN transcript; \
              ALTER TABLE attachment DROP COLUMN transcript_state; \
              ALTER TABLE attachment DROP COLUMN transcript_error; \
-             DROP TABLE checklist_item; DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
+             DROP TABLE checklist_item; ALTER TABLE settings DROP COLUMN hit_children; DELETE FROM schema_history WHERE version >= 24; PRAGMA user_version = 23;",
         )
         .unwrap();
         mark("folder", &habits);
@@ -3237,7 +3237,8 @@ fn the_migration_gives_what_was_scope_only_its_unlocking_scope() {
             "0026_perspective_table",
             "0027_perspective_blocks",
             "0028_transcript",
-            "0029_checklist"
+            "0029_checklist",
+            "0030_hit_children"
         ]
     );
     assert_eq!(
@@ -3316,7 +3317,7 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
              ALTER TABLE attachment DROP COLUMN transcript; \
              ALTER TABLE attachment DROP COLUMN transcript_state; \
              ALTER TABLE attachment DROP COLUMN transcript_error; \
-             DROP TABLE checklist_item; DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
+             DROP TABLE checklist_item; ALTER TABLE settings DROP COLUMN hit_children; DELETE FROM schema_history WHERE version >= 25; PRAGMA user_version = 24;",
             id_of(&calendar).to_string().replace('-', "")
         ))
         .unwrap();
@@ -3329,7 +3330,8 @@ fn the_alarms_migration_makes_every_calendar_fetch_whole() {
             "0026_perspective_table",
             "0027_perspective_blocks",
             "0028_transcript",
-            "0029_checklist"
+            "0029_checklist",
+            "0030_hit_children"
         ]
     );
     drop(store);

@@ -132,6 +132,7 @@ impl Samu {
             tag.as_deref(),
             |t, s| is_open(t) && s.today,
             |_| true,
+            PerspectiveFilter::Remaining,
         )
     }
 
@@ -144,6 +145,7 @@ impl Samu {
             tag.as_deref(),
             |t, s| t.flagged && crate::arrange::passes(show, t, s),
             |_| true,
+            show,
         )
     }
 
@@ -292,6 +294,14 @@ impl Samu {
         let pick = |t: &Task, s: &samu_core::availability::TaskState| {
             (test.all || is_open(t)) && (!test.available || s.available) && test.task(t, s)
         };
-        self.listed_as(&settled(arrange), tag.as_deref(), pick, |_| true)
+        // What its filter shows, for the children of a group it finds.
+        let show = if test.all {
+            PerspectiveFilter::All
+        } else if test.available {
+            PerspectiveFilter::Available
+        } else {
+            PerspectiveFilter::Remaining
+        };
+        self.listed_as(&settled(arrange), tag.as_deref(), pick, |_| true, show)
     }
 }

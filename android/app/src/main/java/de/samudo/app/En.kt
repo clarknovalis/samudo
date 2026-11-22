@@ -52,6 +52,13 @@ val EN: Map<String, String> = mapOf(
     "Abbrechen" to "Cancel",
     "Ablauf" to "Workflow",
     "Abschnitt „Markiert“ nach Heute" to "Section “Flagged” after Today",
+    "Listen" to "Lists",
+    "Unteraufgaben einer Gruppe, die ein Treffer ist" to "Subtasks of a group that a search finds",
+    "GRUPPE ALS TREFFER" to "A GROUP THAT IS FOUND",
+    "Findet eine Suche, ein Tag oder eine Perspektive eine Gruppe, aber nicht ihre Unteraufgaben, stehen diese gedimmt darunter." to
+        "When a search, a tag or a perspective finds a group but not its subtasks, these stand dimmed below it.",
+    "Zuerst zugeklappt" to "Folded at first",
+    "Gilt für das Konto, auf allen Geräten." to "Applies to the account, on every device.",
     "Aktiv" to "Active",
     "alle" to "every",
     "Alle 2 Wochen" to "Every 2 weeks",

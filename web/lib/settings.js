@@ -149,6 +149,16 @@ function forecastPane() {
         el("option", { value: "fields", text: tr("dazu jede Änderung eines Felds"), selected: s.report_worked === "fields" }),
       ],
     ),
+    // ADR 0021 §6: how a group that is a hit starts.
+    el("label", { class: "field", for: "hit-children", text: tr("Gruppe als Treffer: ihre Unteraufgaben") }),
+    el(
+      "select",
+      { id: "hit-children", onchange: (e) => set("hit_children", e.target.value) },
+      [
+        el("option", { value: "open", text: tr("stehen darunter"), selected: s.hit_children !== "folded" }),
+        el("option", { value: "folded", text: tr("sind zugeklappt"), selected: s.hit_children === "folded" }),
+      ],
+    ),
     el("p", { class: "quiet", text: tr("Gilt für das Konto, auf allen Geräten.") }),
   ]);
 }

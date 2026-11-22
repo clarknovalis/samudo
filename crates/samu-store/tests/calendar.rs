@@ -614,3 +614,49 @@ fn report_worked_is_a_setting() {
         None
     );
 }
+
+/// ADR 0021 §6: how a group that is a hit starts, `open` or `folded`; none
+/// reads as `open`, a value from a newer samu is refused.
+#[test]
+fn hit_children_is_a_setting() {
+    let (_dir, path, mut store) = store();
+    let settings = store.snapshot().unwrap().settings.clone().unwrap();
+    assert_eq!(settings.hit_children, None);
+    let set = |value: Value, ms: i64| Change::Set {
+        object: settings.id,
+        field: "hit_children".into(),
+        value,
+        note: None,
+        hlc: hlc(AHEAD + ms),
+    };
+    assert!(rejected(&apply_ahead(&mut store, &set(json!("später"), 0))));
+    assert!(applied(&apply_ahead(&mut store, &set(json!("folded"), 1))));
+    assert_eq!(
+        store
+            .snapshot()
+            .unwrap()
+            .settings
+            .clone()
+            .unwrap()
+            .hit_children,
+        Some(samu_store::core::api::HitChildren::Folded)
+    );
+    assert_eq!(
+        count(
+            &path,
+            "SELECT count(*) FROM settings WHERE hit_children = 'folded'"
+        ),
+        1
+    );
+    assert!(applied(&apply_ahead(&mut store, &set(Value::Null, 2))));
+    assert_eq!(
+        store
+            .snapshot()
+            .unwrap()
+            .settings
+            .clone()
+            .unwrap()
+            .hit_children,
+        None
+    );
+}

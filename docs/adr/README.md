@@ -21,7 +21,7 @@ its citations in the code have no target.
 | [0004](0004-sync-server-is-the-truth.md) | accepted | The server is the truth; offline clients keep a mirror and an outbox stamped with an HLC; last-writer-wins per field |
 | [0015](0015-unknown-values-and-hlc-on-the-wire.md) | accepted | Unknown enum values are read as `unknown` and never written; the HLC is an object `{wall, counter, device}` on the wire |
 | [0017](0017-availability-edge-cases.md) | accepted | Availability edge cases: dates from midnight in the account's zone, overdue from the next day, due soon P2D, `unknown` as not active, cycles without a crash |
-| [0021](0021-action-groups-in-lists.md) | accepted | Action groups in the lists: a row with an arrow and a counter, children indented, the group as context above them, folded with a summary; unfolded by default, folding kept per device |
+| [0021](0021-action-groups-in-lists.md) | accepted | Action groups in the lists: a row with an arrow and a counter, children indented, the group as context above them, folded with a summary; unfolded by default, folding kept per device; a group that is a hit brings its children, unfolded or folded as the account says |
 | [0024](0024-workflows.md) | accepted | Workflows are exclusive tag groups: an LWW register per object, a workflow per project with a default, keys and cycling, a logbook |
 | [0027](0027-route-capture.md) | accepted | Quick capture over `POST /capture` with a preview; unknown tags created on the way, never projects; suggestions while typing |
 | [0028](0028-android-app.md) | accepted | Android app in Kotlin/Compose over `samu-mobile` (uniffi); mirror plus outbox, sync in Rust, overlay in `samu-core` |

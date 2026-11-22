@@ -203,6 +203,12 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0029_checklist.sql"),
         rebuilds: true,
     },
+    Migration {
+        version: 30,
+        name: "0030_hit_children",
+        sql: include_str!("migrations/0030_hit_children.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The migrations of the server file: accounts and sessions (ADR 0019 §2).

@@ -832,6 +832,26 @@ pub struct AccountSettings {
     /// What the report counts as worked on (ADR 0080 §1); none = `events`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub report_worked: Option<crate::ReportWorked>,
+    /// Since samu-api 0.1.64: how a group that a search, a tag or a
+    /// perspective finds starts when its children are no hits themselves
+    /// (ADR 0021 §6); none = `open`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hit_children: Option<HitChildren>,
+}
+
+/// How a group that is a hit starts when its children are none (ADR 0021
+/// §6), a setting of the account.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HitChildren {
+    /// Unfolded: the children stand below it, as context.
+    #[default]
+    Open,
+    /// Folded: the arrow brings them.
+    Folded,
+    /// A value from a newer samu (ADR 0015). Read, never written.
+    #[serde(other)]
+    Unknown,
 }
 
 const fn seven() -> u32 {

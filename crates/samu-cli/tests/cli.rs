@@ -2910,6 +2910,22 @@ fn forecast_follows_the_settings() {
         3
     );
 
+    // ADR 0021 §6: how a group that is a hit starts.
+    assert_eq!(value("hit-children").as_deref(), Some("open"));
+    ok(server.samu(&["settings", "set", "hit-children", "folded"], None));
+    let again = json_out(&server.samu(&["settings", "--format", "json"], None));
+    assert!(
+        again
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["key"] == "hit-children" && r["value"] == "folded")
+    );
+    assert_eq!(
+        code(&server.samu(&["settings", "set", "hit-children", "halb"], None)),
+        1
+    );
+
     // ADR 0079 §2: the key bindings as one JSON object.
     assert_eq!(value("keys").as_deref(), Some("{}"));
     ok(server.samu(

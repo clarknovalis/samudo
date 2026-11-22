@@ -160,7 +160,9 @@ pub(crate) enum SettingsCommand {
     /// none), default-calendar (a calendar by title or id, or none; ADR
     /// 0068), keys (the web's key bindings as one JSON object, action id
     /// to binding or null; `{}` is the defaults; ADR 0079), report-worked
-    /// (events or fields: what the report counts as worked on; ADR 0080).
+    /// (events or fields: what the report counts as worked on; ADR 0080),
+    /// hit-children (open or folded: how a group that a search finds
+    /// starts when its children are no hits; ADR 0021).
     Set { key: String, value: String },
     /// Where a property's value leads (ADR 0054 §3): without arguments the
     /// templates, with a key its template, with a template (containing
@@ -269,6 +271,15 @@ pub(crate) fn settings(
                 }
                 .to_owned(),
             ),
+            (
+                "hit-children",
+                match settings.hit_children {
+                    Some(samu_api::HitChildren::Folded) => "folded",
+                    Some(samu_api::HitChildren::Unknown) => "unknown",
+                    Some(samu_api::HitChildren::Open) | None => "open",
+                }
+                .to_owned(),
+            ),
         ]
         .into_iter()
         .map(|(k, v)| json!({"key": k, "value": v}))
@@ -367,6 +378,11 @@ pub(crate) fn settings(
         "report-worked" => match value.as_str() {
             "events" | "fields" => ("report_worked", json!(value)),
             _ => bail!("report-worked is events or fields, not {value:?}"),
+        },
+        // ADR 0021 §6.
+        "hit-children" => match value.as_str() {
+            "open" | "folded" => ("hit_children", json!(value)),
+            _ => bail!("hit-children is open or folded, not {value:?}"),
         },
         _ => bail!("no setting {key:?}; see samu settings set --help"),
     };

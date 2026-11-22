@@ -54,8 +54,9 @@ use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use samu_api::{
     Calendar, CalendarKind, Change, DeleteRequest, DeleteResponse, FolderStatus, Hlc, Id,
-    InspectorPart, Link, LinkKind, Login, NoteMode, ObjectKind, PairRequest, Project,
-    ProjectStatus, Reason, Scope, ScopeMode, SessionInfo, Tag, TagStatus, Task, TaskFate, When,
+    InspectorPart, Link, LinkKind, Login, NoteMode, ObjectKind, PairRequest, PerspectiveFilter,
+    Project, ProjectStatus, Reason, Scope, ScopeMode, SessionInfo, Tag, TagStatus, Task, TaskFate,
+    When,
 };
 use samu_client::Client;
 use samu_core::availability::{DueState, Evaluation, Settings, evaluate};
@@ -1150,8 +1151,13 @@ impl Samu {
 
     /// The action groups folded on this phone (ADR 0021 §4).
     fn folded_tasks(cache: &Cache) -> Result<HashSet<Id>, MobileError> {
+        Self::id_set(cache, FOLDED_TASKS)
+    }
+
+    /// A set of ids the meta of this phone keeps under `key`.
+    fn id_set(cache: &Cache, key: &str) -> Result<HashSet<Id>, MobileError> {
         Ok(cache
-            .meta(FOLDED_TASKS)?
+            .meta(key)?
             .and_then(|s| serde_json::from_str::<Vec<Id>>(&s).ok())
             .unwrap_or_default()
             .into_iter()
@@ -1161,11 +1167,14 @@ impl Samu {
     /// Sections by project of the tasks `pick` takes, and only those with
     /// `tag` or a tag below it, when one is given. A group stands above
     /// its children also when `pick` or the tag leaves it out, as context
-    /// (ADR 0021 §2); folded, it stands for them (§3).
+    /// (ADR 0021 §2); folded, it stands for them (§3). Below a group that
+    /// `pick` takes stand its children that `pick` leaves out, as context
+    /// too, as far as `show` lets them through (§6).
     fn rows(
         &self,
         tag: Option<&str>,
         pick: impl Fn(&Task, &samu_core::availability::TaskState) -> bool,
+        show: PerspectiveFilter,
     ) -> Result<Vec<Section>, MobileError> {
         let cache = self.cache()?;
         let (settings, _) = Self::settings(&cache)?;
@@ -1176,6 +1185,10 @@ impl Samu {
         let wanted = tag_filter(tag, &objects.tags)?;
         let visible = Self::visible(&cache, &objects, &evaluation, now, &settings)?;
         let folded = Self::folded_tasks(&cache)?;
+        let opened = Self::id_set(&cache, OPENED_TASKS)?;
+        // How a group starts whose children are no hits (ADR 0021 §6).
+        let starts_folded = objects.settings.as_ref().and_then(|s| s.hit_children)
+            == Some(samu_api::HitChildren::Folded);
         let lang = self.ui_lang();
         let mut projects: Vec<Option<&Project>> = vec![None];
         let mut open: Vec<&Project> = objects
@@ -1202,8 +1215,26 @@ impl Samu {
             if tasks.is_empty() {
                 continue;
             }
-            // The groups above them, as far as the scope shows them.
+            // Below a hit its children that are none, and theirs (ADR 0021
+            // §6): the list grows while it is walked. The set ends a cycle.
             let mut here: HashSet<Id> = tasks.iter().map(|t| t.id).collect();
+            let mut below: HashSet<Id> = HashSet::new();
+            let mut i = 0;
+            while i < tasks.len() {
+                let group = tasks[i].id;
+                for child in visible.iter().filter(|t| t.parent == Some(group)) {
+                    let Some(state) = evaluation.tasks.get(&child.id) else {
+                        continue;
+                    };
+                    let home = if state.inbox { None } else { child.project };
+                    if home == pid && arrange::passes(show, child, state) && here.insert(child.id) {
+                        below.insert(child.id);
+                        tasks.push(child);
+                    }
+                }
+                i += 1;
+            }
+            // The groups above them, as far as the scope shows them.
             let mut context: HashSet<Id> = HashSet::new();
             for i in 0..tasks.len() {
                 let mut parent = tasks[i].parent;
@@ -1236,9 +1267,19 @@ impl Samu {
                     &touched,
                     &settings.zone,
                 );
-                row.context = context.contains(&task.id);
-                if tree.get(i + 1).is_some_and(|(_, below)| below > depth) {
-                    let is_folded = folded.contains(&task.id);
+                row.context = context.contains(&task.id) || below.contains(&task.id);
+                if tree.get(i + 1).is_some_and(|(_, under)| under > depth) {
+                    // A hit with no hit below it folds as the account says.
+                    let bare = !row.context
+                        && tree[i + 1..]
+                            .iter()
+                            .take_while(|(_, under)| under > depth)
+                            .all(|(t, _)| below.contains(&t.id));
+                    let is_folded = if bare && starts_folded {
+                        !opened.contains(&task.id)
+                    } else {
+                        folded.contains(&task.id)
+                    };
                     row.folded = Some(is_folded);
                     if is_folded {
                         hidden_below = Some(*depth);
@@ -1627,6 +1668,7 @@ impl Samu {
             tag.as_deref(),
             |t, s| s.inbox && arrange::passes(show, t, s),
             |home| home.is_none(),
+            show,
         )
     }
 
@@ -1637,6 +1679,7 @@ impl Samu {
             tag.as_deref(),
             |t, s| is_open(t) && s.available,
             |_| true,
+            PerspectiveFilter::Available,
         )
     }
 
@@ -1651,6 +1694,7 @@ impl Samu {
             tag.as_deref(),
             |t, s| t.project == Some(id) && arrange::passes(show, t, s),
             |home| home == Some(id),
+            show,
         )
     }
 
@@ -1683,6 +1727,7 @@ impl Samu {
                     && samu_core::query::text_matches(&free, t)
             },
             |_| true,
+            if closed { PerspectiveFilter::All } else { show },
         )
     }
 
@@ -2160,6 +2205,32 @@ impl Samu {
         })
     }
 
+    /// Whether a group that a list finds without its children starts
+    /// folded (ADR 0021 §6): the account's setting, unfolded until it says
+    /// otherwise.
+    pub fn hit_children_folded(&self) -> Result<bool, MobileError> {
+        let cache = self.cache()?;
+        let (objects, _) = Self::view(&cache)?;
+        Ok(objects.settings.as_ref().and_then(|s| s.hit_children)
+            == Some(samu_api::HitChildren::Folded))
+    }
+
+    /// Sets it through the outbox, offline too.
+    pub fn set_hit_children_folded(&self, folded: bool) -> Result<(), MobileError> {
+        self.queue(|objects, stamp| {
+            let Some(settings) = &objects.settings else {
+                return Err(input("the settings come with the next sync"));
+            };
+            Ok(vec![Change::Set {
+                object: settings.id,
+                field: "hit_children".into(),
+                value: json!(if folded { "folded" } else { "open" }),
+                note: None,
+                hlc: stamp(),
+            }])
+        })
+    }
+
     /// Tags that open tasks carry, by path, with how many each would show;
     /// the states of a workflow among them. Dropped tags are left out.
     pub fn tags(&self) -> Result<Vec<TagChip>, MobileError> {
@@ -2250,17 +2321,21 @@ impl Samu {
         let id = parse_id(&id)?;
         let cache = self.cache()?;
         let (objects, _) = Self::view(&cache)?;
-        let mut set = Self::folded_tasks(&cache)?;
-        set.retain(|t| objects.tasks.iter().any(|o| o.id == *t));
-        if folded {
-            set.insert(id);
-        } else {
-            set.remove(&id);
+        // Folded here, unfolded there: a group that starts folded
+        // (ADR 0021 §6) reads the second set.
+        for (key, member) in [(FOLDED_TASKS, folded), (OPENED_TASKS, !folded)] {
+            let mut set = Self::id_set(&cache, key)?;
+            set.retain(|t| objects.tasks.iter().any(|o| o.id == *t));
+            if member {
+                set.insert(id);
+            } else {
+                set.remove(&id);
+            }
+            let mut list: Vec<Id> = set.into_iter().collect();
+            list.sort();
+            let text = serde_json::to_string(&list).map_err(|e| input(e.to_string()))?;
+            cache.set_meta(key, (!list.is_empty()).then_some(text.as_str()))?;
         }
-        let mut list: Vec<Id> = set.into_iter().collect();
-        list.sort();
-        let text = serde_json::to_string(&list).map_err(|e| input(e.to_string()))?;
-        cache.set_meta(FOLDED_TASKS, (!list.is_empty()).then_some(text.as_str()))?;
         Ok(())
     }
 
@@ -4582,6 +4657,10 @@ pub(crate) fn when_text(when: &When) -> String {
 
 /// What the meta of this phone keeps the folded action groups under.
 const FOLDED_TASKS: &str = "fold:tasks";
+
+/// And the groups unfolded on it, for those that start folded (ADR 0021
+/// §6).
+const OPENED_TASKS: &str = "open:tasks";
 
 /// What a folded group says (ADR 0021 §3): a sequential one its next
 /// action, a parallel one how many of its children are available.

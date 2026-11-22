@@ -208,6 +208,7 @@ fun SettingsScreen(tick: Int, changed: () -> Unit, start: String? = null, back: 
         "places", "tags" -> PlacesScreen(section!!, tick, changed, if (section == "places") start else null) { section = null }
         "bar" -> BarSection(tick, changed) { section = null }
         "forecast" -> ForecastSection(tick, changed) { section = null }
+        "lists" -> ListsSection(tick, changed) { section = null }
         "calendars" -> CalendarsSection(tick, changed) { section = null }
         "reminders" -> RemindersSection { section = null }
         "properties" -> PropertiesSection(tick, changed) { section = null }
@@ -223,6 +224,7 @@ fun SettingsScreen(tick: Int, changed: () -> Unit, start: String? = null, back: 
                     Triple("places", tr("Projekte und Ordner"), tr("Anlegen, umbenennen, verschieben, Art und Status")),
                     Triple("tags", "Tags", tr("Anlegen, umbenennen, verschieben")),
                     Triple("forecast", "Forecast", tr("Tage, Markiert, Zurückgestelltes, Forecast-Tag")),
+                    Triple("lists", tr("Listen"), tr("Unteraufgaben einer Gruppe, die ein Treffer ist")),
                     Triple("calendars", tr("Kalender"), tr("Ein/aus, Name, Farbe, jetzt abrufen")),
                     Triple("reminders", tr("Erinnerungen"), tr("An Termine erinnern, nur auf diesem Gerät")),
                     Triple("properties", "Properties", tr("Wohin ein Wert führt, je Schlüssel")),
@@ -268,6 +270,43 @@ private fun LanguageSection(back: () -> Unit) {
             }
         }
         item { Text(tr("„System“ folgt der Sprache des Telefons und der App-Sprache in Androids Einstellungen."), color = t.muted, fontSize = 12.sp) }
+    }
+}
+
+/**
+ * How the lists draw a group that is a hit without its children (ADR 0021
+ * §6): the account's setting, the same on every device; changed through
+ * the outbox, offline too.
+ */
+@Composable
+private fun ListsSection(tick: Int, changed: () -> Unit, back: () -> Unit) {
+    val context = LocalContext.current
+    val t = LocalTokens.current
+    val act = rememberAct(changed)
+    var folded by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(tick) {
+        folded = withContext(Dispatchers.IO) { runCatching { Store.get(context).hitChildrenFolded() }.getOrNull() }
+    }
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        item { TextButton(onClick = back) { Text(tr("‹ Einstellungen")) } }
+        item { Heading(tr("GRUPPE ALS TREFFER")) }
+        item {
+            Text(
+                tr("Findet eine Suche, ein Tag oder eine Perspektive eine Gruppe, aber nicht ihre Unteraufgaben, stehen diese gedimmt darunter."),
+                color = t.muted, fontSize = 12.sp,
+            )
+        }
+        val now = folded ?: return@LazyColumn
+        item(key = "folded") {
+            Row(
+                Modifier.fillMaxWidth().clickable { act { setHitChildrenFolded(!now) } },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = now, onCheckedChange = { on -> act { setHitChildrenFolded(on) } })
+                Text(tr("Zuerst zugeklappt"), color = t.fg, fontSize = 14.sp)
+            }
+        }
+        item { Text(tr("Gilt für das Konto, auf allen Geräten."), color = t.muted, fontSize = 12.sp) }
     }
 }
 

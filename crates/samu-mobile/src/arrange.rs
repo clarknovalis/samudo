@@ -345,16 +345,18 @@ impl Samu {
     }
 
     /// The sections of a list arranged as `key` says: `pick` takes the
-    /// tasks, `home` the projects whose tasks count (none is the inbox).
+    /// tasks, `home` the projects whose tasks count (none is the inbox),
+    /// `show` the children of a group among them (ADR 0021 §6).
     pub(crate) fn listed(
         &self,
         key: &str,
         tag: Option<&str>,
         pick: impl Fn(&Task, &TaskState) -> bool,
         home: impl Fn(Option<Id>) -> bool,
+        show: PerspectiveFilter,
     ) -> Result<Vec<Section>, MobileError> {
         let arrange = self.arrangement(key)?;
-        self.listed_as(&arrange, tag, pick, home)
+        self.listed_as(&arrange, tag, pick, home, show)
     }
 
     /// [`Self::listed`] with the arrangement given.
@@ -364,11 +366,12 @@ impl Samu {
         tag: Option<&str>,
         pick: impl Fn(&Task, &TaskState) -> bool,
         home: impl Fn(Option<Id>) -> bool,
+        show: PerspectiveFilter,
     ) -> Result<Vec<Section>, MobileError> {
         if plain(arrange) {
             // The project's own order, as a tree.
             return Ok(self
-                .rows(tag, pick)?
+                .rows(tag, pick, show)?
                 .into_iter()
                 .filter(|s| home(s.project_id.as_deref().and_then(|p| p.parse().ok())))
                 .collect());
@@ -600,7 +603,7 @@ impl Samu {
     pub fn tagged(&self, id: String) -> Result<Vec<Section>, MobileError> {
         let key = format!("tag:{}", parse_id(&id)?);
         let show = self.shown(&key)?.unwrap_or_default();
-        self.listed(&key, Some(&id), |t, s| passes(show, t, s), |_| true)
+        self.listed(&key, Some(&id), |t, s| passes(show, t, s), |_| true, show)
     }
 
     /// Which tasks a list shows (ADR 0020 §1), by the keys of

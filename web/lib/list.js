@@ -67,13 +67,20 @@ let place = "none";
 // The first lines of a note, for the mark's hover (ADR 0053 §5).
 const noteHint = (note) => (note.length > 300 ? `${note.slice(0, 300)} …` : note);
 
+// Whether a group drawn without its children is folded. Where it is a hit
+// and its children are none, the account says how it starts (ADR 0021 §6,
+// `hit_children`), and `state.opened` holds what was toggled since. In a
+// flat list its children stand on their own, so there it starts folded.
+const bareFolded = (status) =>
+  status.flat || state.accountSettings?.hit_children === "folded" ? !state.opened.has(status.task.id) : state.opened.has(status.task.id);
+
 // What a row starts with, in the list and the table (ADR 0115 §3): the
 // arrow of an action group, the priority bar and the tick.
 function lead(status, bare = false) {
   const task = status.task;
   const open = isOpen(task);
   const group = status.group;
-  const folded = group && (bare ? !state.opened.has(task.id) : state.folded.has(task.id));
+  const folded = group && (bare ? bareFolded(status) : state.folded.has(task.id));
   return [
     group
       ? el("button", {
@@ -110,12 +117,12 @@ function lead(status, bare = false) {
 }
 
 // `bare`: a group drawn without its children, which the arrow fetches
-// (ba0590e4); it folds by `state.opened`, not by `state.folded`.
+// (ba0590e4); it folds by `bareFolded`, not by `state.folded`.
 function row(status, depth, context, why = null, bare = false) {
   const task = status.task;
   const open = isOpen(task);
   const group = status.group;
-  const folded = group && (bare ? !state.opened.has(task.id) : state.folded.has(task.id));
+  const folded = group && (bare ? bareFolded(status) : state.folded.has(task.id));
   const due = open ? dueText(status) : null;
   const summary = group
     ? task.sequential
@@ -208,10 +215,11 @@ function descendants(id) {
 // One project's tasks as a tree: a task shows if it passes the filter, or
 // as context above a child that does (ADR 0021 §2). A group whose children
 // the list does not hold (a search hit, a flat grouping) is bare: its
-// arrow draws them from the mirror, with the same filter (ba0590e4).
+// arrow draws them from the mirror, with the same filter (ba0590e4), as
+// context: `below` says the rows stand under such a group (ADR 0021 §6).
 // `make` builds what a row is: an element of the list, or what the table
 // draws (ADR 0115 §3).
-function tree(statuses, rows, compare, start = 0, make = row) {
+function tree(statuses, rows, compare, start = 0, make = row, below = false) {
   const ids = new Set(statuses.map((s) => s.task.id));
   const children = new Map();
   for (const s of statuses) {
@@ -235,13 +243,13 @@ function tree(statuses, rows, compare, start = 0, make = row) {
     for (const s of children.get(parent) ?? []) {
       if (seen.has(s.task.id) || !visible(s)) continue;
       seen.add(s.task.id);
-      const context = filtered() && !matches(s);
+      const context = below || (filtered() && !matches(s));
       const bare = Boolean(s.group) && !(children.get(s.task.id) ?? []).some((c) => visible(c));
       rows.push(make(s, depth, context, null, bare));
       // Under several tags a task shows more than once; j/k visit it once.
       if (!order.includes(s.task.id)) order.push(s.task.id);
       if (bare) {
-        if (state.opened.has(s.task.id)) tree(descendants(s.task.id), rows, compare, depth + 1, make);
+        if (!bareFolded(s)) tree(descendants(s.task.id), rows, compare, depth + 1, make, true);
       } else if (!state.folded.has(s.task.id)) walk(s.task.id, depth + 1, seen);
     }
   };
@@ -448,7 +456,7 @@ function comparer(chosen) {
 }
 
 // Groups as [key, heading, statuses, subtitle], in the order drawn.
-const flat = (statuses) => statuses.map((s) => ({ ...s, task: { ...s.task, parent: null } }));
+const flat = (statuses) => statuses.map((s) => ({ ...s, flat: true, task: { ...s.task, parent: null } }));
 const LAST = "\uffff";
 
 // What a row says of its place (21df91a1): a child says it never, its

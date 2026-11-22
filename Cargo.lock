@@ -1960,7 +1960,7 @@ dependencies = [
 
 [[package]]
 name = "samudo-api"
-version = "0.1.63"
+version = "0.1.64"
 dependencies = [
  "jiff",
  "serde",

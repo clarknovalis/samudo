@@ -237,6 +237,7 @@ const SETTINGS: &[Column] = &[
     col("default_calendar", Ty::Uuid),
     col("keys", Ty::Json),
     col("report_worked", Ty::Text),
+    col("hit_children", Ty::Text),
 ];
 
 const CALENDAR: &[Column] = &[

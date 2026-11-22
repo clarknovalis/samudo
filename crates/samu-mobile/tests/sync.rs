@@ -5493,12 +5493,23 @@ fn a_group_stands_above_its_children_and_folds() {
         outline(&samu.tagged(office.clone()).unwrap()),
         [("Beet", 0, true, Some(false)), ("umgraben", 1, false, None)]
     );
-    // A group that is a hit itself, its children not: nothing to fold.
+    // A group that is a hit itself, its children not: they stand below
+    // it as context, as far as the list's filter shows them (§6).
     samu.set_show("flagged".into(), "remaining".into()).unwrap();
     assert_eq!(
         outline(&samu.flagged(None).unwrap()),
-        [("Beet", 0, false, None)]
+        [
+            ("Beet", 0, false, Some(false)),
+            ("umgraben", 1, true, None),
+            ("säen", 1, true, None),
+        ]
     );
+    samu.set_show("flagged".into(), "available".into()).unwrap();
+    assert_eq!(
+        outline(&samu.flagged(None).unwrap()),
+        [] as [(&str, u32, bool, Option<bool>); 0]
+    );
+    samu.set_show("flagged".into(), "remaining".into()).unwrap();
 
     // Folded, a group stands for its children: the sequential one names
     // its next action, the parallel one counts its own children that are
@@ -5562,4 +5573,120 @@ fn a_group_stands_above_its_children_and_folds() {
         ]
     );
     let _ = dig;
+}
+
+/// ADR 0021 §6: a group that a search, a tag or a perspective finds
+/// brings its children that are no hits, as context; the account says
+/// whether it starts unfolded or folded, and the arrow turns that round
+/// on this phone.
+#[test]
+fn a_group_that_is_a_hit_brings_its_children() {
+    let server = Server::start();
+    let other = server.other_client();
+    let home = make_project(&other, "Haus");
+    let epic = make_tag(&other, "epic", None);
+    let tidy = make_task(
+        &other,
+        "Aufräumaktion",
+        json!({"project": home, "tags": [{"tag": epic, "position": 0}]}),
+    );
+    make_task(&other, "Keller", json!({"project": home, "parent": tidy}));
+    let attic = make_task(
+        &other,
+        "Dachboden",
+        json!({"project": home, "parent": tidy, "position": 1}),
+    );
+    make_task(
+        &other,
+        "Kisten",
+        json!({"project": home, "parent": attic, "defer": {"date": "2999-01-01"}}),
+    );
+    let done = make_task(
+        &other,
+        "Garage",
+        json!({"project": home, "parent": tidy, "position": 2}),
+    );
+    make_task(
+        &other,
+        "Aufräumaktion planen",
+        json!({"project": home, "position": 1}),
+    );
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    samu.complete(done.clone()).unwrap();
+    let search = |text: &str| samu.search(text.into(), None).unwrap();
+
+    // The search finds the group and a task beside it; the children do
+    // not hold the word and come along, theirs too, what is done not.
+    let whole = [
+        ("Aufräumaktion", 0, false, Some(false)),
+        ("Keller", 1, true, None),
+        ("Dachboden", 1, true, Some(false)),
+        ("Kisten", 2, true, None),
+        ("Aufräumaktion planen", 0, false, None),
+    ];
+    assert_eq!(outline(&search("aufräumaktion")), whole);
+    // "All" lets the completed child through as well.
+    samu.set_show("search".into(), "all".into()).unwrap();
+    assert_eq!(
+        outline(&search("aufräumaktion"))[4],
+        ("Garage", 1, true, None)
+    );
+    samu.set_show("search".into(), "remaining".into()).unwrap();
+
+    // The tag of the bar: available ones only, so the deferred one and
+    // the group above it stay out.
+    assert_eq!(
+        outline(&samu.tagged(epic.clone()).unwrap()),
+        [] as [(&str, u32, bool, Option<bool>); 0]
+    );
+    samu.set_show(format!("tag:{epic}"), "remaining".into())
+        .unwrap();
+    assert_eq!(outline(&samu.tagged(epic.clone()).unwrap()), whole[..4]);
+
+    // A child that is a hit itself is no context, and its group no
+    // group left alone.
+    assert_eq!(
+        outline(&search("keller")),
+        [
+            ("Aufräumaktion", 0, true, Some(false)),
+            ("Keller", 1, false, None)
+        ]
+    );
+
+    // The account says such a group starts folded; the arrow unfolds it,
+    // and a group with a hit below it is not meant.
+    assert!(!samu.hit_children_folded().unwrap());
+    samu.set_hit_children_folded(true).unwrap();
+    assert!(samu.hit_children_folded().unwrap());
+    let folded = search("aufräumaktion");
+    assert_eq!(
+        outline(&folded),
+        [
+            ("Aufräumaktion", 0, false, Some(true)),
+            ("Aufräumaktion planen", 0, false, None),
+        ]
+    );
+    assert_eq!(folded[0].rows[0].summary.as_deref(), Some("1 verfügbar"));
+    assert_eq!(
+        outline(&samu.project(home.clone(), None).unwrap())[0],
+        ("Aufräumaktion", 0, false, Some(false))
+    );
+    samu.set_task_folded(tidy.clone(), false).unwrap();
+    assert_eq!(outline(&search("aufräumaktion")), whole);
+    samu.set_task_folded(tidy.clone(), true).unwrap();
+    assert_eq!(outline(&search("aufräumaktion")).len(), 2);
+    assert_eq!(
+        outline(&samu.project(home.clone(), None).unwrap())[0],
+        ("Aufräumaktion", 0, false, Some(true))
+    );
+
+    // The setting is the account's: it reaches the server.
+    samu.sync().unwrap();
+    let settings: Value = other
+        .call("GET", "/changes?after=0", None)
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(settings.to_string().contains(r#""hit_children":"folded""#));
 }

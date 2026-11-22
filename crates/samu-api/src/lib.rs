@@ -75,7 +75,7 @@ pub use logbook::{AccountLogEntry, LogEntry, LogKind};
 pub use model::{
     AccountSettings, Attachment, Author, AuthorKind, Blob, BoardSource, ChecklistItem, Clock,
     Comment, Folder, FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer,
-    InspectorLayout, InspectorPart, Link, LinkKind, NoteMode, Period, Perspective,
+    HitChildren, InspectorLayout, InspectorPart, Link, LinkKind, NoteMode, Period, Perspective,
     PerspectiveArrange, PerspectiveBlock, PerspectiveBoard, PerspectiveFilter, PerspectiveGroup,
     PerspectiveSort, PerspectiveTable, PerspectiveView, Priority, Project, ProjectKind,
     ProjectStatus, Reminder, ReminderAnchor, Schedule, Scope, ScopeCapture, ScopeChip,

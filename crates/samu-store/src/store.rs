@@ -2070,6 +2070,12 @@ fn check_values(object: &Object, field: Option<&str>) -> Result<(), Refused> {
     {
         return Err("a report_worked this server does not know".into());
     }
+    if let Object::Settings(settings) = object
+        && field.is_none_or(|f| f == "hit_children")
+        && settings.hit_children == Some(crate::core::api::HitChildren::Unknown)
+    {
+        return Err("a hit_children this server does not know".into());
+    }
     // An item is one line with something on it (ADR 0141 §1). An old empty
     // one still takes a tick, a place and its deletion.
     if let Object::ChecklistItem(item) = object
@@ -3247,7 +3253,8 @@ pub(crate) mod tests {
                 "0026_perspective_table",
                 "0027_perspective_blocks",
                 "0028_transcript",
-                "0029_checklist"
+                "0029_checklist",
+                "0030_hit_children"
             ]
         );
         drop(store);
@@ -3296,7 +3303,8 @@ pub(crate) mod tests {
                     "0026_perspective_table",
                     "0027_perspective_blocks",
                     "0028_transcript",
-                    "0029_checklist"
+                    "0029_checklist",
+                    "0030_hit_children"
                 ]
             );
             // The settings object, made on opening (ADR 0045 §4).
@@ -3310,7 +3318,7 @@ pub(crate) mod tests {
         let history: i64 = conn
             .query_row("SELECT count(*) FROM schema_history", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(history, 29);
+        assert_eq!(history, 30);
         let journal: String = conn
             .query_row("PRAGMA journal_mode", [], |r| r.get(0))
             .unwrap();
@@ -3423,7 +3431,8 @@ pub(crate) mod tests {
                 "0026_perspective_table",
                 "0027_perspective_blocks",
                 "0028_transcript",
-                "0029_checklist"
+                "0029_checklist",
+                "0030_hit_children"
             ]
         );
         let id: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3523,7 +3532,8 @@ pub(crate) mod tests {
                 "0026_perspective_table",
                 "0027_perspective_blocks",
                 "0028_transcript",
-                "0029_checklist"
+                "0029_checklist",
+                "0030_hit_children"
             ]
         );
         let reminder: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e22".parse().unwrap();
@@ -3626,7 +3636,8 @@ pub(crate) mod tests {
                 "0026_perspective_table",
                 "0027_perspective_blocks",
                 "0028_transcript",
-                "0029_checklist"
+                "0029_checklist",
+                "0030_hit_children"
             ]
         );
 
@@ -3829,7 +3840,8 @@ pub(crate) mod tests {
                 "0026_perspective_table",
                 "0027_perspective_blocks",
                 "0028_transcript",
-                "0029_checklist"
+                "0029_checklist",
+                "0030_hit_children"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
@@ -3940,7 +3952,8 @@ pub(crate) mod tests {
                 "0026_perspective_table",
                 "0027_perspective_blocks",
                 "0028_transcript",
-                "0029_checklist"
+                "0029_checklist",
+                "0030_hit_children"
             ]
         );
         let task: Id = "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c01".parse().unwrap();
