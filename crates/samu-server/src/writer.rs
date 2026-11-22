@@ -454,4 +454,12 @@ mod address_tests {
         assert!(address(collection, "http://10.0.0.1/x.ics").is_none());
         assert!(address(collection, "//elsewhere.example/x.ics").is_none());
     }
+
+    /// RUSTSEC-2026-0592: url before 2.5.9 overflowed the stack here, which
+    /// ends the whole process; the href comes from the calendar's server.
+    #[test]
+    fn a_nested_blob_href_is_none_and_does_not_overflow() {
+        let href = format!("{}https://cal.example/x.ics", "blob:".repeat(10_000));
+        assert!(address("https://cal.example/dav/familie/", &href).is_none());
+    }
 }
