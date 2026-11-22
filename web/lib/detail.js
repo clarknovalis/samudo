@@ -134,6 +134,12 @@ export function toggleFlag(status) {
   return write([change.set(status.task.id, "flagged", !status.task.flagged)]);
 }
 
+// An action group does its children one after the other, or in any order
+// (ADR 0021). Only a task with children shows the switch.
+export function toggleSequential(status) {
+  return write([change.set(status.task.id, "sequential", !status.task.sequential)]);
+}
+
 const DATE_LABELS = { defer: tr("Start"), due: tr("Fällig"), planned: tr("Geplant") };
 
 function dateInput(task, name) {
@@ -877,6 +883,12 @@ export function renderDetail() {
         el("input", { type: "checkbox", checked: task.flagged, onchange: () => toggleFlag(status) }),
         tr("markiert (f)"),
       ]),
+      status.group
+        ? el("label", { class: "flagbox seqbox" }, [
+            el("input", { type: "checkbox", checked: task.sequential, onchange: () => toggleSequential(status) }),
+            tr("sequenziell"),
+          ])
+        : null,
     ]),
     show("logbook") ? section("Logbook", logbook()) : null,
   ]);

@@ -45,6 +45,7 @@ export const ACTIONS = [
   { id: "state.cycle", title: tr("Zustand weiterschalten"), key: "s", place: "task", picks: true },
   { id: "state.pick", title: tr("Zustand wählen"), key: "t", place: "task", picks: true, hint: tr("danach das Kürzel des Zustands") },
   { id: "flag", title: tr("markieren"), key: "f", place: "task", picks: true },
+  { id: "sequential", title: tr("sequenziell / parallel"), key: null, place: "task", hint: tr("eine Aufgabe mit Unteraufgaben") },
   { id: "clock", title: tr("Uhr starten / stoppen"), key: "c", place: "task" },
   { id: "move", title: tr("umhängen (Refile)"), key: "m", place: "task", picks: true },
   { id: "block", title: tr("blockiert durch …"), key: null, place: "task", hint: tr("eine Aufgabe, auf die sie wartet") },

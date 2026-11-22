@@ -27,7 +27,7 @@ import { closeTasks } from "./closeask.js";
 import { openEdit } from "./edit.js";
 import { running, toggleClock } from "./clock.js";
 import { $, el, replace } from "./dom.js";
-import { enterState, setDone, statesOf, toggleFlag } from "./detail.js";
+import { enterState, setDone, statesOf, toggleFlag, toggleSequential } from "./detail.js";
 import { habitMenu } from "./habits.js";
 import { ownOrder } from "./list.js";
 import { indent, openBlockPalette, openPalette, outdent, siblingAbove } from "./palette.js";
@@ -123,6 +123,13 @@ function single(status) {
       ? { label: tr("Verwerfen"), key: k("drop"), run: () => closeTasks([task.id], "dropped") }
       : null,
     { label: task.flagged ? tr("Markierung weg") : tr("Markieren"), key: k("flag"), run: () => toggleFlag(status) },
+    status.group
+      ? {
+          label: task.sequential ? tr("Auf parallel stellen") : tr("Auf sequenziell stellen"),
+          key: k("sequential"),
+          run: () => toggleSequential(status),
+        }
+      : null,
     "-",
     open && states.length
       ? {

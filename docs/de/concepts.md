@@ -32,7 +32,7 @@ findet. Die Gründe hinter dem Aufbau stehen unter
 | **Inbox** | Aufgaben ohne Projekt. Alles, was ohne `#projekt` erfasst wird, landet hier. |
 | **Ordner** | Ein Baum aus Ordnern hält die Projekte. Ein Ordner ist aktiv oder verworfen; verwerfen blendet alles darunter aus. |
 | **Projekt** | Ein Ziel mit Aufgaben. Seine *Art* ist **parallel** (jede offene Aufgabe ist verfügbar), **sequenziell** (nur die erste offene ist es) oder **Einzelaktionen** (eine Liste loser Aufgaben, die nie „stuck“ ist). Sein *Status* ist aktiv, ruht, erledigt oder verworfen. |
-| **Aktionsgruppe** | Eine Aufgabe mit Kindern. Sie ist selbst nicht verfügbar, solange sie offene Kinder hat; sie kann sequenziell sein. |
+| **Aktionsgruppe** | Eine Aufgabe mit Kindern. Sie ist selbst nicht verfügbar, solange sie offene Kinder hat; sie kann sequenziell sein: das Wort an ihrer Zeile im Web stellt sie um, ebenso ihr Inspektor, das Menü der Aufgabe in der App und `samu set <id> sequential true`. |
 
 Ordner, Projekte und Tags können ein Emoji als Symbol tragen. Ein Ordner,
 ein Projekt oder ein Tag kann einen **eigenen Scope** nennen („Nur im

@@ -29,7 +29,7 @@ the design are in [Architecture](architecture.md).
 | **Inbox** | Tasks without a project. Everything captured without `#project` lands here. |
 | **Folder** | A tree of folders holds projects. A folder is active or dropped; dropping it hides everything below. |
 | **Project** | A goal with tasks. Its *kind* is **parallel** (every open task is available), **sequential** (only the first open task is) or **single actions** (a list of loose tasks that is never "stuck"). Its *status* is active, on hold, completed or dropped. |
-| **Action group** | A task with children. It is not itself available while it has open children; it can be sequential. |
+| **Action group** | A task with children. It is not itself available while it has open children; it can be sequential: the word on its row in the web UI switches it, as do its inspector, the task's menu in the app and `samu set <id> sequential true`. |
 
 Folders, projects and tags may carry an emoji as icon. A folder, project
 or tag can name its **own scope** ("Only in scope: Work"): it then appears

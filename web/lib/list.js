@@ -12,7 +12,7 @@ import { boardConfig, boardFull, boardView, clearBoard, closeBoardMenu, renderBo
 import { rowClick, rowDrag } from "./bulk.js";
 import { $, el, replace } from "./dom.js";
 import { calendarView } from "./calendar.js";
-import { setDone } from "./detail.js";
+import { setDone, toggleSequential } from "./detail.js";
 import { progress } from "./checklist.js";
 import { closeTableMenu, drawTable, drawTables, renderTableMenu, tableMenuOpen, toggleTableMenu } from "./table.js";
 import { assemble, isBlocks, passes } from "./blocks.js";
@@ -155,8 +155,15 @@ function row(status, depth, context, why = null, bare = false) {
       el("span", { class: "meta" }, [
         why ? el("span", { class: `why why-${why.kind}`, text: why.text }) : null,
         group
-          ? el("span", {
+          ? el("button", {
+              type: "button",
+              class: "seq",
+              title: task.sequential ? tr("Auf parallel stellen") : tr("Auf sequenziell stellen"),
               text: task.sequential ? tr("sequenziell") : "parallel",
+              onclick: (event) => {
+                event.stopPropagation();
+                toggleSequential(status);
+              },
             })
           : null,
         group ? el("span", { class: "badge", text: `${group.done}/${group.done + group.open}` }) : null,

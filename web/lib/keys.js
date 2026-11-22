@@ -29,7 +29,7 @@ import {
 } from "./bulk.js";
 import { toggleClock } from "./clock.js";
 import { $ } from "./dom.js";
-import { cycleState, pickState, toggleFlag } from "./detail.js";
+import { cycleState, pickState, toggleFlag, toggleSequential } from "./detail.js";
 import { ACTIONS, action, conflicts, effective, inEffect, normalize, pretty } from "./keymap.js";
 import { foldHeadings, order, setDone } from "./list.js";
 import { copyLink, menuKey, menuOpen, openMenuHere } from "./menu.js";
@@ -104,6 +104,10 @@ const RUN = {
   "state.cycle": (s) => (picking() ? cycleAll() : s && cycleState(s)),
   "state.pick": (s) => (picking() || s) && (pickingState = true),
   flag: (s) => (picking() ? flagAll() : s && toggleFlag(s)),
+  sequential: (s) => {
+    if (s?.group) toggleSequential(s);
+    else if (s) update({ message: tr("Nur eine Aufgabe mit Unteraufgaben ist sequenziell oder parallel.") });
+  },
   clock: (s) => s && toggleClock(s),
   move: (s) => (picking() ? moveAll() : s && openPalette(s)),
   block: (s) => s && isOpen(s.task) && openBlockPalette(s),

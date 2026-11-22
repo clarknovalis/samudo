@@ -410,6 +410,9 @@ button.danger { background: var(--overdue-bg); border-color: var(--overdue); col
 .row .meta { display: flex; flex: 1 1 0; min-width: 0; overflow: hidden; gap: 4px 10px; font-size: 12px; color: var(--muted); }
 .row .meta > * { flex: none; white-space: nowrap; }
 .row .meta > :first-child { margin-left: auto; }
+/* The word of an action group is its switch: it reads like the text around it. */
+.row .meta button.seq { border: 0; background: none; padding: 0; border-radius: 0; color: inherit; font: inherit; }
+.row .meta button.seq:hover, .row .meta button.seq:focus-visible { text-decoration: underline; color: var(--fg); }
 /* The tick: a real checkbox, drawn round (ADR 0026 §6). */
 .tick { appearance: none; width: 18px; height: 18px; flex: none; margin: 0; border: 1.5px solid var(--faint); border-radius: 50%; background: none; cursor: pointer; display: grid; place-content: center; }
 .row.dim .tick { border-style: dashed; }
