@@ -211,13 +211,17 @@ export function openBlocks(p, { extract = null } = {}) {
         },
       },
       [
+        // A search of its own shows its search first, the rest below it.
+        block.query ? queryFields(block) : null,
         el("span", { class: "grip", "aria-hidden": "true", text: "⠿" }),
-        block.query ? queryFields(block) : el("span", { class: "block-name", text: nameOf(block) }),
+        block.query ? null : el("span", { class: "block-name", text: nameOf(block) }),
         el("span", { class: "count", title: tr("Treffer jetzt"), text: count === null ? "–" : String(count) }),
         el("input", {
           type: "text",
           value: block.title ?? "",
-          placeholder: tr("eigene Überschrift"),
+          // Empty, the block is called by what it shows: say so.
+          placeholder: nameOf(block),
+          title: tr("Eigene Überschrift; leer: „{name}“", { name: nameOf(block) }),
           "aria-label": tr("Überschrift von {name}", { name: nameOf(block) }),
           oninput: (event) => {
             const title = event.target.value.trim();
@@ -369,7 +373,14 @@ export function openBlocks(p, { extract = null } = {}) {
       Object.assign(p, { blocks, dedupe: dedupe.checked });
     }
     close();
-    update({});
+    // What was edited is seen: the block perspective, with an empty
+    // search field. A search hides the blocks even with the perspective
+    // open, since the field there searches everything (ADR 0116 §6).
+    if (isBlocks(p)) {
+      const field = document.getElementById("search-input");
+      if (field) field.value = "";
+      update({ view: { kind: "perspective", perspective: p.id }, search: "", searchChips: [], selected: null });
+    } else update({});
   };
 
   const box = el("div", { class: "box blocks", role: "dialog", "aria-modal": "true", "aria-label": tr("Blöcke") }, [

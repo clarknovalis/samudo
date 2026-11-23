@@ -1401,7 +1401,7 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 .block-list input { flex: 1 1 8em; min-width: 0; padding: 4px 6px; }
 .block-list .count, .block-preview .count { color: var(--muted); font-size: 12px; min-width: 2ch; text-align: right; }
 /* A search of the block's own (ADR 0143): its fields on a line of their own. */
-.block-list .block-query { flex: 1 1 100%; order: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.block-list .block-query { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; }
 .block-list .block-query input { flex: 3 1 14em; }
 .block-list .block-query select { flex: 0 1 auto; }
 .box.blocks .blocks-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

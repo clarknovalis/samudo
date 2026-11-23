@@ -1116,7 +1116,7 @@ export const EN = {
   "öffnen": "open",
   "fehlt": "missing",
   "„{title}“ ist Block einer anderen Perspektive und bekommt keine Blöcke.": "“{title}” is a block of another perspective and gets no blocks.",
-  "eigene Überschrift": "own heading",
+  "Eigene Überschrift; leer: „{name}“": "Own heading; empty: “{name}”",
   "Überschrift von {name}": "Heading of {name}",
   "nach oben": "up",
   "nach unten": "down",
