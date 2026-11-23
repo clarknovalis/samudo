@@ -50,7 +50,10 @@ line, each a query with a heading. The search language of samu (0042,
      A line that names a block perspective is refused, as 0116 §2
      refuses such a block.
    - Any other line is a search, read as the search field reads it:
-     chips and free text.
+     chips and free text. A word that looks like a chip but names
+     nothing (`@Nowhere`, `#Nowhere`, `due:nonsense`) is refused, as the
+     CLI refuses it; a word whose key is none of the search's
+     (`time:17`) stays text.
    - ` | ` ends the block and starts its heading: `#Garden is:waiting |
      Waiting`. `#` cannot start a comment, since it marks a project.
    - Blank lines do not count.
@@ -112,3 +115,8 @@ line, each a query with a heading. The search language of samu (0042,
 - 2026-11-23: §6 named a command `samu perspective show` that does not
   exist; the blocks are printed by `samu perspective blocks <name>` and
   `samu perspective list`, each with ` | ` before a heading.
+- 2026-11-23: §3 refuses a word that looks like a chip but names
+  nothing. The search field reads it as free text, so a block searched
+  for the word and found nothing without saying why; the CLI refused it
+  already. The dialog's fields of a search are labelled, and the text
+  mode says that filter, arrangement and view are set in the list.

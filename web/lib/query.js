@@ -448,6 +448,24 @@ export function parseWord(word) {
   return null;
 }
 
+// A word that looks like a chip but names nothing (ADR 0143 §3, Changes):
+// { kind: "tag" | "project" | "word", name } — `@Nirgends`, `#Nirgends`,
+// `fällig:quatsch`. Null for a chip, for `oder`, and for plain text,
+// `Uhrzeit:17` too, since its key is none of the search's. The search
+// field reads such a word as free text; a block's own search refuses it.
+export function missedChip(word) {
+  if (isOrWord(word) || parseWord(word)) return null;
+  const text = word.startsWith("-") && word.length > 1 ? word.slice(1) : word;
+  if (text.startsWith("@") && text.length > 1) return { kind: "tag", name: unquote(text.slice(1)) };
+  if (text.startsWith("#") && text.length > 1) return { kind: "project", name: unquote(text.slice(1)) };
+  if (text.startsWith("~") && text.length > 1) return { kind: "word", name: text };
+  const colon = /^([\p{L}]+):(.+)$/u.exec(text);
+  if (!colon) return null;
+  const key = canonicalKey(lower(colon[1]));
+  const known = Boolean(DATES[key]) || ["ordner", "ist", "prio", "id", "zustand", "prop"].includes(key);
+  return known ? { kind: "word", name: text } : null;
+}
+
 // The value of a property at a task: its own, else the inherited one.
 const propertyOf = (s, key) => s.task.properties?.[key] ?? s.inherited?.[key]?.value;
 

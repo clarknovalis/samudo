@@ -36,6 +36,13 @@ check("an empty search is all", parseLine(" | Alles", perspectives).block, { que
 for (const bad of [":forecast", "anruf | ", "anruf |", "Morgen"]) {
   check(`refused: ${bad}`, parseLine(bad, perspectives).kind, "error");
 }
+// A word that looks like a chip but names nothing is refused (§3,
+// Changes); a word whose key is none of the search's stays text.
+for (const bad of ["@Nirgends", "anruf #Nirgends", "fällig:quatsch", "-@Nirgends | Weg"]) {
+  check(`no chip: ${bad}`, parseLine(bad, perspectives).kind, "error");
+}
+check("an unknown key is text", parseLine("Uhrzeit:17", perspectives).block, { query: { text: "Uhrzeit:17" } });
+check("a quoted word is text", parseLine('"@Nirgends"', perspectives).kind, "query");
 check("itself is refused", parseLine("Büro", perspectives, office.id).kind, "error");
 check("an error leaves no blocks", fromLines(":today\n:forecast", [], perspectives).blocks, null);
 

@@ -1402,8 +1402,11 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 .block-list .count, .block-preview .count { color: var(--muted); font-size: 12px; min-width: 2ch; text-align: right; }
 /* A search of the block's own (ADR 0143): its fields on a line of their own. */
 .block-list .block-query { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; }
-.block-list .block-query input { flex: 3 1 14em; }
-.block-list .block-query select { flex: 0 1 auto; }
+.block-list .block-query .field { display: flex; flex-direction: column; gap: 2px; flex: 0 1 auto; font-size: 11px; color: var(--muted); }
+.block-list .block-query .field.search { flex: 3 1 14em; }
+.block-list .block-query .field input, .block-list .block-query .field select { flex: none; font-size: 14px; }
+.block-list .block-query input[aria-invalid="true"] { border-color: var(--overdue); }
+.block-list .block-query .error { flex-basis: 100%; margin: 0; color: var(--overdue); font-size: 13px; }
 .box.blocks .blocks-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .box.blocks .block-lines { width: 100%; box-sizing: border-box; font-family: var(--mono, monospace); font-size: 13px; padding: 6px; }
 .block-preview { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; }

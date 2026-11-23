@@ -47,6 +47,8 @@ export function openBlocks(p, { extract = null } = {}) {
   // searches wait in `made` until then.
   let blocks = (p.blocks ?? []).map((b) => structuredClone(b));
   const made = [];
+  // Searches whose words name nothing, by block, until they are fixed.
+  const errors = new Map();
   let asText = false;
   let naming = extract;
   let dragged = null;
@@ -67,6 +69,11 @@ export function openBlocks(p, { extract = null } = {}) {
   const help = el("p", {
     class: "hint",
     text: tr("Eine Zeile je Block: „:today“ ist die Ansicht, der Name einer Perspektive verweist auf sie, alles andere ist eine eigene Suche. Nach „ | “ steht die Überschrift."),
+  });
+  // What the text does not hold (§3).
+  const kept = el("p", {
+    class: "hint",
+    text: tr("Filter, Gruppieren, Sortieren und Darstellung einer Suche stellst du in der Listenansicht ein; sie bleiben erhalten, solange die Suche gleich bleibt."),
   });
   const toggle = el("button", { type: "button", onclick: () => switchMode() });
   const close = () => {
@@ -102,13 +109,17 @@ export function openBlocks(p, { extract = null } = {}) {
     draw();
   };
 
-  // A select over `options` [[value, label]] that calls `set(value)`.
+  // A select over `options` [[value, label]] that calls `set(value)`,
+  // under its name: „State“ alone does not say it groups.
   const select = (label, options, value, set) =>
-    el(
-      "select",
-      { "aria-label": label, onchange: (event) => set(event.target.value) },
-      options.map(([v, text]) => el("option", { value: v, text: typeof text === "function" ? text() : text, selected: v === value })),
-    );
+    el("label", { class: "field" }, [
+      el("span", { text: label }),
+      el(
+        "select",
+        { onchange: (event) => set(event.target.value) },
+        options.map(([v, text]) => el("option", { value: v, text: typeof text === "function" ? text() : text, selected: v === value })),
+      ),
+    ]);
 
   // The fields of a block's own search in the list: the search as words,
   // the filter, grouping, sorting and list or table.
@@ -121,21 +132,33 @@ export function openBlocks(p, { extract = null } = {}) {
       else query.arrange = next;
       draw();
     };
+    const wrong = errors.get(block);
     return el("div", { class: "block-query" }, [
-      el("input", {
-        type: "text",
-        value: queryWords(query),
-        placeholder: tr("Suche, wie im Suchfeld"),
-        "aria-label": tr("Suche des Blocks"),
-        onchange: (event) => {
-          const { chips, text: words } = parseLine(event.target.value.replaceAll(" | ", " "), []).block.query;
-          if (chips) query.chips = chips;
-          else delete query.chips;
-          if (words) query.text = words;
-          else delete query.text;
-          draw();
-        },
-      }),
+      el("label", { class: "field search" }, [
+        el("span", { text: tr("Suche") }),
+        el("input", {
+          type: "text",
+          value: wrong?.text ?? queryWords(query),
+          placeholder: tr("Suche, wie im Suchfeld"),
+          "aria-invalid": wrong ? "true" : null,
+          onchange: (event) => {
+            const text = event.target.value;
+            const parsed = parseLine(text.replaceAll(" | ", " "), []);
+            // A word that names nothing keeps what was typed and blocks
+            // saving until it is fixed (ADR 0143 §3, Changes).
+            if (parsed.kind === "error") errors.set(block, { text, error: parsed.error });
+            else {
+              errors.delete(block);
+              const { chips, text: words } = parsed.block.query;
+              if (chips) query.chips = chips;
+              else delete query.chips;
+              if (words) query.text = words;
+              else delete query.text;
+            }
+            draw();
+          },
+        }),
+      ]),
       select(tr("Filter"), FILTERS, query.filter ?? "available", (v) => {
         query.filter = v;
         draw();
@@ -145,6 +168,7 @@ export function openBlocks(p, { extract = null } = {}) {
       select(tr("Darstellung"), DISPLAYS, query.view === "table" ? "table" : "list", (v) => {
         query.view = v;
       }),
+      wrong ? el("p", { class: "error", text: wrong.error }) : null,
     ]);
   }
 
@@ -300,6 +324,10 @@ export function openBlocks(p, { extract = null } = {}) {
       blocks = lines;
       asText = false;
     } else {
+      if ([...errors.keys()].some((b) => blocks.includes(b))) {
+        update({ message: tr("Eine Suche nennt etwas, das es nicht gibt; siehe den Block.") });
+        return;
+      }
       text.value = blocks.map((b) => lineOf(b, known)).join("\n");
       asText = true;
     }
@@ -315,6 +343,7 @@ export function openBlocks(p, { extract = null } = {}) {
       [text, asText],
       [preview, asText],
       [help, asText],
+      [kept, asText],
     ]) {
       node.hidden = !shown;
     }
@@ -352,6 +381,10 @@ export function openBlocks(p, { extract = null } = {}) {
   });
 
   const save = async () => {
+    if (!asText && [...errors.keys()].some((b) => blocks.includes(b))) {
+      update({ message: tr("Eine Suche nennt etwas, das es nicht gibt; siehe den Block.") });
+      return;
+    }
     if (asText) {
       const lines = read();
       if (!lines) return;
@@ -390,6 +423,7 @@ export function openBlocks(p, { extract = null } = {}) {
     help,
     text,
     preview,
+    kept,
     el("label", { class: "check", for: "blocks-dedupe" }, [dedupe, el("span", { text: tr("Doppelte nur einmal: eine Aufgabe nur im ersten Block, der sie zeigt") })]),
     el("div", { class: "buttons" }, [
       el("button", { type: "button", text: tr("Abbrechen"), onclick: close }),
