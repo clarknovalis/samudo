@@ -123,13 +123,13 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.12.4")
+    implementation("androidx.activity:activity-compose:1.13.0")
     // The sync on opening, after a change and every quarter of an hour
     // (ADR 0028 §5). Google, Apache 2.0.
     implementation("androidx.work:work-runtime:2.12.0")
     // The widget "Heute" (ADR 0028 §9): Compose-like, lists and taps
     // without a RemoteViewsService. Google, Apache 2.0.
-    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("androidx.glance:glance-appwidget:1.2.0")
     // Reading the QR code that pairs the phone (ADR 0031 §7): the code
     // scanner of the Play services, as catastr's app. It brings its own
     // camera screen, so no camera permission; ML Kit terms, a binary part,
@@ -138,8 +138,8 @@ dependencies {
     // The code scanner brings androidx.fragment 1.0.0, whose FragmentActivity
     // mishandles the activity-result requests (the notification permission);
     // the release lint stops on it. Google, Apache 2.0.
-    implementation("androidx.fragment:fragment:1.8.9")
+    implementation("androidx.fragment:fragment:1.9.1")
     // uniffi's Kotlin calls the library through JNA; the aar carries its
     // native part for Android.
-    implementation("net.java.dev.jna:jna:5.18.1@aar")
+    implementation("net.java.dev.jna:jna:5.19.1@aar")
 }
