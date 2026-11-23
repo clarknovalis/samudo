@@ -10,6 +10,7 @@
 // (query.js), and by samu-core for the other clients (§2, §3).
 
 import { api, change } from "./api.js";
+import { isBlocks } from "./blocks.js";
 import { uuidv7 } from "./dom.js";
 import { asksForClosed, asksForWaiting, matcher, withGroups, withOrs } from "./query.js";
 import { byId, state, update } from "./state.js";
@@ -141,8 +142,12 @@ export function edited() {
   return Boolean(p) && !p.blocks?.length && (!sameChips(state.searchChips, p.chips) || text(state.search) !== text(p.text));
 }
 
-// The field as the open perspective holds it.
+// The field as the open perspective holds it. A block perspective has no
+// search of its own (ADR 0116 §1, §6): the field starts empty, else it
+// would hide the blocks behind a search over everything. One made from a
+// search, or a copy of it, still carries that search's chips.
 export function searchOf(p) {
+  if (isBlocks(p)) return { search: "", searchChips: [] };
   return { search: p.text ?? "", searchChips: withOrs(p.chips) };
 }
 
