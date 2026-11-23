@@ -69,4 +69,4 @@ its citations in the code have no target.
 | [0137](0137-published-container-image.md) | accepted | A container image on ghcr.io for amd64 and arm64: `X.Y.Z`, `X.Y` and `latest` from a release tag, `edge` from `main` after CI; the wire types on crates.io as `samudo-api` |
 | [0140](0140-voice-capture.md) | accepted | Voice capture: an optional transcript service at the server, a recorder in the app that can be the digital assistant, recordings handed between apps by intent |
 | [0141](0141-checklists.md) | accepted | Checklists: items of a task as objects of their own, typed and pasted fast, turned into subtasks and back |
-| [0142](0142-arranging-the-sidebar.md) | draft | Arranging the web sidebar: fixed views and perspectives in one order, each hideable (a hidden perspective still works as a block), kept per browser |
+| [0142](0142-arranging-the-sidebar.md) | accepted | Arranging the web sidebar: fixed views and perspectives in one order, each hideable (a hidden perspective still works as a block), kept per browser |

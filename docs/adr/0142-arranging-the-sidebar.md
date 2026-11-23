@@ -1,7 +1,7 @@
 ---
 number: 0142
 title: Arranging the sidebar in the web UI – fixed views and perspectives in one order, each can be hidden, kept per browser
-status: draft
+status: accepted
 date: 2026-11-23
 adds_to: ["0020", "0055", "0090", "0102", "0116"]
 ---
