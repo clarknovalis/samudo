@@ -219,6 +219,24 @@ Anordnen und kann eine eigene Überschrift tragen. Eine Aufgabe, die
 mehrere Blöcke zeigen, steht nur im ersten, solange „Doppelte nur
 einmal“ an ist.
 
+Ein Block muss nicht auf eine Perspektive verweisen: Er kann eine
+**eigene Suche** tragen, mit eigenem Filter und Anordnen. Eine Abfrage,
+die man nur in einer Block-Agenda braucht, kommt so ohne Perspektive
+aus. Als Text ist eine Block-Agenda eine Zeile je Block, ähnlich wie bei
+org-super-agenda:
+
+```
+:today | Heute
+Wartet
+@Büro ~<15m | Kurz im Büro
+#Garten ist:wartet
+```
+
+`:today` ist die Ansicht, `Wartet` die Perspektive dieses Namens, jede
+andere Zeile eine Suche; nach ` | ` steht die Überschrift. Ein Block, der
+auf eine Perspektive verweist, lässt sich in eine Kopie ihrer Suche
+lösen, und die Suche eines Blocks als eigene Perspektive sichern.
+
 ## Scopes
 
 Ein **Scope** ist eine Linse über alle Ansichten: Er nennt Ordner, Projekte

@@ -165,7 +165,10 @@ Vorgabe-Spalten, eine Tabellen-Perspektive bringt ihre eigenen mit.
 
 Eine Block-Perspektive bekommt vor jedem Block eine Überschrift
 (`▸ Titel (n)`), in tsv die Überschrift als erste Spalte, in json die
-Blöcke mit ihren Aufgaben.
+Blöcke mit ihren Aufgaben. Jedes Argument von `samu perspective blocks`
+ist ein Block: `:today`, `:inbox` oder `:flagged`, der Name einer
+einfachen Perspektive, sonst eine eigene Suche des Blocks; ` | Überschrift`
+gibt ihm eine Überschrift.
 
 ## Ändern
 
@@ -351,8 +354,10 @@ samu set <id> own_scope Arbeit         # ein Ordner, Projekt oder Tag nur in Arb
 samu unset <id> own_scope              # wieder überall
 samu perspective add "Kurze Anrufe" '@telefon ~<15m'
 samu perspective view "Kurze Anrufe" table --columns state,due,estimate,worked
-samu perspective add Morgen --blocks :today "Kurze Anrufe=Am Schreibtisch" :flagged
-samu perspective blocks Morgen                   # zeigt die Blöcke; --clear macht sie einfach
+samu perspective add Morgen --blocks :today "Kurze Anrufe | Am Schreibtisch" "@büro ist:wartet" :flagged
+samu perspective blocks Morgen                   # zeigt die Blöcke, je eine Zeile; --clear macht sie einfach
+samu perspective detach Morgen 2                 # Block 2 wird eine Kopie der Suche seiner Perspektive
+samu perspective extract Morgen 3 Wartet         # die Suche von Block 3 wird die Perspektive Wartet
 samu perspective dedupe Morgen off               # eine Aufgabe in jedem Block, der sie zeigt
 samu settings                          # die Einstellungen des Kontos
 samu settings set remind-time 08:00

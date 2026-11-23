@@ -73,13 +73,25 @@ arrangement is kept in this browser only.
 
 "+" at Perspectives makes a perspective or a
 [block perspective](concepts.md#perspectives); "Blocks …" in a block
-perspective's menu lists its blocks: add perspectives or the views Inbox,
-Today and Flagged, give one a heading of its own, order them by dragging
-or ↑ ↓, remove them, and switch "Duplicates once". In the list each block
-is a section that folds; its heading opens the block's perspective or
-view, and its rows are arranged as that perspective arranges them, as a
-list or a table (a board shows as a list). The search field there
-searches everything.
+perspective's menu lists its blocks: add perspectives, the views Inbox,
+Today and Flagged, or a search of its own; give one a heading of its
+own, order them by dragging or ↑ ↓, remove them, and switch "Duplicates
+once". A search of its own is edited in its row: the search, the filter,
+grouping, sorting, and list or table. "Detach" turns a block that points
+at a perspective into a copy of its search; "Save as perspective …"
+turns a search into a perspective the block then points at. "As text"
+shows the blocks as lines, one per block, as described under
+[perspectives](concepts.md#perspectives), with a preview of what each
+line becomes and how many tasks it shows; a line that is no block is
+marked, and the dialog saves only once it is fixed.
+
+In the list each block is a section that folds; its heading opens the
+block's perspective or view, and its rows are arranged as that
+perspective arranges them, as a list or a table (a board shows as a
+list). A block's own search is arranged as it says, and "⋯" in its
+heading saves it as a perspective. The search field there searches
+everything. A search in the search bar can go straight into a block
+perspective with "As a block in …", or into a new one.
 
 ### List
 

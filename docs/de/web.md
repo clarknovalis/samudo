@@ -78,14 +78,28 @@ ausgeblendet. Die Anordnung gilt nur in diesem Browser.
 
 „+“ bei Perspektiven legt eine Perspektive oder eine
 [Block-Perspektive](concepts.md#perspektiven) an; „Blöcke …“ im Menü
-einer Block-Perspektive listet ihre Blöcke: Perspektiven oder die
-Ansichten Inbox, Heute und Markiert hinzufügen, einem eine eigene
-Überschrift geben, per Ziehen oder ↑ ↓ ordnen, entfernen, und „Doppelte
-nur einmal“ schalten. In der Liste ist jeder Block ein Abschnitt zum
-Zuklappen; seine Überschrift öffnet die Perspektive oder Ansicht des
-Blocks, und seine Zeilen sind angeordnet wie in dieser Perspektive, als
-Liste oder Tabelle (ein Board erscheint als Liste). Das Suchfeld sucht
-dort über alles.
+einer Block-Perspektive listet ihre Blöcke: Perspektiven, die Ansichten
+Inbox, Heute und Markiert oder eine eigene Suche hinzufügen, einem eine
+eigene Überschrift geben, per Ziehen oder ↑ ↓ ordnen, entfernen, und
+„Doppelte nur einmal“ schalten. Eine eigene Suche wird in ihrer Zeile
+bearbeitet: die Suche, der Filter, Gruppieren, Sortieren und Liste oder
+Tabelle. „Lösen“ macht aus einem Block, der auf eine Perspektive
+verweist, eine Kopie ihrer Suche; „Als Perspektive sichern …“ macht aus
+einer Suche eine Perspektive, auf die der Block dann verweist. „Als
+Text“ zeigt die Blöcke als Zeilen, eine je Block, wie unter
+[Perspektiven](concepts.md#perspektiven) beschrieben, mit einer Vorschau,
+was aus jeder Zeile wird und wie viele Aufgaben sie zeigt; eine Zeile,
+die kein Block ist, wird markiert, und der Dialog sichert erst, wenn sie
+stimmt.
+
+In der Liste ist jeder Block ein Abschnitt zum Zuklappen; seine
+Überschrift öffnet die Perspektive oder Ansicht des Blocks, und seine
+Zeilen sind angeordnet wie in dieser Perspektive, als Liste oder Tabelle
+(ein Board erscheint als Liste). Eine eigene Suche ist so angeordnet,
+wie sie es sagt, und „⋯“ in ihrer Überschrift sichert sie als
+Perspektive. Das Suchfeld sucht dort über alles. Eine Suche in der
+Suchleiste kommt mit „Als Block in …“ direkt in eine Block-Perspektive
+oder in eine neue.
 
 ### Liste
 

@@ -161,6 +161,9 @@ and a table perspective brings its own.
 
 A block perspective prints a heading before each block (`▸ Title (n)`), in
 tsv the heading as the first column, in json the blocks with their tasks.
+Each argument of `samu perspective blocks` is one block: `:today`,
+`:inbox` or `:flagged`, the name of a plain perspective, or else a
+search of the block's own; ` | Heading` gives it a heading.
 
 ## Changing
 
@@ -342,8 +345,10 @@ samu set <id> own_scope Work           # a folder, project or tag only in Work
 samu unset <id> own_scope              # everywhere again
 samu perspective add "Quick calls" '@phone ~<15m'
 samu perspective view "Quick calls" table --columns state,due,estimate,worked
-samu perspective add Morning --blocks :today "Quick calls=At the desk" :flagged
-samu perspective blocks Morning                  # prints its blocks; --clear makes it plain
+samu perspective add Morning --blocks :today "Quick calls | At the desk" "@office is:waiting" :flagged
+samu perspective blocks Morning                  # prints its blocks, a line each; --clear makes it plain
+samu perspective detach Morning 2                # block 2 becomes a copy of its perspective's search
+samu perspective extract Morning 3 Waiting       # block 3's search becomes the perspective Waiting
 samu perspective dedupe Morning off              # a task in every block that shows it
 samu settings                          # the account's settings
 samu settings set remind-time 08:00

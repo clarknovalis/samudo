@@ -200,6 +200,23 @@ others. Each block keeps its own search, filter and arrangement and may
 have a heading of its own. A task that several blocks show stands only in
 the first, unless "Duplicates once" is off.
 
+A block need not point at a perspective: it can carry a **search of its
+own**, with its own filter and arrangement, so a query that is only
+wanted in a block agenda needs no perspective. Written as text, a block
+agenda is one line per block, much like org-super-agenda:
+
+```
+:today | Today
+Waiting
+@Office ~<15m | Short at the office
+#Garden is:waiting
+```
+
+`:today` is the view, `Waiting` the perspective of that name, any other
+line a search; a heading follows ` | `. A block that points at a
+perspective can be detached into a copy of its search, and a block's
+search saved as a perspective of its own.
+
 ## Scopes
 
 A **scope** is a lens over every view: it names folders, projects and tags
