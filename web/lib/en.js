@@ -5,6 +5,19 @@
 // English for the web UI (ADR 0105 §1): the German text as the key.
 // `make check` (web/tests/i18n.mjs) holds it to the keys in the code.
 export const EN = {
+  // The arranged sidebar (ADR 0142).
+  "Leiste": "Sidebar",
+  "In der Leiste ausblenden": "Hide in the sidebar",
+  "Zu den Ansichten": "Move to the views",
+  "Zurück zu den Perspektiven": "Back to the perspectives",
+  "Ziehen zum Anordnen": "Drag to arrange",
+  "{title} verschieben": "Move {title}",
+  "{title} in der Leiste zeigen": "Show {title} in the sidebar",
+  "Nur in diesem Browser. Ausgeblendetes öffnet weiter über die Palette und seine Taste; eine ausgeblendete Perspektive bleibt Block ihrer Block-Perspektive.": "In this browser only. What is hidden still opens from the palette and by its key; a hidden perspective stays a block of its block perspective.",
+  "Oben in der Leiste": "At the top of the sidebar",
+  "Alle Perspektiven stehen oben.": "All perspectives are at the top.",
+  "Eine Perspektive kommt nach oben, wenn man sie auf einen Eintrag dort zieht.": "Drag a perspective onto an entry above to move it there.",
+  "Alle wieder zeigen": "Show all again",
   "Überall": "Everywhere",
   "Aufgaben in Liste und Board": "Tasks in list and board",
   "Liste": "List",

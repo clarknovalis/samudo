@@ -265,6 +265,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/arrange.js",
+        include_str!("../../../web/lib/arrange.js"),
+        JS,
+    ),
+    (
         "lib/rowfields.js",
         include_str!("../../../web/lib/rowfields.js"),
         JS,
@@ -307,6 +312,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
     ),
     ("lib/list.js", include_str!("../../../web/lib/list.js"), JS),
     ("lib/live.js", include_str!("../../../web/lib/live.js"), JS),
+    (
+        "lib/sidebarpane.js",
+        include_str!("../../../web/lib/sidebarpane.js"),
+        JS,
+    ),
     (
         "lib/sidebar.js",
         include_str!("../../../web/lib/sidebar.js"),

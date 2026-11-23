@@ -801,6 +801,18 @@ span.prop-value { cursor: text; }
 .forecast-settings, .alarm-settings { display: grid; gap: 8px; justify-items: start; max-width: 36rem; }
 .forecast-settings .toggle, .alarm-settings .toggle { display: flex; gap: 8px; align-items: center; }
 .alarm-settings p { margin: 0; }
+/* The settings page "Sidebar" (ADR 0142 §3). */
+.sidebar-settings { display: grid; gap: 8px; justify-items: start; max-width: 36rem; }
+.sidebar-settings p, .sidebar-settings h4 { margin: 0; }
+.sidebar-settings h4 { margin-top: 8px; }
+.sidebar-entries { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 1px; }
+.sidebar-entries li { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 6px; }
+.sidebar-entries li:hover { background: var(--rowline); }
+.sidebar-entries li.off .label { color: var(--muted); text-decoration: line-through; }
+.sidebar-entries .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-entries .handle { border: 0; background: none; padding: 0 4px; color: var(--muted); cursor: grab; }
+.sidebar-entries .drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+.sidebar-entries .drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
 .forecast-settings input[type="number"] { width: 6em; }
 
 /* Settings › Tastatur (ADR 0079 §4). */
@@ -1098,7 +1110,8 @@ body[data-sidebar="narrow"] #sidebar .brand .broom { display: block; }
 body[data-sidebar="narrow"] #sidebar .side-scroll { padding: 6px 6px 12px; gap: 10px; }
 body[data-sidebar="narrow"] .tree-head { display: none; }
 body[data-sidebar="narrow"] #perspectives { border-top: 1px solid var(--line); padding-top: 10px; }
-body[data-sidebar="narrow"] #perspectives button.more { display: none; }
+body[data-sidebar="narrow"] #perspectives button.more, body[data-sidebar="narrow"] #views button.more { display: none; }
+body[data-sidebar="narrow"] #perspectives:empty { display: none; }
 body[data-sidebar="narrow"] #sidebar .view .emoji-icon { width: 20px; font-size: 18px; }
 body[data-sidebar="narrow"] #tree { border-top: 1px solid var(--line); padding-top: 10px; gap: 6px; }
 body[data-sidebar="narrow"] #sidebar li > button.view { position: relative; justify-content: center; padding: 8px 0; }

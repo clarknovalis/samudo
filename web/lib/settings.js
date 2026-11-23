@@ -21,6 +21,7 @@ import { tagPath } from "./words.js";
 import { chipField } from "./chipfield.js";
 import { layoutEditor } from "./layout.js";
 import { propertiesPane } from "./props.js";
+import { sidebarPane } from "./sidebarpane.js";
 import { templatesPane } from "./templates.js";
 import { keysPane } from "./keycapture.js";
 import { accountPane } from "./register.js";
@@ -43,6 +44,7 @@ const SECTIONS = [
   ["places", tr("Projekte und Ordner")],
   ["tags", "Tags"],
   ["forecast", "Forecast"],
+  ["sidebar", tr("Leiste")],
   ["calendars", tr("Mehrzahl|Kalender")],
   ["alarms", tr("Erinnerungen")],
   ["properties", "Properties"],
@@ -557,6 +559,8 @@ export function renderSettings() {
         ? forecastPane()
         : section === "alarms"
           ? alarmsPane()
+          : section === "sidebar"
+          ? sidebarPane()
           : section === "calendars"
           ? calendarsPane()
           : section === "properties"

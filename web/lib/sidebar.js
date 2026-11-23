@@ -32,27 +32,30 @@ import { matcher } from "./query.js";
 import { byId, isOpen, onlyIn, searching, shown, state, toggleFold, update } from "./state.js";
 import { addDays, dayOf, today } from "./words.js";
 import { tr } from "./i18n.js";
+import {
+  INBOX,
+  VIEWS,
+  loadArrangement,
+  lowerPerspectives,
+  moveBefore,
+  parseKey,
+  perspectiveKey,
+  saveArrangement,
+  setHidden,
+  toPerspectives,
+  viewKey,
+} from "./arrange.js";
 
-// Each view with its stroke icon (ADR 0055 §7).
-export const VIEWS = [
-  { kind: "inbox", title: "Inbox", icon: ["M3 13 5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M3 13h5l1.5 3h5l1.5-3h5"] },
-  { kind: "everything", title: tr("Alle Projekte"), icon: ["M12 3 21 8l-9 5-9-5z", "M3 12.5l9 5 9-5", "M3 16.5l9 5 9-5"] },
-  {
-    kind: "today",
-    title: tr("Heute"),
-    icon: [
-      "M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8z",
-      "M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
-    ],
-  },
-  { kind: "forecast", title: "Forecast", icon: ["M3 17l6-6 4 4 8-8", "M15 7h6v6"] },
-  { kind: "calendar", title: tr("Kalender"), icon: ["M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z", "M8 3v4M16 3v4M4 10h16"] },
-  { kind: "flagged", title: tr("Markiert"), icon: ["M5 21V4", "M5 4h12l-2.5 4.5L17 13H5"] },
-  { kind: "stuck", title: "Stuck", icon: ["M12 3.5 21.5 20h-19z", "M12 10v4.5", "M12 17.3h.01"] },
-  { kind: "review", title: "Review", icon: ["M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z", "M12 9a3 3 0 1 0 0 6 3 3 0 1 0 0-6z"] },
-  // ADR 0081 §1: „Bericht“ took the place of „Zeit“; the kind stays.
-  { kind: "time", title: tr("Bericht"), icon: ["M4 20V11", "M10 20V5", "M16 20v-6", "M3 20h18"] },
-];
+// The fixed views and the arranged upper list live in arrange.js (ADR 0142).
+export { VIEWS };
+
+// The arrangement as drawn last; the menus and drops act on it.
+let arranged = loadArrangement([]);
+const arrange = (next) => {
+  saveArrangement(next);
+  update({});
+};
+export const hideInSidebar = (key) => arrange(setHidden(arranged, key, true));
 
 // --- Three steps: full, narrow, hidden (ADR 0055) -----------------------
 
@@ -187,20 +190,88 @@ function countClass(view) {
   return "count";
 }
 
-function item(view, title, depth = 0, extra = null, glyph = null) {
-  const current =
-    !searching() &&
-    state.view.kind === view.kind && (view.kind !== "project" || state.view.project === view.project);
+// A fixed view in the upper list (ADR 0142 §1): it drags, and all but
+// Inbox have a menu to hide it.
+function item(view, title, glyph = null) {
+  const key = viewKey(view.kind);
+  const current = !searching() && state.view.kind === view.kind;
   const n = count(view);
   return el(
     "li",
     {
-      class: [current ? "current" : null, extra].filter(Boolean).join(" ") || null,
-      style: depth ? `padding-left: ${depth * 14}px` : null,
-      ...(view.kind === "inbox" ? taskTarget(null) : {}),
+      class: ["place-row", current ? "current" : null, menu?.id === key ? "menu-open" : null].filter(Boolean).join(" "),
+      ...entryTarget(key, view.kind === "inbox" ? taskTarget(null) : null),
     },
-    viewButton(view, title, n, glyph),
+    [
+      viewButton(view, title, n, glyph),
+      key === INBOX ? null : menuButton(key, "view", tr("Menü für {title}", { title })),
+      menu?.id === key
+        ? el("div", { class: "place-menu", role: "menu" }, [menuItem(tr("In der Leiste ausblenden"), () => hideInSidebar(key))])
+        : null,
+    ],
   );
+}
+
+// --- Dragging in the upper list (ADR 0142 §3) ---------------------------
+
+// The key of the entry dragged from the upper list.
+let draggedEntry = null;
+
+// What a row of the upper list does when dragged and dropped on: an entry
+// from the list or a perspective from below goes before it, or after it
+// in its lower half. `tasks` are the handlers for tasks from the list,
+// which come first.
+function entryTarget(key, tasks = null) {
+  const moving = () => draggedEntry ?? (draggedPerspective ? perspectiveKey(draggedPerspective) : null);
+  const after = (event) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    return event.clientY > box.top + box.height / 2;
+  };
+  return {
+    draggable: "true",
+    ondragstart: (event) => {
+      if (event.target.closest?.(".place-menu")) return;
+      draggedEntry = key;
+      menu = null;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", key);
+    },
+    ondragend: () => {
+      draggedEntry = null;
+      clearDrop();
+    },
+    ondragover: (event) => {
+      if (tasks && draggedTasks()) return tasks.ondragover(event);
+      const moved = moving();
+      if (!moved || moved === key) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      const mark = after(event) ? "drop-after" : "drop-before";
+      if (!event.currentTarget.classList.contains(mark)) {
+        clearDrop();
+        event.currentTarget.classList.add(mark);
+      }
+    },
+    ondragleave: (event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        event.currentTarget.classList.remove("drop-before", "drop-after", "drop-into");
+      }
+    },
+    ondrop: (event) => {
+      if (tasks && draggedTasks()) return tasks.ondrop(event);
+      const moved = moving();
+      clearDrop();
+      if (!moved) return;
+      event.preventDefault();
+      event.stopPropagation();
+      draggedEntry = null;
+      draggedPerspective = null;
+      if (moved === key) return;
+      const order = arranged.order.filter((k) => k !== moved);
+      const before = after(event) ? (order[order.indexOf(key) + 1] ?? null) : key;
+      arrange(moveBefore(arranged, moved, before));
+    },
+  };
 }
 
 export function chooseView(view) {
@@ -467,6 +538,10 @@ function perspectiveMenu(p) {
         }),
       ],
     ),
+    arranged.order.includes(perspectiveKey(p.id))
+      ? menuItem(tr("Zurück zu den Perspektiven"), () => arrange(toPerspectives(arranged, perspectiveKey(p.id))))
+      : menuItem(tr("Zu den Ansichten"), () => arrange(moveBefore(arranged, perspectiveKey(p.id), null))),
+    menuItem(tr("In der Leiste ausblenden"), () => hideInSidebar(perspectiveKey(p.id))),
     menuItem(tr("Duplizieren"), () => {
       duplicate(p).then((id) => id && chooseView({ kind: "perspective", perspective: id }));
     }),
@@ -489,14 +564,17 @@ const FUNNEL = ["M3 5h18l-7 8.5V19l-4 2v-7.5z"];
 // Dragging one perspective onto another puts it before that one.
 let draggedPerspective = null;
 
-function perspectiveRow(p) {
+// `upper`: the perspective stands in the upper list (ADR 0142 §1) and
+// drags as its entry.
+function perspectiveRow(p, upper = false) {
   const view = { kind: "perspective", perspective: p.id };
   const current = state.view.kind === "perspective" && state.view.perspective === p.id;
   const n = count(view);
+  const rowClass = ["place-row", current ? "current" : null, menu?.id === p.id ? "menu-open" : null].filter(Boolean).join(" ");
   return el(
     "li",
-    {
-      class: ["place-row", current ? "current" : null, menu?.id === p.id ? "menu-open" : null].filter(Boolean).join(" "),
+    upper ? { class: rowClass, ...entryTarget(perspectiveKey(p.id)) } : {
+      class: rowClass,
       draggable: "true",
       ondragstart: (event) => {
         draggedPerspective = p.id;
@@ -553,7 +631,11 @@ function perspectiveRow(p) {
 
 function drawPerspectives(step) {
   const renaming = (id) => draft?.mode === "rename" && draft.kind === "perspective" && draft.id === id;
-  const rows = perspectives().map((p) => (renaming(p.id) && step === "full" ? draftRow(0) : perspectiveRow(p)));
+  // Only those neither in the upper list nor hidden (ADR 0142 §1).
+  const below = new Set(lowerPerspectives(arranged, perspectives().map((p) => p.id)));
+  const rows = perspectives()
+    .filter((p) => below.has(p.id))
+    .map((p) => (renaming(p.id) && step === "full" ? draftRow(0) : perspectiveRow(p)));
   if (step === "full" && draft?.mode === "new" && draft.kind === "perspective") rows.push(draftRow(0));
   const head = $("persp-head");
   // Without one, only the "+" in the head (§4).
@@ -839,7 +921,24 @@ export function renderSidebar() {
 function drawSidebar() {
   const step = sidebarStep();
   document.body.dataset.sidebar = step;
-  replace($("views"), VIEWS.map((v) => item({ kind: v.kind, project: null }, v.title, 0, null, v.icon)));
+  // The upper list (ADR 0142 §1): what is hidden stands nowhere.
+  arranged = loadArrangement(perspectives().map((p) => p.id));
+  const renamingPerspective = (id) => step === "full" && draft?.mode === "rename" && draft.kind === "perspective" && draft.id === id;
+  replace(
+    $("views"),
+    arranged.order
+      .filter((key) => !arranged.hidden.includes(key))
+      .map((key) => {
+        const what = parseKey(key);
+        if (what.kind === "perspective") {
+          const p = perspectiveOf(what.id);
+          if (!p) return null;
+          return renamingPerspective(p.id) ? draftRow(0) : perspectiveRow(p, true);
+        }
+        const v = VIEWS.find((one) => one.kind === what.view);
+        return v ? item({ kind: v.kind, project: null }, v.title, v.icon) : null;
+      }),
+  );
   drawPerspectives(step);
 
   const rows = [];

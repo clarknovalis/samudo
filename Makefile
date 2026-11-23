@@ -82,6 +82,7 @@ web-check:
 	node web/tests/groups.mjs
 	node web/tests/clocks.mjs
 	node web/tests/rowfields.mjs
+	node web/tests/arrange.mjs
 	node web/tests/tagfields.mjs
 	node web/tests/jump.mjs
 	node web/tests/message.mjs
