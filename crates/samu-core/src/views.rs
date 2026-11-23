@@ -326,15 +326,25 @@ fn blocks_of(
         .filter(|p| p.blocks.is_empty())
         .map(|p| (p.id, PerspectiveTest::new(p, &view, now, &settings.zone)))
         .collect();
+    // The searches of the blocks' own (ADR 0143 §2), each tested once.
+    let queries = crate::blocks::queries(perspective);
+    let query_tests: HashMap<usize, PerspectiveTest<'_>> = queries
+        .iter()
+        .map(|(i, p)| (*i, PerspectiveTest::new(p, &view, now, &settings.zone)))
+        .collect();
     Ok(crate::blocks::assemble(
         perspective,
         &objects.perspectives,
         &statuses,
-        |p, status| {
-            let test = tests.get(&p.id);
+        |source, status| {
+            let test = match source {
+                crate::blocks::Shown::Perspective(p) => tests.get(&p.id),
+                crate::blocks::Shown::Query(i) => query_tests.get(&i),
+            };
             let state = evaluation.tasks.get(&status.task.id);
             test.zip(state).is_some_and(|(t, s)| t.shows(status, s))
         },
+        |query| crate::blocks::query_name(query, &view),
     ))
 }
 
@@ -1658,6 +1668,55 @@ mod tests {
             blocks(&objects, &settings(), now(), None, missing),
             Err(ViewError::NoPerspective(missing))
         );
+    }
+
+    /// ADR 0143 §2: a block's own search shows what a plain perspective
+    /// with its fields would, named by its search without a heading; the
+    /// union of `/available` takes it in.
+    #[test]
+    fn a_block_shows_a_search_of_its_own() {
+        let mut objects = Objects::default();
+        let mut flagged = task("Angebot schreiben", 0);
+        flagged.flagged = true;
+        let offer = task("Angebot lesen", 1);
+        let mut done = task("Angebot alt", 2);
+        done.completed_at = Some(now());
+        let tax = task("Steuer", 3);
+        objects.tasks = vec![flagged, offer, done, tax];
+        let morning = perspective(serde_json::json!({
+            "title": "Morgen",
+            "blocks": [
+                {"query": {"chips": [{"kind": "is", "value": "markiert"}]}},
+                {"query": {"text": "angebot", "filter": "all"}, "title": "Angebote"},
+                {"query": {}},
+            ],
+        }));
+        let morning_id = morning.id;
+        objects.perspectives = vec![morning];
+        let titles = |s: &crate::api::BlockSection| -> Vec<String> {
+            s.tasks.iter().map(|t| t.task.title.clone()).collect()
+        };
+        let sections = blocks(&objects, &settings(), now(), None, morning_id).unwrap();
+        let heads: Vec<(&str, bool)> = sections
+            .iter()
+            .map(|s| (s.title.as_str(), s.missing))
+            .collect();
+        assert_eq!(
+            heads,
+            [("ist:markiert", false), ("Angebote", false), ("All", false)]
+        );
+        assert_eq!(titles(&sections[0]), ["Angebot schreiben"]);
+        assert_eq!(
+            titles(&sections[1]),
+            ["Angebot lesen", "Angebot alt"],
+            "its own filter, the flagged one already above"
+        );
+        assert_eq!(titles(&sections[2]), ["Steuer"]);
+        let filter = AvailableFilter {
+            perspective: Some(morning_id),
+            ..AvailableFilter::default()
+        };
+        assert_eq!(shown_in(&objects, &filter).len(), 4);
     }
 
     #[test]

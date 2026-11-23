@@ -2291,16 +2291,13 @@ fn check_habit_entry(
 /// no value from a newer samu, which is read, never written (ADR 0015);
 /// a board's workflow and tags live tags; a table's columns known ones,
 /// each once (ADR 0115 §2); blocks that each show one live plain
-/// perspective or a known view, on a perspective no block shows
-/// (ADR 0116 §2).
+/// perspective, a known view or a search of their own, on a perspective no
+/// block shows (ADR 0116 §2, ADR 0143 §5).
 fn check_perspective(
     tx: &Connection,
     perspective: &crate::core::api::Perspective,
     field: Option<&str>,
 ) -> Result<Result<(), Refused>> {
-    use crate::core::api::{
-        BoardSource, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, PerspectiveView,
-    };
     let writes = |name: &str| field.is_none_or(|f| f == name);
     if writes("title") {
         if perspective.title.trim().is_empty() {
@@ -2324,6 +2321,30 @@ fn check_perspective(
     {
         return Ok(Err("an icon is one emoji, at most 32 bytes".into()));
     }
+    if let Err(reason) = check_search(tx, perspective, &writes)? {
+        return Ok(Err(reason));
+    }
+    if writes("blocks")
+        && !perspective.blocks.is_empty()
+        && let Err(reason) = check_blocks(tx, perspective)?
+    {
+        return Ok(Err(reason));
+    }
+    Ok(Ok(()))
+}
+
+/// The search of a plain perspective, or of a block's own (ADR 0143 §5),
+/// in the fields `writes` names: chips as a scope's filter; no value from
+/// a newer samu; a board's workflow and tags live tags; a table's columns
+/// known ones, each once.
+fn check_search(
+    tx: &Connection,
+    perspective: &crate::core::api::Perspective,
+    writes: &impl Fn(&str) -> bool,
+) -> Result<Result<(), Refused>> {
+    use crate::core::api::{
+        BoardSource, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, PerspectiveView,
+    };
     if writes("chips")
         && let Err(reason) = check_chips(tx, &perspective.chips)?
     {
@@ -2369,18 +2390,13 @@ fn check_perspective(
             }
         }
     }
-    if writes("blocks")
-        && !perspective.blocks.is_empty()
-        && let Err(reason) = check_blocks(tx, perspective)?
-    {
-        return Ok(Err(reason));
-    }
     Ok(Ok(()))
 }
 
 /// The blocks of a block perspective (ADR 0116 §2): each shows exactly one
-/// of a live plain perspective other than this one, or a fixed view this
-/// server knows, under a heading that is not blank when given; and no
+/// of a live plain perspective other than this one, a fixed view this
+/// server knows, or a search of its own checked as a perspective's
+/// (ADR 0143 §5), under a heading that is not blank when given; and no
 /// block of another live perspective shows this one, which would make it
 /// a block in a block.
 fn check_blocks(
@@ -2392,7 +2408,7 @@ fn check_blocks(
             return Ok(Err("a block's heading is not blank".into()));
         }
         match (&block.perspective, &block.view) {
-            (Some(id), None) => {
+            (Some(id), None) if block.query.is_none() => {
                 if *id == perspective.id {
                     return Ok(Err("a perspective is not a block of itself".into()));
                 }
@@ -2412,13 +2428,25 @@ fn check_blocks(
                     )));
                 }
             }
-            (None, Some(view)) => {
+            (None, Some(view)) if block.query.is_none() => {
                 if !crate::core::blocks::known_view(view) {
                     return Ok(Err(format!("a view this server does not know: {view:?}")));
                 }
             }
+            (None, None) if let Some(query) = &block.query => {
+                let shown = query.clone().into_perspective(
+                    perspective.id,
+                    perspective.created,
+                    perspective.title.clone(),
+                );
+                if let Err(reason) = check_search(tx, &shown, &|_| true)? {
+                    return Ok(Err(format!("a block's search: {reason}")));
+                }
+            }
             _ => {
-                return Ok(Err("a block shows one perspective or one view".into()));
+                return Ok(Err(
+                    "a block shows one perspective, one view or one search".into()
+                ));
             }
         }
     }

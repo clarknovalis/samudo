@@ -14,7 +14,7 @@
 
 use std::collections::HashSet;
 
-use crate::api::{BlockSection, Perspective, PerspectiveBlock, TaskStatus};
+use crate::api::{BlockQuery, BlockSection, Perspective, PerspectiveBlock, TaskStatus};
 
 /// The fixed views a block may show (ADR 0116 §2): the ones whose hits
 /// this crate already computes per task.
@@ -39,18 +39,75 @@ pub fn in_view(view: &str, status: &TaskStatus) -> Option<bool> {
     }
 }
 
+/// What a block asks [`assemble`]'s `shows` about: a plain perspective it
+/// points at, or the search of its own of the block at this index
+/// (ADR 0143 §2), whose plain perspective [`queries`] gives.
+#[derive(Debug, Clone, Copy)]
+pub enum Shown<'a> {
+    Perspective(&'a Perspective),
+    Query(usize),
+}
+
+/// The plain perspective each block with a search of its own shows as
+/// (ADR 0143 §2), by the block's index: the caller builds its test once
+/// per block, not once per task. It carries the block perspective's id,
+/// so it is no perspective of its own anywhere.
+pub fn queries(perspective: &Perspective) -> Vec<(usize, Perspective)> {
+    perspective
+        .blocks
+        .iter()
+        .enumerate()
+        .filter_map(|(i, block)| match block {
+            PerspectiveBlock {
+                perspective: None,
+                view: None,
+                query: Some(query),
+                ..
+            } => Some((
+                i,
+                query
+                    .clone()
+                    .into_perspective(perspective.id, perspective.created, String::new()),
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The heading of a search of a block's own without one (ADR 0143 §2):
+/// the search as it reads in the search field, chips first, and "All"
+/// for an empty one.
+pub fn query_name(query: &BlockQuery, snapshot: &crate::availability::Snapshot<'_>) -> String {
+    let words = [
+        crate::query::words(&query.chips, snapshot),
+        query.text.clone(),
+    ]
+    .into_iter()
+    .filter(|w| !w.trim().is_empty())
+    .collect::<Vec<_>>()
+    .join(" ");
+    if words.is_empty() {
+        "All".to_owned()
+    } else {
+        words
+    }
+}
+
 /// The sections of `perspective` (ADR 0116 §3-4) from `statuses`, every
 /// task the scope shows in the order of `/available`; `shows` says whether
-/// a plain perspective shows a task, its filter included. A plain
-/// perspective is one section; a block that points at a perspective that
-/// is not among `perspectives`, at a block perspective or at an unknown
-/// view is `missing` and empty. With `dedupe` a task stands only in the
-/// first block that shows it.
+/// a plain perspective or a block's own search shows a task, its filter
+/// included, and `name` how a search without a heading is called (the
+/// search as it reads, ADR 0143 §2). A plain perspective is one section; a
+/// block that points at a perspective that is not among `perspectives`, at
+/// a block perspective or at an unknown view, and a block of no form, is
+/// `missing` and empty. With `dedupe` a task stands only in the first
+/// block that shows it.
 pub fn assemble(
     perspective: &Perspective,
     perspectives: &[Perspective],
     statuses: &[TaskStatus],
-    shows: impl Fn(&Perspective, &TaskStatus) -> bool,
+    shows: impl Fn(Shown<'_>, &TaskStatus) -> bool,
+    name: impl Fn(&BlockQuery) -> String,
 ) -> Vec<BlockSection> {
     if perspective.blocks.is_empty() {
         return vec![BlockSection {
@@ -60,7 +117,7 @@ pub fn assemble(
             missing: false,
             tasks: statuses
                 .iter()
-                .filter(|s| shows(perspective, s))
+                .filter(|s| shows(Shown::Perspective(perspective), s))
                 .cloned()
                 .collect(),
         }];
@@ -69,8 +126,9 @@ pub fn assemble(
     perspective
         .blocks
         .iter()
-        .map(|block| {
-            let (name, icon, hits) = hits_of(block, perspectives, statuses, &shows);
+        .enumerate()
+        .map(|(i, block)| {
+            let (title, icon, hits) = hits_of(i, block, perspectives, statuses, &shows, &name);
             let missing = hits.is_none();
             let tasks: Vec<TaskStatus> = hits
                 .unwrap_or_default()
@@ -78,7 +136,7 @@ pub fn assemble(
                 .filter(|s| !perspective.dedupe || seen.insert(s.task.id))
                 .collect();
             BlockSection {
-                title: block.title.clone().unwrap_or(name),
+                title: block.title.clone().unwrap_or(title),
                 icon,
                 block: Some(block.clone()),
                 missing,
@@ -91,22 +149,31 @@ pub fn assemble(
 /// A block's name, icon and hits; no hits when it shows nothing this samu
 /// can show.
 fn hits_of(
+    index: usize,
     block: &PerspectiveBlock,
     perspectives: &[Perspective],
     statuses: &[TaskStatus],
-    shows: &impl Fn(&Perspective, &TaskStatus) -> bool,
+    shows: &impl Fn(Shown<'_>, &TaskStatus) -> bool,
+    name: &impl Fn(&BlockQuery) -> String,
 ) -> (String, Option<String>, Option<Vec<TaskStatus>>) {
-    match (&block.perspective, &block.view) {
-        (Some(id), None) => match perspectives.iter().find(|p| p.id == *id) {
+    let hits = |shown: Shown<'_>| -> Vec<TaskStatus> {
+        statuses
+            .iter()
+            .filter(|s| shows(shown, s))
+            .cloned()
+            .collect()
+    };
+    match (&block.perspective, &block.view, &block.query) {
+        (Some(id), None, None) => match perspectives.iter().find(|p| p.id == *id) {
             Some(p) if p.blocks.is_empty() => (
                 p.title.clone(),
                 p.icon.clone(),
-                Some(statuses.iter().filter(|s| shows(p, s)).cloned().collect()),
+                Some(hits(Shown::Perspective(p))),
             ),
             Some(p) => (p.title.clone(), p.icon.clone(), None),
             None => (id.to_string(), None, None),
         },
-        (None, Some(view)) => {
+        (None, Some(view), None) => {
             let hits = known_view(view).then(|| {
                 statuses
                     .iter()
@@ -116,6 +183,7 @@ fn hits_of(
             });
             (view.clone(), None, hits)
         }
+        (None, None, Some(query)) => (name(query), None, Some(hits(Shown::Query(index)))),
         _ => (String::new(), None, None),
     }
 }
@@ -161,9 +229,8 @@ mod tests {
             serde_json::from_value(doc["perspectives"].clone()).unwrap();
         let statuses: Vec<TaskStatus> = serde_json::from_value(doc["statuses"].clone()).unwrap();
         let shown: HashMap<Id, Vec<Id>> = serde_json::from_value(doc["shows"].clone()).unwrap();
-        let shows = |p: &Perspective, s: &TaskStatus| {
-            shown.get(&p.id).is_some_and(|ids| ids.contains(&s.task.id))
-        };
+        let by_query: HashMap<String, Vec<Id>> =
+            serde_json::from_value(doc["queries"].clone()).unwrap();
         let cases = doc["cases"].as_array().unwrap();
         assert!(cases.len() >= 4, "the cases are there");
         let mut found = 0;
@@ -177,7 +244,19 @@ mod tests {
             if let Some(dedupe) = case["dedupe"].as_bool() {
                 perspective.dedupe = dedupe;
             }
-            let got = assemble(&perspective, &perspectives, &statuses, shows);
+            // A search of its own stands for its hits by its text.
+            let shows = |source: Shown<'_>, s: &TaskStatus| {
+                let ids = match source {
+                    Shown::Perspective(p) => shown.get(&p.id),
+                    Shown::Query(i) => perspective.blocks[i]
+                        .query
+                        .as_ref()
+                        .and_then(|q| by_query.get(&q.text)),
+                };
+                ids.is_some_and(|ids| ids.contains(&s.task.id))
+            };
+            let name = |q: &BlockQuery| q.text.clone();
+            let got = assemble(&perspective, &perspectives, &statuses, shows, name);
             let want = case["sections"].as_array().unwrap();
             assert_eq!(got.len(), want.len(), "{about}");
             for (got, want) in got.iter().zip(want) {

@@ -280,6 +280,7 @@ fn parse_blocks(
                     perspective: None,
                     view: Some(view.to_owned()),
                     title,
+                    query: None,
                 });
             }
             let found = find(perspectives, name)?;
@@ -293,6 +294,7 @@ fn parse_blocks(
                 perspective: Some(found.id),
                 view: None,
                 title,
+                query: None,
             })
         })
         .collect()

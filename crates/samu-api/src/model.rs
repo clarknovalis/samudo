@@ -1016,8 +1016,9 @@ pub struct Perspective {
     pub position: i64,
 }
 
-/// One block of a block perspective (ADR 0116 §2): another perspective or
-/// a fixed view, exactly one of the two.
+/// One block of a block perspective (ADR 0116 §2, ADR 0143 §1): another
+/// perspective, a fixed view or a search of its own, exactly one of the
+/// three.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PerspectiveBlock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1027,9 +1028,79 @@ pub struct PerspectiveBlock {
     /// shows a block it does not know as missing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub view: Option<String>,
+    /// Since samu-api 0.1.65: a search of the block's own (ADR 0143 §1),
+    /// shown as a plain perspective with these fields would show it. An
+    /// older reader sees a block of no form it knows and shows it as
+    /// missing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query: Option<BlockQuery>,
     /// A heading of its own; none = the name of the perspective or view.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+}
+
+/// The search of a block of its own (ADR 0143 §1): what a plain
+/// perspective holds, with the same defaults.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BlockQuery {
+    /// Free words of the search, as [`Perspective::text`].
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub chips: Vec<ScopeChip>,
+    #[serde(default)]
+    pub filter: PerspectiveFilter,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arrange: Option<PerspectiveArrange>,
+    /// A board is shown as a list in a block (ADR 0116 §5); kept so that
+    /// nothing is lost between a perspective and a block.
+    #[serde(default)]
+    pub view: PerspectiveView,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub board: Option<PerspectiveBoard>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub table: Option<PerspectiveTable>,
+}
+
+impl BlockQuery {
+    /// The search of a plain perspective, for a block that is detached
+    /// from it (ADR 0143 §4).
+    #[must_use]
+    pub fn of(perspective: &Perspective) -> Self {
+        Self {
+            text: perspective.text.clone(),
+            chips: perspective.chips.clone(),
+            filter: perspective.filter,
+            arrange: perspective.arrange.clone(),
+            view: perspective.view,
+            board: perspective.board.clone(),
+            table: perspective.table.clone(),
+        }
+    }
+
+    /// A plain perspective with this search, the other fields as given:
+    /// what the block shows, or what "Save as perspective" makes of it
+    /// (ADR 0143 §2, §4).
+    #[must_use]
+    pub fn into_perspective(self, id: Id, created: Timestamp, title: String) -> Perspective {
+        Perspective {
+            id,
+            created,
+            modified: created,
+            title,
+            icon: None,
+            text: self.text,
+            chips: self.chips,
+            filter: self.filter,
+            arrange: self.arrange,
+            view: self.view,
+            board: self.board,
+            table: self.table,
+            blocks: Vec::new(),
+            dedupe: true,
+            position: 0,
+        }
+    }
 }
 
 /// Available, remaining or all (ADR 0020 §1, ADR 0090 §1).

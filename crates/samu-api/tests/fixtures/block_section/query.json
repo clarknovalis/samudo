@@ -1,0 +1,12 @@
+{
+  "title": "Kurz hier",
+  "block": {
+    "query": {
+      "text": "anrufen",
+      "filter": "available",
+      "view": "list"
+    },
+    "title": "Kurz hier"
+  },
+  "tasks": []
+}

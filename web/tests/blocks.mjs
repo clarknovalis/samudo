@@ -26,7 +26,8 @@ if (doc.cases.length < 4) {
   console.error(`only ${doc.cases.length} cases: the file is not what it should be`);
   process.exit(1);
 }
-const shows = (p, s) => (doc.shows[p.id] ?? []).includes(s.task.id);
+// A block's own search stands for its hits by its text (ADR 0143).
+const shows = (p, s) => (doc.shows[p.id] ?? doc.queries[p.text] ?? []).includes(s.task.id);
 let found = 0;
 for (const c of doc.cases) {
   const p = { ...doc.perspectives.find((o) => o.title === c.perspective) };

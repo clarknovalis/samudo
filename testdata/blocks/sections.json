@@ -1,5 +1,5 @@
 {
- "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden, and gives the sections in order and the union `/available` answers with.",
+ "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included, `queries` the same for a block's own search (ADR 0143), by its text, which is also its name without a heading; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden, and gives the sections in order and the union `/available` answers with.",
  "perspectives": [
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01",
@@ -59,6 +59,40 @@
      "view": "inbox"
     },
     {}
+   ]
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a05",
+   "created": "2026-11-23T08:00:00Z",
+   "modified": "2026-11-23T08:00:00Z",
+   "title": "Eigene Suchen",
+   "position": 5,
+   "blocks": [
+    {
+     "query": {
+      "text": "anruf"
+     }
+    },
+    {
+     "query": {
+      "text": "toner"
+     },
+     "title": "Toner"
+    },
+    {
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01"
+    },
+    {
+     "query": {
+      "text": "nichts"
+     }
+    },
+    {
+     "query": {
+      "text": "anruf"
+     },
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01"
+    }
    ]
   }
  ],
@@ -302,6 +336,57 @@
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
    ]
+  },
+  {
+   "about": "a block's own search shows its hits under its search or its heading, dedupe holds across searches and references, a search that finds nothing is not missing, and a block of two forms is",
+   "perspective": "Eigene Suchen",
+   "sections": [
+    {
+     "title": "anruf",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01"
+     ]
+    },
+    {
+     "title": "Toner",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02"
+     ]
+    },
+    {
+     "title": "Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    },
+    {
+     "title": "nichts",
+     "missing": false,
+     "tasks": []
+    },
+    {
+     "title": "",
+     "missing": true,
+     "tasks": []
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+   ]
   }
- ]
+ ],
+ "queries": {
+  "anruf": [
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01"
+  ],
+  "toner": [
+   "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02"
+  ],
+  "nichts": []
+ }
 }

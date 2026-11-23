@@ -73,8 +73,8 @@ pub use hook::{HookChange, HookChangeResponse, HookDelivery, HookFormat, HookVie
 pub use id::Id;
 pub use logbook::{AccountLogEntry, LogEntry, LogKind};
 pub use model::{
-    AccountSettings, Attachment, Author, AuthorKind, Blob, BoardSource, ChecklistItem, Clock,
-    Comment, Folder, FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer,
+    AccountSettings, Attachment, Author, AuthorKind, Blob, BlockQuery, BoardSource, ChecklistItem,
+    Clock, Comment, Folder, FolderStatus, Habit, HabitEntry, HabitEntryStatus, HabitKind, HabitPer,
     HitChildren, InspectorLayout, InspectorPart, Link, LinkKind, NoteMode, Period, Perspective,
     PerspectiveArrange, PerspectiveBlock, PerspectiveBoard, PerspectiveFilter, PerspectiveGroup,
     PerspectiveSort, PerspectiveTable, PerspectiveView, Priority, Project, ProjectKind,

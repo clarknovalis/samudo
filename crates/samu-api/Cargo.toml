@@ -9,7 +9,7 @@ name = "samudo-api"
 # Its own semver, independent of the application (ADR 0003 §1): other
 # projects depend on this crate. Removing or reinterpreting a field is a new major
 # version; a fixture changes only together with this number.
-version = "0.1.64"
+version = "0.1.65"
 edition.workspace = true
 rust-version.workspace = true
 # The rest of samudo is AGPL-3.0-or-later; the wire types may in addition be

@@ -660,6 +660,69 @@ fn a_block_perspective_keeps_its_blocks() {
     )));
 }
 
+/// ADR 0143 §1, §5: a block carries a search of its own, kept as written
+/// and checked as a perspective's search; a block is exactly one of
+/// perspective, view and search.
+#[test]
+fn a_block_carries_a_search_of_its_own() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let mut wall = 1_000;
+    let mut next = || {
+        wall += 1;
+        stamp(wall, "laptop")
+    };
+    let morning = json!({
+        "id": Id::new().to_string(),
+        "created": "2026-11-23T08:00:00Z",
+        "modified": "2026-11-23T08:00:00Z",
+        "title": "Morgen",
+        "position": 0
+    });
+    assert!(is_applied(&create(
+        &mut store,
+        ObjectKind::Perspective,
+        morning.clone(),
+        next()
+    )));
+    let morning = id_of(&morning);
+    let blocks = json!([
+        {"view": "today"},
+        {"query": {"text": "anruf", "chips": [{"kind": "is", "value": "markiert"}],
+                   "filter": "remaining", "view": "table",
+                   "table": {"columns": ["state", "estimate"]}},
+         "title": "Anrufe"},
+        {"query": {}}
+    ]);
+    let outcome = set(&mut store, morning, "blocks", blocks, next());
+    assert!(is_applied(&outcome), "{outcome:?}");
+    match store.get(morning).unwrap() {
+        Some(Object::Perspective(p)) => {
+            assert_eq!(p.blocks.len(), 3);
+            let query = p.blocks[1].query.as_ref().expect("the search is kept");
+            assert_eq!(query.text, "anruf");
+            assert_eq!(query.chips.len(), 1);
+            assert_eq!(
+                query.filter,
+                samu_store::core::api::PerspectiveFilter::Remaining
+            );
+            assert_eq!(p.blocks[1].title.as_deref(), Some("Anrufe"));
+            assert!(p.blocks[2].query.is_some(), "an empty search is all");
+        }
+        other => panic!("not a perspective: {other:?}"),
+    }
+    for bad in [
+        json!([{"query": {"text": "x"}, "view": "today"}]),
+        json!([{"query": {"text": "x"}, "perspective": Id::new().to_string()}]),
+        json!([{"query": {"table": {"columns": ["nonsense"]}}}]),
+        json!([{"query": {"chips": [{"kind": "tag", "value": Id::new().to_string()}]}}]),
+        json!([{"query": {"filter": "sometimes"}}]),
+        json!([{"query": {"text": "x"}, "title": " "}]),
+    ] {
+        let outcome = set(&mut store, morning, "blocks", bad.clone(), next());
+        assert!(is_rejected(&outcome), "{bad}: {outcome:?}");
+    }
+}
+
 /// ADR 0084 §1: a template's key is one letter or digit, no other live
 /// template's; `h` and `H` are two keys, and a deleted template frees its.
 #[test]

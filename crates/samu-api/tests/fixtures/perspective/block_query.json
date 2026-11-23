@@ -1,0 +1,53 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e94",
+  "created": "2026-11-23T08:00:00Z",
+  "modified": "2026-11-23T09:30:00Z",
+  "title": "Morgen am Ort",
+  "filter": "available",
+  "view": "list",
+  "blocks": [
+    {
+      "view": "today"
+    },
+    {
+      "query": {
+        "chips": [
+          {
+            "kind": "tag",
+            "value": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01"
+          }
+        ],
+        "filter": "available",
+        "view": "list"
+      },
+      "title": "Kurz hier"
+    },
+    {
+      "query": {
+        "text": "angebot",
+        "chips": [
+          {
+            "kind": "is",
+            "value": "wartet"
+          }
+        ],
+        "filter": "remaining",
+        "arrange": {
+          "group": "none",
+          "sort": "due"
+        },
+        "view": "table",
+        "table": {
+          "columns": [
+            "state",
+            "estimate"
+          ]
+        }
+      }
+    },
+    {
+      "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e92"
+    }
+  ],
+  "position": 5
+}
