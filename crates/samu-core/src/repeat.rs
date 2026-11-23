@@ -140,6 +140,36 @@ pub fn next(
     Ok(Some(next))
 }
 
+/// The schedule of a repetition that has no date yet, with its first one
+/// (ADR 0033 §3, changed on 2026-11-23): the first date of the rule from
+/// `today` on, as `due`, or as `defer` for `defer_after_completion`.
+/// `None` when it does not repeat or already has a date; `None` or an
+/// error when the rule makes none from today on (`rrule` refuses an
+/// `UNTIL` before the start).
+pub fn first(schedule: &Schedule, today: Date) -> Result<Option<Schedule>, RepeatError> {
+    let Some(repeat) = &schedule.repeat else {
+        return Ok(None);
+    };
+    if schedule.due.is_some() || schedule.defer.is_some() || schedule.planned.is_some() {
+        return Ok(None);
+    }
+    let field = match repeat.mode {
+        RepeatMode::Fixed | RepeatMode::DueAfterCompletion => Lead::Due,
+        RepeatMode::DeferAfterCompletion => Lead::Defer,
+        RepeatMode::Unknown => return Err(RepeatError::UnknownMode),
+    };
+    let (rest, _) = split_count(&repeat.rule)?;
+    let yesterday = today
+        .checked_sub(1.day())
+        .map_err(|e| rule_error(&repeat.rule, e))?;
+    let found = next_date(&repeat.rule, &rest, today, yesterday)?;
+    Ok(found.map(|date| {
+        let mut next = schedule.clone();
+        *field.of_mut(&mut next) = Some(When::Date(date));
+        next
+    }))
+}
+
 /// How many tasks the chain of `task` has up to and with it, over
 /// `repeat_of` (ADR 0007 §3), as far as `tasks` reaches.
 pub fn chain(tasks: &[Task], task: &Task) -> u32 {
@@ -637,6 +667,57 @@ mod tests {
         let n = next_of(&s, "2026-11-10T10:00:00Z").unwrap();
         assert_eq!(n.defer, Some(day("2026-11-11")));
         assert_eq!(n.due, None);
+    }
+
+    #[test]
+    fn a_repetition_without_a_date_gets_its_first_from_today_on() {
+        let today: Date = "2026-11-11".parse().unwrap(); // a Wednesday
+        let s = repeating("FREQ=WEEKLY", RepeatMode::Fixed, false);
+        let f = first(&s, today).unwrap().unwrap();
+        assert_eq!(f.due, Some(day("2026-11-11")));
+        assert_eq!((f.defer, f.planned), (None, None));
+        assert_eq!(f.repeat, s.repeat);
+
+        let s = repeating(
+            "FREQ=WEEKLY;BYDAY=MO",
+            RepeatMode::DueAfterCompletion,
+            false,
+        );
+        assert_eq!(
+            first(&s, today).unwrap().unwrap().due,
+            Some(day("2026-11-16"))
+        );
+
+        let s = repeating("FREQ=DAILY", RepeatMode::DeferAfterCompletion, false);
+        let f = first(&s, today).unwrap().unwrap();
+        assert_eq!((f.defer, f.due), (Some(day("2026-11-11")), None));
+    }
+
+    #[test]
+    fn a_repetition_with_a_date_or_ended_gets_no_first() {
+        let today: Date = "2026-11-11".parse().unwrap();
+        for field in [Lead::Due, Lead::Defer, Lead::Planned] {
+            let mut s = repeating("FREQ=DAILY", RepeatMode::Fixed, false);
+            *field.of_mut(&mut s) = Some(day("2026-12-01"));
+            assert_eq!(first(&s, today).unwrap(), None);
+        }
+        // Ended before today: `rrule` says so as an error.
+        let s = repeating(
+            "FREQ=DAILY;UNTIL=20261101T235959Z",
+            RepeatMode::Fixed,
+            false,
+        );
+        assert!(!matches!(first(&s, today), Ok(Some(_))));
+        let s = repeating(
+            "FREQ=DAILY;UNTIL=20261111T235959Z",
+            RepeatMode::Fixed,
+            false,
+        );
+        assert_eq!(
+            first(&s, today).unwrap().unwrap().due,
+            Some(day("2026-11-11"))
+        );
+        assert_eq!(first(&Schedule::default(), today).unwrap(), None);
     }
 
     #[test]

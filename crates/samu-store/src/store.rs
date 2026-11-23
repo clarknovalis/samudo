@@ -1662,7 +1662,7 @@ fn create(
     if value.get("id").and_then(Json::as_str) != Some(id.to_string().as_str()) {
         return Ok(rejected("value.id is not the object's id"));
     }
-    let object = match Object::from_json(kind, value.clone()) {
+    let mut object = match Object::from_json(kind, value.clone()) {
         Ok(object) => object,
         Err(reason) => return Ok(rejected(reason)),
     };
@@ -1696,6 +1696,9 @@ fn create(
     }
     if let Err(reason) = check_values(&object, None) {
         return Ok(rejected(reason));
+    }
+    if let Object::Task(task) = &mut object {
+        first_date(tx, task, now)?;
     }
     // ADR 0068 §3.
     if let Object::Appointment(a) = &object
@@ -1923,7 +1926,7 @@ fn set(
         .transpose()
         .map_err(|what| Error::Corrupt { what })?;
     json.insert(field.into(), value.clone());
-    let object = match Object::from_json(h.kind, Json::Object(json)) {
+    let mut object = match Object::from_json(h.kind, Json::Object(json)) {
         Ok(object) => object,
         Err(reason) => return Ok(rejected(format!("{field}: {reason}"))),
     };
@@ -1961,6 +1964,21 @@ fn set(
     if let Err(reason) = check_values(&object, Some(field)) {
         return Ok(rejected(format!("{field}: {reason}")));
     }
+    // A repetition set on a task without a date gets its first one, under
+    // the same stamp, unless that date was written later (ADR 0033 §3).
+    let mut filled = None;
+    if let Object::Task(task) = &mut object
+        && field == "repeat"
+        && !value.is_null()
+    {
+        let mut with = task.clone();
+        if let Some(date) = first_date(tx, &mut with, now)?
+            && stamp_of(tx, h.rowid, date)?.is_none_or(|stored| wins(hlc, Some(&stored.hlc)))
+        {
+            *task = with;
+            filled = Some(date);
+        }
+    }
     // ADR 0068 §3.
     if let (Some(Object::Appointment(before)), Object::Appointment(after)) = (&before, &object)
         && let Err(reason) = calendar::writes::check_change(tx, before, Some(after))?
@@ -1980,6 +1998,9 @@ fn set(
     let seq = next_seq(tx)?;
     touch(tx, h.rowid, seq, now)?;
     write_stamp(tx, h.rowid, field, hlc, seq)?;
+    if let Some(date) = filled {
+        write_stamp(tx, h.rowid, date, hlc, seq)?;
+    }
     observe(tx, hlc)?;
     if let (Some(Object::Appointment(before)), Object::Appointment(after)) = (&before, &object) {
         calendar::writes::queued(
@@ -2529,6 +2550,26 @@ fn chain_length(tx: &Connection, task: &Task) -> Result<u32> {
         };
     }
     Ok(length)
+}
+
+/// Gives an open repetition without a date its first one (ADR 0033 §3,
+/// changed on 2026-11-23): the field it filled, `due` or `defer`. A rule
+/// that makes no date from today on fills nothing.
+fn first_date(tx: &Connection, task: &mut Task, now: Timestamp) -> Result<Option<&'static str>> {
+    if task.completed_at.is_some() || task.dropped_at.is_some() {
+        return Ok(None);
+    }
+    let today = now.to_zoned(settings_in(tx)?.zone).date();
+    let Ok(Some(schedule)) = crate::core::repeat::first(&task.schedule, today) else {
+        return Ok(None);
+    };
+    let field = if schedule.due.is_some() {
+        "due"
+    } else {
+        "defer"
+    };
+    task.schedule = schedule;
+    Ok(Some(field))
 }
 
 /// Makes the next task of a repetition that was just completed, with its

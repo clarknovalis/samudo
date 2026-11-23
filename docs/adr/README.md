@@ -26,6 +26,7 @@ its citations in the code have no target.
 | [0027](0027-route-capture.md) | accepted | Quick capture over `POST /capture` with a preview; unknown tags created on the way, never projects; suggestions while typing |
 | [0028](0028-android-app.md) | accepted | Android app in Kotlin/Compose over `samu-mobile` (uniffi); mirror plus outbox, sync in Rust, overlay in `samu-core` |
 | [0030](0030-reminders.md) | accepted | Reminders as the object `reminder`, due tasks remind by themselves, computed in `samu-core`, one alarm on the phone |
+| [0033](0033-next-task-of-a-repetition.md) | accepted | The next task of a repetition: crate `rrule` in `samu-core`, made by the store on completion, anchor and end; a repetition without a date gets its first one when it is set |
 | [0035](0035-scopes.md) | accepted | Scopes: one lens over all views, rule in `samu-core`, chosen per device, due tasks outside counted in the header |
 | [0036](0036-managing-objects.md) | accepted | Deleting through `POST /objects/{id}/delete`, planned in `samu-core` and written in one transaction; orphaned tasks count as inbox |
 | [0037](0037-settings-second-round.md) | accepted | Moving projects, folders and tags as ordinary changes without cycles; project properties; visible folders from `samu-core`; navigation, tree and inspector |

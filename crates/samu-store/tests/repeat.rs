@@ -469,3 +469,105 @@ fn the_tables_hold_the_next_task() {
     }
     assert_eq!(ask(), ["2026-11-17"]);
 }
+
+/// A task without any date, created at `wall`; more fields from `extra`.
+fn dateless(store: &mut AccountStore, extra: Value, wall: i64) -> Id {
+    let id = Id::new();
+    let mut value = json!({
+        "id": id.to_string(),
+        "created": "2026-11-01T08:00:00Z",
+        "modified": "2026-11-01T08:00:00Z",
+        "title": "Blumen gießen",
+        "flagged": false,
+        "sequential": false,
+        "complete_with_last_child": false,
+        "position": 5
+    });
+    if let (Value::Object(value), Value::Object(extra)) = (&mut value, extra) {
+        value.extend(extra);
+    }
+    let outcome = create(store, ObjectKind::Task, value, wall);
+    assert!(
+        matches!(outcome, ChangeOutcome::Applied { .. }),
+        "{outcome:?}"
+    );
+    id
+}
+
+fn task(store: &AccountStore, id: Id) -> samu_store::core::api::Task {
+    tasks(store).into_iter().find(|t| t.id == id).unwrap()
+}
+
+fn date(s: &str) -> Option<When> {
+    Some(When::Date(s.parse().unwrap()))
+}
+
+// Regression: a repetition without a date showed no due in a row, only
+// the preview of the next one (ADR 0033 §3, changed on 2026-11-23).
+#[test]
+fn a_repetition_created_without_a_date_gets_its_first() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    // 10.11.2026 is a Tuesday; the first Friday from then on.
+    let id = dateless(
+        &mut store,
+        json!({"repeat": {"rule": "FREQ=WEEKLY;BYDAY=FR", "mode": "fixed"}}),
+        1_000,
+    );
+    let t = task(&store, id);
+    assert_eq!(t.schedule.due, date("2026-11-13"));
+    assert_eq!((t.schedule.defer, t.schedule.planned), (None, None));
+}
+
+#[test]
+fn setting_a_repetition_on_a_task_without_a_date_fills_due_or_defer() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let id = dateless(&mut store, json!({}), 1_000);
+    let rule = json!({"rule": "FREQ=DAILY", "mode": "due_after_completion"});
+    assert!(matches!(
+        set(&mut store, id, "repeat", rule, 2_000),
+        ChangeOutcome::Applied { .. }
+    ));
+    assert_eq!(task(&store, id).schedule.due, date("2026-11-10"));
+
+    let id = dateless(&mut store, json!({}), 1_000);
+    let rule = json!({"rule": "FREQ=WEEKLY", "mode": "defer_after_completion"});
+    set(&mut store, id, "repeat", rule, 2_000);
+    let t = task(&store, id);
+    assert_eq!(
+        (t.schedule.defer, t.schedule.due),
+        (date("2026-11-10"), None)
+    );
+}
+
+#[test]
+fn a_repetition_with_a_date_or_a_later_cleared_due_is_left_alone() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let id = dateless(
+        &mut store,
+        json!({"planned": {"date": "2026-11-20"}}),
+        1_000,
+    );
+    set(
+        &mut store,
+        id,
+        "repeat",
+        json!({"rule": "FREQ=DAILY", "mode": "fixed"}),
+        2_000,
+    );
+    assert_eq!(task(&store, id).schedule.due, None);
+
+    // Due cleared on one device after the repeat was set offline on
+    // another: the clearing is newer and stands.
+    let id = dateless(&mut store, json!({"due": {"date": "2026-11-12"}}), 1_000);
+    set(&mut store, id, "due", Value::Null, 3_000);
+    set(
+        &mut store,
+        id,
+        "repeat",
+        json!({"rule": "FREQ=DAILY", "mode": "fixed"}),
+        2_000,
+    );
+    let t = task(&store, id);
+    assert!(t.schedule.repeat.is_some());
+    assert_eq!(t.schedule.due, None);
+}
