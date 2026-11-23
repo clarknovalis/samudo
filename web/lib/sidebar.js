@@ -365,7 +365,10 @@ async function commitDraft() {
     if (!title) {
       draft = null;
     } else if (d.kind === "perspective" && d.mode === "new") {
-      const { blocks: asBlocks, ...from } = d.from ?? {};
+      // `blocks: true` makes a block perspective whose blocks come next;
+      // a list of blocks makes it with them (ADR 0143 §4).
+      const { blocks: asBlocks, ...rest } = d.from ?? {};
+      const from = Array.isArray(asBlocks) ? { blocks: asBlocks } : rest;
       const id = await createPerspective(title, from);
       if (id) {
         draft = null;

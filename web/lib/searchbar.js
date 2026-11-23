@@ -9,7 +9,8 @@
 
 import { $, el, replace } from "./dom.js";
 import { chosenOrder } from "./list.js";
-import { captureFrom, discardSearch, edited, saveSearch } from "./perspectives.js";
+import { isBlocks } from "./blocks.js";
+import { addAsBlock, asQuery, captureFrom, discardSearch, edited, perspectives, saveSearch } from "./perspectives.js";
 import { addAt, chipClass, chipText, isOr, mayOr, offers, parseWord, tidy, WORD } from "./query.js";
 import { startPerspectiveDraft } from "./sidebar.js";
 import { shown, state, update } from "./state.js";
@@ -193,10 +194,40 @@ function renderSave() {
       button(tr("Suche|Verwerfen"), tr("Zurück zur gespeicherten Suche"), () => discardSearch($("search-input"))),
     ];
   } else if (shown().kind === "search") {
-    buttons = [button(tr("☆ Als Perspektive"), tr("Diese Suche als Perspektive sichern"), () => startPerspectiveDraft(captureFrom(chosenOrder())))];
+    buttons = [button(tr("☆ Als Perspektive"), tr("Diese Suche als Perspektive sichern"), () => startPerspectiveDraft(captureFrom(chosenOrder()))), asBlockChoice()];
   }
   box.hidden = !buttons.length;
   replace(box, buttons);
+}
+
+// „Als Block in …“ (ADR 0143 §4): the search as a block of its own at the
+// end of a block perspective, or of a new one.
+function asBlockChoice() {
+  const targets = perspectives().filter(isBlocks);
+  return el(
+    "select",
+    {
+      class: "as-block",
+      "aria-label": tr("Diese Suche als Block in eine Block-Perspektive"),
+      title: tr("Diese Suche als Block in eine Block-Perspektive"),
+      onchange: async (event) => {
+        const value = event.target.value;
+        event.target.value = "";
+        const query = asQuery(captureFrom(chosenOrder()));
+        if (value === "new") {
+          startPerspectiveDraft({ blocks: [{ query }] });
+          return;
+        }
+        const p = perspectives().find((o) => o.id === value);
+        if (p && (await addAsBlock(p, query))) update({ message: tr("Als Block in „{title}“ eingefügt.", { title: p.title }) });
+      },
+    },
+    [
+      el("option", { value: "", text: tr("Als Block in …") }),
+      ...targets.map((p) => el("option", { value: p.id, text: [p.icon, p.title].filter(Boolean).join(" ") })),
+      el("option", { value: "new", text: tr("Neue Block-Perspektive …") }),
+    ],
+  );
 }
 
 export function renderSearch() {

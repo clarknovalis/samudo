@@ -230,6 +230,24 @@ export function perspectiveValue(title, from = {}, after = 0) {
   return value;
 }
 
+// The search on screen, as `captureFrom` takes it, as the search of a
+// block's own (ADR 0143 §4): only the fields that say something.
+export function asQuery(from) {
+  return Object.fromEntries(
+    ["text", "chips", "filter", "arrange", "view", "board", "table"]
+      .map((field) => [field, from[field]])
+      .filter(([, value]) => value !== null && value !== undefined && value !== "" && !(Array.isArray(value) && !value.length)),
+  );
+}
+
+// `query` as a new last block of the block perspective `p`.
+export async function addAsBlock(p, query) {
+  const blocks = [...(p.blocks ?? []), { query }];
+  if (!(await write([change.set(p.id, "blocks", blocks)]))) return false;
+  p.blocks = blocks;
+  return true;
+}
+
 export const renamePerspective = (p, title) => (title === p.title ? Promise.resolve(true) : write([change.set(p.id, "title", title)]));
 
 export const setIcon = (p, icon) => write([change.set(p.id, "icon", icon || null)]);
