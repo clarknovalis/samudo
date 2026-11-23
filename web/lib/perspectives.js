@@ -198,6 +198,17 @@ export function captureFrom(chosen) {
 // A perspective called `title` from `from`, last in the sidebar. Its id,
 // or null when the server said no.
 export async function createPerspective(title, from = {}) {
+  const value = perspectiveValue(title, from);
+  if (!(await write([change.create("perspective", value)]))) return null;
+  // The reload after the write may have brought it already.
+  if (!perspectiveOf(value.id)) state.perspectives = [...state.perspectives, value];
+  return value.id;
+}
+
+// The object of a new perspective, not yet written: for a write that
+// makes it together with something else (ADR 0143 §4). `after`: how many
+// new ones the same write makes before it, so each gets its own place.
+export function perspectiveValue(title, from = {}, after = 0) {
   const created = new Date().toISOString();
   const value = {
     id: uuidv7(),
@@ -206,7 +217,7 @@ export async function createPerspective(title, from = {}) {
     title,
     filter: from.filter && FILTERS.includes(from.filter) ? from.filter : "available",
     view: viewOf(from.view),
-    position: state.perspectives.reduce((max, p) => Math.max(max, p.position + 1), 0),
+    position: state.perspectives.reduce((max, p) => Math.max(max, p.position + 1), 0) + after,
   };
   if (from.chips?.length) value.chips = from.chips;
   if (from.text) value.text = from.text;
@@ -216,10 +227,7 @@ export async function createPerspective(title, from = {}) {
   // A block perspective (ADR 0116 §1).
   if (from.blocks?.length) value.blocks = from.blocks;
   if (from.dedupe === false) value.dedupe = false;
-  if (!(await write([change.create("perspective", value)]))) return null;
-  // The reload after the write may have brought it already.
-  if (!perspectiveOf(value.id)) state.perspectives = [...state.perspectives, value];
-  return value.id;
+  return value;
 }
 
 export const renamePerspective = (p, title) => (title === p.title ? Promise.resolve(true) : write([change.set(p.id, "title", title)]));

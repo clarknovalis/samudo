@@ -48,6 +48,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         JS,
     ),
     (
+        "lib/blocklines.js",
+        include_str!("../../../web/lib/blocklines.js"),
+        JS,
+    ),
+    (
         "lib/blocks.js",
         include_str!("../../../web/lib/blocks.js"),
         JS,

@@ -1387,22 +1387,33 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 #list .block-head h3 { font-size: 15px; }
 #list .block-head h3.opens:hover { color: var(--accent); text-decoration: underline; }
 #list .block-head .missing { color: var(--overdue); }
+#list .block-head button.more { border: 0; background: none; color: var(--muted); padding: 0 6px; }
+#list .block-head button.more:hover { color: var(--accent); }
 #list .block-body { padding-left: 10px; }
 #list .block-body > .empty { margin: 6px 0; }
 .overlay .box.blocks h2 { margin: 0; font-size: 17px; }
 .block-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.block-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto auto auto; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
+.block-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
 .block-list li.quiet { display: block; border-style: dashed; color: var(--muted); }
 .block-list .grip { cursor: grab; color: var(--muted); }
-.block-list .block-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.block-list input { min-width: 0; padding: 4px 6px; }
+.block-list .block-name { flex: 1 1 8em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.block-list input { flex: 1 1 8em; min-width: 0; padding: 4px 6px; }
+.block-list .count, .block-preview .count { color: var(--muted); font-size: 12px; min-width: 2ch; text-align: right; }
+/* A search of the block's own (ADR 0143): its fields on a line of their own. */
+.block-list .block-query { flex: 1 1 100%; order: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.block-list .block-query input { flex: 3 1 14em; }
+.block-list .block-query select { flex: 0 1 auto; }
+.box.blocks .blocks-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.box.blocks .block-lines { width: 100%; box-sizing: border-box; font-family: var(--mono, monospace); font-size: 13px; padding: 6px; }
+.block-preview { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; }
+.block-preview li { display: flex; gap: 8px; align-items: baseline; }
+.block-preview .kind { color: var(--muted); min-width: 7em; }
+.block-preview .block-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.block-preview li.error { color: var(--overdue); }
+.block-preview li.quiet { color: var(--muted); }
 .block-list button { padding: 2px 8px; }
 .box.blocks .check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .box.blocks .buttons { display: flex; justify-content: flex-end; gap: 8px; }
-@media (max-width: 560px) {
-  .block-list li { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
-  .block-list li input { grid-column: 2 / -1; grid-row: 2; }
-}
 .elsewhere-hint { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 10px; font-size: 13px; }
 #message button.link { margin-left: 10px; color: inherit; }
 

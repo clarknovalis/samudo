@@ -75,6 +75,7 @@ web-check:
 	node web/tests/table.mjs
 	node web/tests/clicks.mjs
 	node web/tests/blocks.mjs
+	node web/tests/blocklines.mjs
 	node web/tests/close.mjs
 	node web/tests/together.mjs
 	node web/tests/checklist.mjs

@@ -16,6 +16,8 @@ import { setDone, toggleSequential } from "./detail.js";
 import { progress } from "./checklist.js";
 import { closeTableMenu, drawTable, drawTables, renderTableMenu, tableMenuOpen, toggleTableMenu } from "./table.js";
 import { assemble, isBlocks, passes } from "./blocks.js";
+import { openBlocks } from "./blockdialog.js";
+import { queryWords } from "./blocklines.js";
 import { columnsOf } from "./tabledata.js";
 import { habitControl, habitOf } from "./habits.js";
 import { reportView } from "./report.js";
@@ -700,7 +702,7 @@ function laneGroup(chosen) {
 
 // --- The button Anordnen and its menu (ADR 0064) -------------------------
 
-const GROUPS = [
+export const GROUPS = [
   ["project", tr("Projekt")],
   ["folder", tr("Ordner")],
   ["tag", "Tag"],
@@ -709,7 +711,7 @@ const GROUPS = [
   ["date", tr("Datum")],
   ["none", tr("keine")],
 ];
-const SORTS = [
+export const SORTS = [
   ["position", tr("Ordnung")],
   ["due", tr("Fällig")],
   ["planned", tr("Geplant")],
@@ -1061,7 +1063,10 @@ function blockSection(p, block, i, table) {
   headings.push(fold);
   const folded = state.folded.has(fold);
   const viewTitle = block.block?.view ? VIEWS.find((v) => v.kind === block.block.view)?.title : null;
-  const name = block.block?.title ?? viewTitle ?? block.title;
+  // A search of the block's own is called by its words in the page's
+  // language (ADR 0143 §2).
+  const queryTitle = block.query ? queryWords(block.block.query) || tr("Alle Aufgaben") : null;
+  const name = block.block?.title ?? viewTitle ?? queryTitle ?? block.title;
   const count = new Set(block.tasks.map((s) => s.task.id)).size;
   const opens = Boolean(block.target && !block.missing) || Boolean(viewTitle);
   const head = el("div", { class: "head block-head" }, [
@@ -1082,12 +1087,23 @@ function blockSection(p, block, i, table) {
     }),
     el("span", { class: "count", text: String(count) }),
     block.missing ? el("span", { class: "missing", text: tr("fehlt") }) : null,
+    // Its heading opens nothing; instead it can become a perspective (§4).
+    block.query
+      ? el("button", {
+          type: "button",
+          class: "more",
+          text: "⋯",
+          title: tr("Als Perspektive sichern …"),
+          "aria-label": tr("Als Perspektive sichern …"),
+          onclick: () => openBlocks(p, { extract: i }),
+        })
+      : null,
   ]);
   if (folded || block.missing) return el("section", { class: `block${folded ? " folded" : ""}` }, [head]);
   const visited = order.length;
-  const chosen = block.target && !block.missing ? { ...orderOf(block.target) } : viewOrder();
+  const chosen = block.query ? { ...orderOf(block.query) } : block.target && !block.missing ? { ...orderOf(block.target) } : viewOrder();
   const compare = comparer(chosen);
-  const orderAt = block.target ? `perspective:${block.target.id}` : `block-view:${block.block?.view}`;
+  const orderAt = block.query ? `block-query:${p.id}:${i}` : block.target ? `perspective:${block.target.id}` : `block-view:${block.block?.view}`;
   let body;
   if (!block.tasks.length) body = el("p", { class: "empty", text: tr("Nichts hier.") });
   else if (chosen.view === "table") body = table(tableContext(block.tasks, chosen, compare, orderAt, prefix));
