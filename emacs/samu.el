@@ -2895,6 +2895,10 @@ what is only flagged are left out."
                 entries))))
     (nreverse entries)))
 
+(defun samu--today ()
+  "Today's local date as YYYY-MM-DD."
+  (format-time-string "%Y-%m-%d"))
+
 ;;;###autoload
 (defun samu-org-agenda ()
   "The tasks of samudo for a day of the Org agenda, each a `samu:' link.
@@ -2905,7 +2909,7 @@ planned or available from that day, and on today what is overdue.  The
 forecast is asked for once a minute at most."
   (require 'ol)
   (with-no-warnings (defvar date))
-  (let ((today (format-time-string "%Y-%m-%d"))
+  (let ((today (samu--today))
         (asked (bound-and-true-p date)))
     (samu--agenda-entries
      (if asked

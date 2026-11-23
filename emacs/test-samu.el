@@ -1335,20 +1335,23 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
     (should (null (samu--agenda-entries "2026-11-22" "2026-11-21" rows)))))
 
 (ert-deftest samu-test-agenda-asks-once-for-a-week ()
-  (samu-test--with-cli `((("forecast") 0 ,samu-test--forecast ""))
-    (let ((samu--agenda nil))
-      (with-no-warnings (defvar date))
-      (dolist (day '(21 22 23))
-        (let ((date (list 11 day 2026)))
-          (samu-org-agenda)))
-      (let ((date '(11 23 2026)))
-        (should (equal (samu-org-agenda) '("Due: [[samu:t2][Shelf]]"))))
-      (should (= (length (samu-test--called '("forecast"))) 1))
-      ;; a change here or from elsewhere asks again
-      (cl-letf (((symbol-function 'samu--live-buffers) (lambda () nil)))
-        (samu--refresh-all))
-      (let ((date '(11 23 2026))) (samu-org-agenda))
-      (should (= (length (samu-test--called '("forecast"))) 2)))))
+  ;; today is the forecast's first day, whatever the clock says: on the
+  ;; real 2026-11-23 the overdue task showed up there too
+  (cl-letf (((symbol-function 'samu--today) (lambda () "2026-11-21")))
+    (samu-test--with-cli `((("forecast") 0 ,samu-test--forecast ""))
+      (let ((samu--agenda nil))
+        (with-no-warnings (defvar date))
+        (dolist (day '(21 22 23))
+          (let ((date (list 11 day 2026)))
+            (samu-org-agenda)))
+        (let ((date '(11 23 2026)))
+          (should (equal (samu-org-agenda) '("Due: [[samu:t2][Shelf]]"))))
+        (should (= (length (samu-test--called '("forecast"))) 1))
+        ;; a change here or from elsewhere asks again
+        (cl-letf (((symbol-function 'samu--live-buffers) (lambda () nil)))
+          (samu--refresh-all))
+        (let ((date '(11 23 2026))) (samu-org-agenda))
+        (should (= (length (samu-test--called '("forecast"))) 2))))))
 
 (ert-deftest samu-test-agenda-without-network-is-empty-and-says-so-once ()
   (samu-test--with-cli '((("forecast") 1 "" "samu: no network"))
