@@ -60,6 +60,17 @@ initials or the emoji of a folder or project) and hidden; the choice is
 kept in the browser. Folders and projects can be created, renamed, moved
 and folded here, and tasks can be dragged onto a project or the inbox.
 
+The views and perspectives at the top can be **arranged**
+([ADR 0142](adr/0142-arranging-the-sidebar.md)). A perspective's menu
+has "Move to the views", which puts it among the views, and "Back to
+the perspectives"; entries there can be dragged into any order. Every
+entry but Inbox has "Hide in the sidebar". Settings → Sidebar lists them
+all with a handle and a switch, and "Show all again". A hidden view
+still opens by its key and from the palette, and a hidden perspective
+still works as a block of a block perspective. So a customised Today is
+a block perspective moved to the place of Today, with Today hidden. The
+arrangement is kept in this browser only.
+
 "+" at Perspectives makes a perspective or a
 [block perspective](concepts.md#perspectives); "Blocks …" in a block
 perspective's menu lists its blocks: add perspectives or the views Inbox,

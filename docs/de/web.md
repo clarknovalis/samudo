@@ -64,6 +64,18 @@ Wahl bleibt im Browser. Ordner und Projekte lassen sich hier anlegen,
 umbenennen, verschieben und zuklappen, und Aufgaben lassen sich auf ein
 Projekt oder die Inbox ziehen.
 
+Ansichten und Perspektiven oben lassen sich **anordnen**
+([ADR 0142](../adr/0142-arranging-the-sidebar.md)). Das Menü einer
+Perspektive hat „Zu den Ansichten“, das sie zwischen die Ansichten
+stellt, und „Zurück zu den Perspektiven“; dort lassen sich die Einträge
+in jede Reihenfolge ziehen. Jeder Eintrag außer Inbox hat „In der
+Leiste ausblenden“. Einstellungen → Leiste zeigt alle mit Griff und
+Schalter, dazu „Alle wieder zeigen“. Eine ausgeblendete Ansicht öffnet
+weiter über ihre Taste und die Palette, eine ausgeblendete Perspektive
+wirkt weiter als Block einer Block-Perspektive. Ein angepasstes „Heute“
+ist so eine Block-Perspektive an der Stelle von „Heute“, mit „Heute“
+ausgeblendet. Die Anordnung gilt nur in diesem Browser.
+
 „+“ bei Perspektiven legt eine Perspektive oder eine
 [Block-Perspektive](concepts.md#perspektiven) an; „Blöcke …“ im Menü
 einer Block-Perspektive listet ihre Blöcke: Perspektiven oder die
