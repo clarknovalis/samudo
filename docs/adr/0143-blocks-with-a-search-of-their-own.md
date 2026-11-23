@@ -84,7 +84,9 @@ line, each a query with a heading. The search language of samu (0042,
    `Waiting`, `"@Office ~<15m | Short here"`. The older `Name=Heading`
    keeps working where the part before `=` is a perspective or a view;
    otherwise the whole word is a search (`prop:jira=HAUS-12` is a
-   chip). `samu perspective show` prints a query block as its line.
+   chip). `samu perspective blocks <name>` without blocks and `samu
+   perspective list` print every block as its line, the heading after
+   ` | `.
    New: `samu perspective detach <name> <n>` and `samu perspective
    extract <name> <n> <new name>`, §4 for the n-th block, counted from
    1. Both are writes of `/changes`; there is no route of their own.
@@ -107,4 +109,6 @@ line, each a query with a heading. The search language of samu (0042,
 
 ## Changes
 
-None yet.
+- 2026-11-23: §6 named a command `samu perspective show` that does not
+  exist; the blocks are printed by `samu perspective blocks <name>` and
+  `samu perspective list`, each with ` | ` before a heading.

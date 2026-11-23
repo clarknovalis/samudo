@@ -4897,7 +4897,7 @@ fn a_block_perspective_lists_block_by_block() {
     let list = json_out(&ok(
         server.samu(&["perspective", "list", "--format", "json"], None)
     ));
-    assert_eq!(list[1]["blocks"], "Büro=Kurz im Büro, :inbox");
+    assert_eq!(list[1]["blocks"], "Büro | Kurz im Büro, :inbox");
 
     // Without dedupe the inbox shows the office's tasks again, as in org.
     ok(server.samu(&["perspective", "dedupe", "Morgen", "off"], None));
@@ -4941,10 +4941,6 @@ fn a_block_perspective_lists_block_by_block() {
     ] {
         assert_eq!(code(&server.samu(&refused, None)), 1, "{refused:?}");
     }
-    assert_eq!(
-        code(&server.samu(&["perspective", "blocks", "Morgen", "Nirgends"], None)),
-        3
-    );
     // Its blocks printed, then cleared: a plain perspective again.
     let blocks = json_out(&ok(server.samu(
         &["perspective", "blocks", "Morgen", "--format", "json"],
@@ -4956,6 +4952,128 @@ fn a_block_perspective_lists_block_by_block() {
         server.samu(&["perspective", "list", "--format", "json"], None)
     ));
     assert_eq!(list[1]["blocks"], "");
+}
+
+/// ADR 0143 §3, §4, §6: a block carries a search of its own, written as a
+/// line; `detach` turns a reference into one, `extract` one into a new
+/// perspective, each keeping the heading.
+#[test]
+fn a_block_carries_a_search_of_its_own() {
+    let server = signed_in_server();
+    let ok = |out: Output| {
+        assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+        out
+    };
+    ok(server.samu(&["tag", "add", "Büro"], None));
+    ok(server.samu(&["add", "Angebot schreiben @Büro"], None));
+    ok(server.samu(&["add", "Steuer @Büro"], None));
+    ok(server.samu(&["add", "Milch kaufen"], None));
+    ok(server.samu(&["perspective", "add", "Büro", "@Büro"], None));
+    ok(server.samu(
+        &[
+            "perspective",
+            "add",
+            "Morgen",
+            "--blocks",
+            ":inbox=Eingang",
+            "büro",
+            "milch | Einkauf",
+            "angebot",
+        ],
+        None,
+    ));
+    let lines = |name: &str| -> Vec<String> {
+        let blocks = json_out(&ok(
+            server.samu(&["perspective", "blocks", name, "--format", "json"], None)
+        ));
+        blocks
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| b["block"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    assert_eq!(
+        lines("Morgen"),
+        [":inbox | Eingang", "Büro", "milch | Einkauf", "angebot"]
+    );
+    let sections = || -> Vec<(String, usize)> {
+        let shown = json_out(&ok(server.samu(
+            &["list", "--perspective", "Morgen", "--format", "json"],
+            None,
+        )));
+        shown
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| {
+                (
+                    s["title"].as_str().unwrap().to_owned(),
+                    s["tasks"].as_array().unwrap().len(),
+                )
+            })
+            .collect()
+    };
+    // The inbox takes all three; with dedupe off each block shows its own.
+    ok(server.samu(&["perspective", "dedupe", "Morgen", "off"], None));
+    assert_eq!(
+        sections(),
+        [
+            ("Eingang".to_owned(), 3),
+            ("Büro".to_owned(), 2),
+            ("Einkauf".to_owned(), 1),
+            ("angebot".to_owned(), 1),
+        ]
+    );
+
+    // A chip in a search line that names no tag is not found; a blank
+    // heading, a block that is none, and a block of the wrong form are
+    // refused; nothing changed.
+    assert_eq!(
+        code(&server.samu(&["perspective", "blocks", "Morgen", "@Nirgends"], None)),
+        3
+    );
+    for refused in [
+        vec!["perspective", "blocks", "Morgen", "milch | "],
+        vec!["perspective", "detach", "Morgen", "1"],
+        vec!["perspective", "detach", "Morgen", "9"],
+        vec!["perspective", "extract", "Morgen", "2", "Neu"],
+        vec!["perspective", "extract", "Morgen", "3", "büro"],
+    ] {
+        assert_eq!(code(&server.samu(&refused, None)), 1, "{refused:?}");
+    }
+    assert_eq!(lines("Morgen").len(), 4);
+
+    // Detach: Büro becomes a copy of its search under the same heading.
+    ok(server.samu(&["perspective", "detach", "Morgen", "2"], None));
+    assert_eq!(lines("Morgen")[1], "@Büro | Büro");
+    assert_eq!(sections()[1], ("Büro".to_owned(), 2));
+    // Extract: the search becomes a perspective, the block points at it.
+    let made = json_out(&ok(server.samu(
+        &[
+            "perspective",
+            "extract",
+            "Morgen",
+            "4",
+            "Angebote",
+            "--format",
+            "json",
+        ],
+        None,
+    )));
+    assert_eq!(made[0]["title"], "Angebote");
+    assert_eq!(lines("Morgen")[3], "Angebote | angebot");
+    assert_eq!(sections()[3], ("angebot".to_owned(), 1));
+    let list = json_out(&ok(
+        server.samu(&["perspective", "list", "--format", "json"], None)
+    ));
+    let angebote = list
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["title"] == "Angebote")
+        .expect("the new perspective is listed");
+    assert_eq!(angebote["search"], "angebot");
 }
 
 /// ae5a3206: `samu block` lets a task wait for another, the server's
