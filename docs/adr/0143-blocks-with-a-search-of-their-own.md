@@ -1,7 +1,7 @@
 ---
 number: 0143
 title: Blocks with a search of their own – a block perspective's block can carry its search instead of pointing at a perspective, written line by line like org-super-agenda
-status: draft
+status: accepted
 date: 2026-11-23
 adds_to: ["0090", "0116", "0142"]
 ---
