@@ -56,6 +56,14 @@ check("a block perspective's field", searchOf({ title: "@today", chips: [chip], 
 check("a plain perspective's field", searchOf({ title: "@today", chips: [chip], text: "x" }).searchChips.length, 1);
 check("an unknown view", inView("forecast", doc.statuses[0]), null);
 
+// An empty block opens folded, whatever its arrow was left at, until a
+// click opens it; a block with hits keeps its arrow.
+const { blockFolded } = await import(new URL("web/lib/blocks.js", root));
+check("an empty block, left open", blockFolded(false, false, false), true);
+check("an empty block, opened by a click", blockFolded(false, true, true), false);
+check("a block with hits, left open", blockFolded(true, false, false), false);
+check("a block with hits, left folded", blockFolded(true, true, false), true);
+
 if (failed) {
   console.error(`${failed} failed`);
   process.exit(1);

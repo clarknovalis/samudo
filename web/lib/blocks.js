@@ -35,6 +35,11 @@ export function inView(view, status) {
 
 export const isBlocks = (p) => Boolean(p?.blocks?.length);
 
+// Whether a block is drawn folded. One with hits as its arrow was left;
+// an empty one folded each time its perspective is opened, until a click
+// opens it for this visit (`opened`), and its arrow is not remembered.
+export const blockFolded = (hits, folded, opened) => (hits ? folded : !opened);
+
 // Whether a task passes a filter: available, remaining or all.
 export function passes(filter, status) {
   if (filter === "available") return isOpen(status.task) && Boolean(status.available);

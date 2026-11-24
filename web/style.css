@@ -1387,6 +1387,8 @@ body[data-demo="on"] #gate { min-height: calc(100vh - var(--demo-h, 0px)); }
 #list .block-head { border-bottom: 2px solid var(--line); }
 #list .block-head h3 { font-size: 15px; }
 #list .block-head h3.opens:hover { color: var(--accent); text-decoration: underline; }
+/* An empty block: its heading dimmed, as the "Nothing here." under it. */
+#list .block.no-hits .block-head h3:not(:hover), #list .block.no-hits .block-head .count { color: var(--faint); }
 #list .block-head .missing { color: var(--overdue); }
 #list .block-head button.more { border: 0; background: none; color: var(--muted); padding: 0 6px; }
 #list .block-head button.more:hover { color: var(--accent); }

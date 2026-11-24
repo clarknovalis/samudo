@@ -92,7 +92,8 @@ was aus jeder Zeile wird und wie viele Aufgaben sie zeigt; eine Zeile,
 die kein Block ist, wird markiert, und der Dialog sichert erst, wenn sie
 stimmt.
 
-In der Liste ist jeder Block ein Abschnitt zum Zuklappen; seine
+In der Liste ist jeder Block ein Abschnitt zum Zuklappen; ein leerer
+ist gedimmt und bei jedem Öffnen der Perspektive zugeklappt. Seine
 Überschrift öffnet die Perspektive oder Ansicht des Blocks, und seine
 Zeilen sind angeordnet wie in dieser Perspektive, als Liste oder Tabelle
 (ein Board erscheint als Liste). Eine eigene Suche ist so angeordnet,

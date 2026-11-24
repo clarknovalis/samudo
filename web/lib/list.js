@@ -15,7 +15,7 @@ import { calendarView } from "./calendar.js";
 import { setDone, toggleSequential } from "./detail.js";
 import { progress } from "./checklist.js";
 import { closeTableMenu, drawTable, drawTables, renderTableMenu, tableMenuOpen, toggleTableMenu } from "./table.js";
-import { assemble, isBlocks, passes } from "./blocks.js";
+import { assemble, blockFolded, isBlocks, passes } from "./blocks.js";
 import { openBlocks } from "./blockdialog.js";
 import { queryWords } from "./blocklines.js";
 import { columnsOf } from "./tabledata.js";
@@ -924,6 +924,10 @@ export function renderList() {
 
 function drawList() {
   order = [];
+  if (blocksShown()?.id !== emptyFor) {
+    emptyFor = blocksShown()?.id;
+    openedEmpty.clear();
+  }
   clearBoard();
   replace($("list-title"), title());
   const base = shown().kind === "perspective" && perspective() ? baseFilter(perspective()) : state.filter;
@@ -1043,6 +1047,16 @@ function openBlock(section) {
   else if (section.block?.view && VIEWS.some((v) => v.kind === section.block.view)) update({ view: { kind: section.block.view, project: null }, search: "", searchChips: [], selected: null });
 }
 
+// The empty blocks opened by a click since the block perspective
+// `emptyFor` was opened; another view forgets them.
+const openedEmpty = new Set();
+let emptyFor;
+
+function openEmpty(fold) {
+  if (!openedEmpty.delete(fold)) openedEmpty.add(fold);
+  renderList();
+}
+
 // A block perspective: each block a section with its heading and count,
 // its rows arranged as its perspective arranges them, as a list or a
 // table (a board is drawn as a list).
@@ -1060,14 +1074,17 @@ function drawBlocks(p) {
 function blockSection(p, block, i, table) {
   const prefix = `block:${p.id}:${i}:`;
   const fold = laneFold(`block:${p.id}:${i}`);
-  headings.push(fold);
-  const folded = state.folded.has(fold);
+  const count = new Set(block.tasks.map((s) => s.task.id)).size;
+  // An empty block opens folded and stays out of "fold all".
+  const hits = count > 0 || Boolean(block.missing);
+  if (hits) headings.push(fold);
+  const folded = blockFolded(hits, state.folded.has(fold), openedEmpty.has(fold));
+  const click = (event) => (hits ? foldClick(fold, event) : openEmpty(fold));
   const viewTitle = block.block?.view ? VIEWS.find((v) => v.kind === block.block.view)?.title : null;
   // A search of the block's own is called by its words in the page's
   // language (ADR 0143 §2).
   const queryTitle = block.query ? queryWords(block.block.query) || tr("Alle Aufgaben") : null;
   const name = block.block?.title ?? viewTitle ?? queryTitle ?? block.title;
-  const count = new Set(block.tasks.map((s) => s.task.id)).size;
   const opens = Boolean(block.target && !block.missing) || Boolean(viewTitle);
   const head = el("div", { class: "head block-head" }, [
     el("button", {
@@ -1077,13 +1094,13 @@ function blockSection(p, block, i, table) {
       "aria-expanded": String(!folded),
       title: tr("Alt-Klick: nur diesen Block offen"),
       text: folded ? "▸" : "▾",
-      onclick: (event) => foldClick(fold, event),
+      onclick: click,
     }),
     el("h3", {
       text: [block.icon, name].filter(Boolean).join(" "),
       class: opens ? "opens" : null,
       title: opens ? tr("öffnen") : null,
-      onclick: opens ? () => openBlock(block) : (event) => foldClick(fold, event),
+      onclick: opens ? () => openBlock(block) : click,
     }),
     el("span", { class: "count", text: String(count) }),
     block.missing ? el("span", { class: "missing", text: tr("fehlt") }) : null,
@@ -1099,7 +1116,8 @@ function blockSection(p, block, i, table) {
         })
       : null,
   ]);
-  if (folded || block.missing) return el("section", { class: `block${folded ? " folded" : ""}` }, [head]);
+  const kind = `block${folded ? " folded" : ""}${hits ? "" : " no-hits"}`;
+  if (folded || block.missing) return el("section", { class: kind }, [head]);
   const visited = order.length;
   const chosen = block.query ? { ...orderOf(block.query) } : block.target && !block.missing ? { ...orderOf(block.target) } : viewOrder();
   const compare = comparer(chosen);
@@ -1114,7 +1132,7 @@ function blockSection(p, block, i, table) {
     body = drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") });
   }
   if (order.length < visited) order.length = visited;
-  return el("section", { class: "block" }, [head, el("div", { class: "block-body" }, body)]);
+  return el("section", { class: kind }, [head, el("div", { class: "block-body" }, body)]);
 }
 
 // What the board needs of the list (ADR 0061 §1): the same view, filter

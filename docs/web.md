@@ -85,7 +85,8 @@ shows the blocks as lines, one per block, as described under
 line becomes and how many tasks it shows; a line that is no block is
 marked, and the dialog saves only once it is fixed.
 
-In the list each block is a section that folds; its heading opens the
+In the list each block is a section that folds; an empty one is dimmed
+and folded each time the perspective is opened. Its heading opens the
 block's perspective or view, and its rows are arranged as that
 perspective arranges them, as a list or a table (a board shows as a
 list). A block's own search is arranged as it says, and "⋯" in its
