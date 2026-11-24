@@ -10,7 +10,7 @@
 process.env.TZ = "UTC";
 
 const root = new URL("../../", import.meta.url);
-const { dateText, fileName, ids, json, org, orgActive, orgTag, render, text, tsv } = await import(new URL("web/lib/exporttext.js", root));
+const { dateText, fileName, ids, json, org, orgActive, orgTag, render, taskRows, text, tsv } = await import(new URL("web/lib/exporttext.js", root));
 
 let failed = 0;
 let checks = 0;
@@ -44,60 +44,21 @@ same("no rows, no text", ids([]), "");
 same(
   "text indents a child below its copied parent, [x] when closed, one line per task",
   text(rows),
-  ["- [ ] Plan the trip", "  - [x] Book a train", "    - [ ] Seat\twith\ta table", "- [ ] Pack, \"light\" really"].join("\n"),
+  ["- [ ] Plan the trip", "  - [x] Book a train", "    - [ ] Seat with a table", "- [ ] Pack, \"light\" really"].join("\n"),
 );
 same("a child copied alone stands at the left", text([rows[1]]), "- [x] Book a train");
 
-// --- Org ---
-const orgRows = [
-  {
-    id: A,
-    parent: null,
-    title: "Plan the trip",
-    tags: ["Ort/Büro", "home"],
-    object: {
-      id: A,
-      priority: "A",
-      created: "2026-03-01T08:30:00Z",
-      due: { date: "2026-03-06" },
-      planned: { at: "2026-03-02T14:30:00+01:00", zone: "Europe/Berlin" },
-      defer: { date: "2026-03-01" },
-      properties: { url: "https://example.org/trip", id: "mine" },
-      note: "First line\n* not a heading\n:END:",
-    },
-  },
-  { id: B, parent: A, title: "Book a train", tags: [], object: { id: B, completed_at: "2026-03-01T10:00:00Z", created: "2026-03-01T09:00:00Z" } },
-  { id: C, parent: null, title: "Dropped one", tags: [], object: { id: C, dropped_at: "2026-03-01T11:00:00Z" } },
-];
-same(
-  "org writes a task as export-org does",
-  org(orgRows),
-  [
-    "* TODO [#A] Plan the trip :Ort_Büro:home:",
-    "DEADLINE: <2026-03-06 Fri> SCHEDULED: <2026-03-02 Mon 14:30>",
-    ":PROPERTIES:",
-    ":CREATED: [2026-03-01 Sun 08:30]",
-    ":DEFER: <2026-03-01 Sun>",
-    ":ID: " + A,
-    ":samu_id: mine",
-    ":url: https://example.org/trip",
-    ":END:",
-    "First line",
-    " * not a heading",
-    " :END:",
-    "** DONE Book a train",
-    "CLOSED: [2026-03-01 Sun 10:00]",
-    ":PROPERTIES:",
-    ":CREATED: [2026-03-01 Sun 09:00]",
-    ":ID: " + B,
-    ":END:",
-    "* CANCELLED Dropped one",
-    "CLOSED: [2026-03-01 Sun 11:00]",
-    ":PROPERTIES:",
-    ":ID: " + C,
-    ":END:",
-  ].join("\n"),
-);
+// --- The cases shared with the CLI (testdata/export, ADR 0145 §8) ---
+const { readFileSync } = await import("node:fs");
+const shared = (name) => readFileSync(new URL(`testdata/export/${name}`, root), "utf8");
+const cases = JSON.parse(shared("tasks.json"));
+same("the shared cases are read in UTC", cases.zone, "UTC");
+const titles = new Map(cases.tags.map((t) => [t.id, t.title]));
+const sharedRows = taskRows(cases.tasks, (id) => titles.get(id));
+same("there are shared cases", sharedRows.length, 4);
+same("markdown as samu list --format md writes it", `${text(sharedRows)}\n`, shared("tasks.md"));
+same("org as samu list --format org writes it", `${org(sharedRows)}\n`, shared("tasks.org"));
+
 same("an org date with a time", orgActive({ at: "2026-11-20T09:00:00+01:00" }), "<2026-11-20 Fri 09:00>");
 same("no org date", orgActive(null), null);
 same("an org tag keeps letters, digits and _@#%", orgTag("a-b c@d#e%f_g"), "a_b_c@d#e%f_g");

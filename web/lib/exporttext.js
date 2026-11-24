@@ -34,6 +34,22 @@ function depths(rows) {
   });
 }
 
+// Rows from tasks as the API sends them, in the order given; `tagTitle`
+// gives the title of a tag by id, and the tags keep their own order.
+export function taskRows(tasks, tagTitle) {
+  return tasks.map((t) => ({
+    id: t.id,
+    parent: t.parent ?? null,
+    title: t.title,
+    closed: Boolean(t.completed_at || t.dropped_at),
+    tags: [...(t.tags ?? [])]
+      .sort((a, b) => a.position - b.position)
+      .map((g) => tagTitle(g.tag))
+      .filter(Boolean),
+    object: t,
+  }));
+}
+
 export const ids = (rows) => rows.map((r) => r.id).join(" ");
 
 // `- [ ] Title`, `- [x]` for a closed task; a row whose parent is copied
@@ -44,6 +60,8 @@ export function text(rows) {
 }
 
 // --- Org, as `samu export-org` writes a task (ADR 0074 §8) ---------------
+
+const REPEAT_MODES = ["fixed", "due_after_completion", "defer_after_completion"];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const weekday = (day) => WEEKDAYS[new Date(`${day}T12:00:00Z`).getUTCDay()];
@@ -82,12 +100,15 @@ function orgTask(r, level) {
   const props = new Map([["ID", r.id]]);
   if (orgInactive(t.created)) props.set("CREATED", orgInactive(t.created));
   if (orgActive(t.defer)) props.set("DEFER", orgActive(t.defer));
+  if (t.repeat) props.set("REPEAT", `${t.repeat.rule} (${REPEAT_MODES.includes(t.repeat.mode) ? t.repeat.mode : "unknown"})`);
   for (const [key, value] of Object.entries(t.properties ?? {})) {
     props.set(props.has(key.toUpperCase()) ? `samu_${key}` : key, value);
   }
+  if (t.flagged) props.set("FLAGGED", "t");
+  if (t.estimate) props.set("EFFORT", t.estimate);
   lines.push(":PROPERTIES:", ...[...props].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => `:${k}: ${oneLine(v)}`), ":END:");
   // Body text cannot open a heading or end a drawer (as export_org.rs).
-  for (const line of t.note ? String(t.note).split("\n") : []) {
+  for (const line of t.note ? linesOf(t.note) : []) {
     lines.push(line.startsWith("*") || line.trim().toLowerCase() === ":end:" ? ` ${line}` : line);
   }
   return lines.join("\n");
@@ -141,5 +162,9 @@ export function fileName(view, day, form) {
   return `samudo-${slug || "tasks"}-${day}.${ENDING[form] ?? "txt"}`;
 }
 
-const oneLine = (value) => String(value ?? "").replace(/\s*[\r\n]+\s*/g, " ");
+// As Rust's `split_whitespace` joined by spaces, so web and CLI agree.
+const oneLine = (value) => String(value ?? "").trim().split(/\s+/).filter(Boolean).join(" ");
+
+// As Rust's `str::lines`: no last empty line after a final line break.
+const linesOf = (text) => String(text).replace(/\r?\n$/, "").split(/\r?\n/);
 const cell = (value) => String(value ?? "").replace(/[\t\r\n]+/g, " ");

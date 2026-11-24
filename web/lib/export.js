@@ -7,10 +7,10 @@
 // the bar above the picks take their entries from here.
 
 import { $, el } from "./dom.js";
-import { ENDING, FORMS, fileName, render } from "./exporttext.js";
+import { ENDING, FORMS, fileName, render, taskRows } from "./exporttext.js";
 import { tr } from "./i18n.js";
 import { info } from "./message.js";
-import { byId, isOpen, state, update } from "./state.js";
+import { byId, state, update } from "./state.js";
 import { plainCells } from "./table.js";
 import { COLUMNS } from "./tabledata.js";
 import { today } from "./words.js";
@@ -26,15 +26,10 @@ export const FORM_LABEL = {
 // The statuses as the rows exporttext.js takes; the cells only for TSV.
 function rowsOf(statuses, form) {
   const cells = form === "tsv" ? plainCells(statuses) : new Map();
-  return statuses.map((s) => ({
-    id: s.task.id,
-    parent: s.task.parent ?? null,
-    title: s.task.title,
-    closed: !isOpen(s.task),
-    tags: [...(s.task.tags ?? [])].sort((a, b) => a.position - b.position).map((t) => byId(state.tags, t.tag)?.title).filter(Boolean),
-    cells: cells.get(s.task.id),
-    object: s.task,
-  }));
+  return taskRows(
+    statuses.map((s) => s.task),
+    (id) => byId(state.tags, id)?.title,
+  ).map((row) => ({ ...row, cells: cells.get(row.id) }));
 }
 
 const textOf = (statuses, form) => render(form, rowsOf(statuses, form), COLUMNS);
