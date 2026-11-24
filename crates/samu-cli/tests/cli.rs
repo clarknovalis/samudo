@@ -1264,6 +1264,39 @@ fn list_search_refuses_a_chip() {
 }
 
 #[test]
+fn list_writes_markdown_and_org_and_nothing_else_does() {
+    let server = signed_in_server();
+    assert_eq!(code(&server.samu(&["project", "add", "Reise"], None)), 0);
+    let made = json_out(&server.samu(&["add", "Zug buchen #reise !A", "--format", "json"], None));
+    let id = made[0]["id"].as_str().unwrap().to_string();
+    assert_eq!(
+        code(&server.samu(&["add", "Koffer packen", "--parent", &id], None)),
+        0
+    );
+    let md = server.samu(&["list", "--project", "Reise", "--format", "md"], None);
+    assert_eq!(code(&md), 0);
+    assert_eq!(stdout(&md), "- [ ] Zug buchen\n  - [ ] Koffer packen\n");
+    let org = server.samu(&["list", "--project", "Reise", "--format", "org"], None);
+    assert_eq!(code(&org), 0);
+    let org = stdout(&org);
+    assert!(org.starts_with("* TODO [#A] Zug buchen\n"), "{org}");
+    assert!(org.contains(&format!(":ID: {id}\n")), "{org}");
+    assert!(org.contains("\n** TODO Koffer packen\n"), "{org}");
+    // Elsewhere refused, with nothing on stdout.
+    for args in [
+        &["tag", "list", "--format", "org"][..],
+        &["projects", "--format", "md"][..],
+        &["list", "--bare", "--format", "md"][..],
+    ] {
+        let refused = server.samu(args, None);
+        assert_eq!(code(&refused), 2, "{args:?}");
+        assert!(stdout(&refused).is_empty(), "{args:?}");
+        let said = String::from_utf8_lossy(&refused.stderr).to_string();
+        assert!(said.contains("for `samu list` only"), "{args:?}: {said}");
+    }
+}
+
+#[test]
 fn add_reads_the_note_from_stdin() {
     let server = signed_in_server();
     // `--note -` reads the note from stdin, as `samu comment <id> -` does.

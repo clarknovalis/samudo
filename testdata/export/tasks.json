@@ -1,0 +1,67 @@
+{
+  "about": "Shared cases for the text forms of a list of tasks (ADR 0145 §8): `samu list --format md|org` and the web's export (web/lib/exporttext.js) must give tasks.md and tasks.org from these tasks, in this order. Synthetic data. A task whose parent is in the list goes one level below it. Stamps are written in `zone`.",
+  "zone": "UTC",
+  "tags": [
+    { "id": "01900000-0000-7000-8000-0000000000e1", "created": "2026-03-01T00:00:00Z", "modified": "2026-03-01T00:00:00Z", "title": "Ort/Büro", "status": "active" },
+    { "id": "01900000-0000-7000-8000-0000000000e2", "created": "2026-03-01T00:00:00Z", "modified": "2026-03-01T00:00:00Z", "title": "home", "status": "active" }
+  ],
+  "tasks": [
+    {
+      "id": "01900000-0000-7000-8000-00000000000a",
+      "created": "2026-03-01T08:30:00Z",
+      "modified": "2026-03-01T08:30:00Z",
+      "title": "Plan  the trip",
+      "priority": "A",
+      "flagged": true,
+      "estimate": "PT1H30M",
+      "due": { "date": "2026-03-06" },
+      "planned": { "at": "2026-03-02T14:30:00+01:00[Europe/Berlin]" },
+      "defer": { "date": "2026-03-01" },
+      "repeat": { "rule": "FREQ=WEEKLY;BYDAY=MO", "mode": "fixed" },
+      "tags": [
+        { "tag": "01900000-0000-7000-8000-0000000000e2", "position": 1 },
+        { "tag": "01900000-0000-7000-8000-0000000000e1", "position": 0 }
+      ],
+      "properties": { "id": "mine", "url": "https://example.org/trip" },
+      "note": "First line\n* not a heading\n:END:\n",
+      "sequential": false,
+      "complete_with_last_child": false,
+      "position": 0
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000b",
+      "created": "2026-03-01T09:00:00Z",
+      "modified": "2026-03-01T10:00:00Z",
+      "title": "Book a train",
+      "parent": "01900000-0000-7000-8000-00000000000a",
+      "completed_at": "2026-03-01T10:00:00Z",
+      "flagged": false,
+      "sequential": false,
+      "complete_with_last_child": false,
+      "position": 0
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000c",
+      "created": "2026-03-01T09:10:00Z",
+      "modified": "2026-03-01T11:00:00Z",
+      "title": "Seat\twith a table",
+      "parent": "01900000-0000-7000-8000-00000000000b",
+      "dropped_at": "2026-03-01T11:00:00Z",
+      "flagged": false,
+      "sequential": false,
+      "complete_with_last_child": false,
+      "position": 0
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000d",
+      "created": "2026-03-01T09:20:00Z",
+      "modified": "2026-03-01T09:20:00Z",
+      "title": "Pack, \"light\"\nreally",
+      "parent": "01900000-0000-7000-8000-0000000000ff",
+      "flagged": false,
+      "sequential": false,
+      "complete_with_last_child": false,
+      "position": 1
+    }
+  ]
+}

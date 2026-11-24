@@ -20,7 +20,28 @@ pub(crate) enum Format {
     Jsonl,
     /// Tab-separated columns, no header.
     Tsv,
+    /// Only `samu list`: a Markdown task list (ADR 0145 §8).
+    Md,
+    /// Only `samu list`: Org headings, as `samu export-org` writes a task.
+    Org,
 }
+
+/// `--format md` or `org` anywhere but `samu list` (ADR 0145 §8). Exit
+/// code 2.
+#[derive(Debug)]
+pub(crate) struct TextFormatElsewhere;
+
+impl std::fmt::Display for TextFormatElsewhere {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "--format md and --format org are for `samu list` only, \
+             and not with --bare or a block perspective"
+        )
+    }
+}
+
+impl std::error::Error for TextFormatElsewhere {}
 
 fn cell(value: Option<&Value>) -> String {
     match value {
@@ -72,6 +93,7 @@ pub(crate) fn emit(format: Format, records: &[Value], columns: &[&str]) -> Resul
                 writeln!(out, "{}", cells.join("\t").trim_end())?;
             }
         }
+        Format::Md | Format::Org => return Err(TextFormatElsewhere.into()),
         Format::Plain => {
             let rows: Vec<Vec<String>> = records
                 .iter()

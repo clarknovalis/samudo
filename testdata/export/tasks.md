@@ -1,0 +1,4 @@
+- [ ] Plan the trip
+  - [x] Book a train
+    - [x] Seat with a table
+- [ ] Pack, "light" really

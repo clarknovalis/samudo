@@ -27,6 +27,7 @@ mod full;
 mod grant;
 mod habits;
 mod import;
+mod list_text;
 mod org;
 mod output;
 mod perspectives;
@@ -1298,6 +1299,7 @@ fn print_blocks(
                 columns.extend(COLUMNS);
                 emit(format, &records, &columns)?;
             }
+            Format::Md | Format::Org => return Err(output::TextFormatElsewhere.into()),
             Format::Json | Format::Jsonl => out.push(json!({
                 "title": section.title,
                 "icon": section.icon,
@@ -1562,6 +1564,12 @@ fn read_changes(file: &str) -> Result<Vec<Change>> {
 }
 
 fn run(args: Args) -> Result<()> {
+    // Only the list has a text form of its tasks (ADR 0145 §8).
+    if matches!(args.format, Format::Md | Format::Org)
+        && !matches!(args.command, Command::List { .. })
+    {
+        return Err(output::TextFormatElsewhere.into());
+    }
     let config = Config::load(args.server, args.account, args.profile)?;
     match args.command {
         Command::Health => {
@@ -2423,6 +2431,23 @@ fn run(args: Args) -> Result<()> {
             for line in elsewhere_hint(&elsewhere, &page) {
                 eprintln!("{line}");
             }
+            if matches!(args.format, Format::Md | Format::Org) {
+                let tasks: Vec<&samu_api::Task> = statuses.iter().map(|s| &s.task).collect();
+                let text = if args.format == Format::Md {
+                    list_text::markdown(&tasks)
+                } else {
+                    let session: SessionInfo =
+                        serde_json::from_value(client.call("GET", "/session", None)?.json()?)?;
+                    let zone = session
+                        .zone
+                        .as_deref()
+                        .and_then(|z| jiff::tz::TimeZone::get(z).ok())
+                        .unwrap_or_else(jiff::tz::TimeZone::system);
+                    export_org::task_list(&tasks, &names.tags, zone)
+                };
+                print!("{text}");
+                return Ok(());
+            }
             let mut records: Vec<Value> =
                 statuses.iter().map(|s| status_record(s, &names)).collect();
             if let Some(columns) = columns {
@@ -2753,6 +2778,12 @@ fn exit_code(error: &anyhow::Error) -> u8 {
     if error.downcast_ref::<ChipInSearch>().is_some() {
         return exit::USAGE;
     }
+    if error
+        .downcast_ref::<output::TextFormatElsewhere>()
+        .is_some()
+    {
+        return exit::USAGE;
+    }
     if error.downcast_ref::<close::NeedsChoice>().is_some() {
         return exit::NEEDS_CHOICE;
     }
@@ -2946,6 +2977,7 @@ mod tests {
             exit::UNAUTHORIZED
         );
         assert_eq!(exit_code(&close::NeedsChoice(1).into()), exit::NEEDS_CHOICE);
+        assert_eq!(exit_code(&output::TextFormatElsewhere.into()), exit::USAGE);
         assert_eq!(exit::NEEDS_CHOICE, 7);
         assert_eq!(exit_code(&anyhow::anyhow!("x")), exit::FAILURE);
         assert_eq!(

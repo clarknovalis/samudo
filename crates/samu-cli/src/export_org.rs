@@ -99,7 +99,7 @@ fn org_tag(title: &str) -> String {
 }
 
 /// A heading title on one line.
-fn one_line(text: &str) -> String {
+pub(crate) fn one_line(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
@@ -270,6 +270,15 @@ fn task_keyword(task: &Task) -> &'static str {
 }
 
 fn write_task(out: &mut String, index: &Index<'_>, task: &Task, level: usize) {
+    write_task_alone(out, index, task, level);
+    hanging(out, index, task.id);
+    for child in index.tasks.iter().filter(|t| t.parent == Some(task.id)) {
+        write_task(out, index, child, level + 1);
+    }
+}
+
+/// A task's heading, planning, drawer and note; no comments, no children.
+fn write_task_alone(out: &mut String, index: &Index<'_>, task: &Task, level: usize) {
     heading(
         out,
         level,
@@ -301,10 +310,27 @@ fn write_task(out: &mut String, index: &Index<'_>, task: &Task, level: usize) {
     if let Some(note) = &task.note {
         body(out, note);
     }
-    hanging(out, index, task.id);
-    for child in index.tasks.iter().filter(|t| t.parent == Some(task.id)) {
-        write_task(out, index, child, level + 1);
+}
+
+/// The tasks of a list as Org headings (ADR 0145 §8), for
+/// `samu list --format org`: one per task in the order given, a level
+/// deeper below a parent in the list, written as the export writes a
+/// task but without its comments and attachments. Stamps in `zone`.
+pub(crate) fn task_list(tasks: &[&Task], tags: &HashMap<Id, Tag>, zone: TimeZone) -> String {
+    let index = Index {
+        zone,
+        folders: Vec::new(),
+        projects: Vec::new(),
+        tasks: Vec::new(),
+        tags: tags.iter().map(|(id, tag)| (*id, tag)).collect(),
+        comments: HashMap::new(),
+        attachments: HashMap::new(),
+    };
+    let mut out = String::new();
+    for (task, depth) in tasks.iter().zip(crate::list_text::depths(tasks)) {
+        write_task_alone(&mut out, &index, task, depth + 1);
     }
+    out
 }
 
 fn write_project(out: &mut String, index: &Index<'_>, project: &Project, level: usize) {
