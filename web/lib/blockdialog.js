@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// The dialog „Blöcke …“ of a block perspective (ADR 0116 §6, ADR 0143):
-// its blocks in order, each another perspective, a fixed view or a search
-// of its own, with an optional heading. As a list: adding, dragging or
+// The dialog „Blöcke …“ of a block perspective (ADR 0116 §6, ADR 0143,
+// ADR 0146 §4): its blocks in order, each another perspective, a fixed
+// view, a search of its own or the note of a project or task, with an
+// optional heading. As a list: adding, dragging or
 // ↑ ↓ to order, removing, a search's filter, arrangement and view,
 // „Lösen“ (a reference becomes a search of its own) and „Als Perspektive
 // sichern“ (a search becomes a perspective). As text: one line per block
@@ -19,7 +20,7 @@ import { assemble, isBlocks, knownView, passes, VIEWS } from "./blocks.js";
 import { detached, fromLines, lineOf, parseLine, queryWords } from "./blocklines.js";
 import { GROUPS, SORTS } from "./list.js";
 import { filterOf, holds, perspectiveOf, perspectives, perspectiveValue } from "./perspectives.js";
-import { state, update } from "./state.js";
+import { noteSource, state, update } from "./state.js";
 
 const VIEW_TITLES = { inbox: () => "Inbox", today: () => tr("Heute"), flagged: () => tr("Markiert") };
 const viewTitle = (view) => VIEW_TITLES[view]?.() ?? view;
@@ -68,7 +69,7 @@ export function openBlocks(p, { extract = null } = {}) {
   const preview = el("ul", { class: "block-preview" });
   const help = el("p", {
     class: "hint",
-    text: tr("Eine Zeile je Block: „:today“ ist die Ansicht, der Name einer Perspektive verweist auf sie, alles andere ist eine eigene Suche. Nach „ | “ steht die Überschrift."),
+    text: tr("Eine Zeile je Block: „:today“ ist die Ansicht, „:note #Projekt“ die Notiz des Projekts, der Name einer Perspektive verweist auf sie, alles andere ist eine eigene Suche. Nach „ | “ steht die Überschrift."),
   });
   // What the text does not hold (§3).
   const kept = el("p", {
@@ -95,6 +96,10 @@ export function openBlocks(p, { extract = null } = {}) {
 
   // The name a block shows when it has no heading of its own.
   function nameOf(block) {
+    if (block.note) {
+      const found = noteSource(block.note);
+      return found ? [found.icon, found.title].filter(Boolean).join(" ") : tr("fehlt");
+    }
     if (block.view) return knownView(block.view) ? viewTitle(block.view) : `${block.view} (${tr("fehlt")})`;
     if (block.query) return queryWords(block.query) || tr("Alle Aufgaben");
     const target = known(block.perspective);
@@ -292,7 +297,7 @@ export function openBlocks(p, { extract = null } = {}) {
   // The preview below the text: what each line becomes and its hits now.
   function drawPreview() {
     const { rows } = fromLines(text.value, blocks, all(), p.id);
-    const kinds = { view: tr("Ansicht"), perspective: tr("Perspektive"), query: tr("Suche") };
+    const kinds = { view: tr("Ansicht"), note: tr("Notiz"), perspective: tr("Perspektive"), query: tr("Suche") };
     replace(
       preview,
       rows.length
@@ -360,12 +365,19 @@ export function openBlocks(p, { extract = null } = {}) {
     // What can be added: a search of its own, the fixed views, and every
     // plain perspective but this one (§2).
     const plain = all().filter((o) => o.id !== p.id && !isBlocks(o));
+    // A task's note is added by its line (ADR 0146 §4).
+    const projects = state.projects
+      .filter((o) => o.status === "active" || o.status === "on_hold")
+      .sort((a, b) => a.title.localeCompare(b.title));
     replace(choice, [
       el("option", { value: "", text: tr("Block hinzufügen …") }),
       el("option", { value: "query:", text: tr("Eigene Suche") }),
       el("optgroup", { label: tr("Ansichten") }, VIEWS.map((v) => el("option", { value: `view:${v}`, text: viewTitle(v) }))),
       plain.length
         ? el("optgroup", { label: tr("Perspektiven") }, plain.map((o) => el("option", { value: `perspective:${o.id}`, text: [o.icon, o.title].filter(Boolean).join(" ") })))
+        : null,
+      projects.length
+        ? el("optgroup", { label: tr("Notiz eines Projekts") }, projects.map((o) => el("option", { value: `note:${o.id}`, text: [o.icon, o.title].filter(Boolean).join(" ") })))
         : null,
     ]);
   }
@@ -375,6 +387,7 @@ export function openBlocks(p, { extract = null } = {}) {
     if (kind === "view") blocks.push({ view: value });
     if (kind === "perspective") blocks.push({ perspective: value });
     if (kind === "query") blocks.push({ query: {} });
+    if (kind === "note") blocks.push({ note: value });
     draw();
     if (kind === "query") list.querySelector("li:last-child .block-query input")?.focus();
     else choice.focus();

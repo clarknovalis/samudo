@@ -255,6 +255,15 @@ export function chooseOrder(key, patch) {
 
 // Lookups the views share.
 export const byId = (list, id) => list.find((o) => o.id === id);
+// What a note block shows of a project or task (ADR 0146 §2), whatever
+// the scope: { title, icon, note } or null when there is none such.
+export function noteSource(id) {
+  const project = byId(state.projects, id);
+  if (project) return { title: project.title, icon: project.icon ?? null, note: project.note ?? "" };
+  const task = byId(state.tasks, id);
+  return task ? { title: task.title, icon: null, note: task.note ?? "" } : null;
+}
+
 export const statusOf = (id) => state.statuses.find((s) => s.task.id === id);
 export const tagTitle = (id) => byId(state.tags, id)?.title ?? "?";
 // ADR 0094: the mark of a folder, project or tag with an own scope —

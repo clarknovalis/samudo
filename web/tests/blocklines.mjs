@@ -69,6 +69,26 @@ check("detached", detached({ perspective: office.id }, office), {
 });
 check("detached keeps a heading", detached({ perspective: office.id, title: "Kurz" }, office).title, "Kurz");
 
+// A note block (ADR 0146 §4): `:note #Project` as the search writes it,
+// or the start or end of a project's or task's id; it reads back.
+const { state } = await import(new URL("web/lib/state.js", root));
+state.projects = [{ id: "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c01", title: "Wochen Rückblick", note: "- [ ] Eingang" }];
+state.tasks = [
+  { id: "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c02", title: "Tagesfokus" },
+  { id: "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c12", title: "Andere" },
+];
+const [review, focus] = [state.projects[0].id, state.tasks[0].id];
+check("a project's note", parseLine(':note #"Wochen Rückblick" | Checkliste', perspectives).block, { note: review, title: "Checkliste" });
+check("a task's note by the end of its id", parseLine(":note 4c5b7c02", perspectives), { kind: "note", block: { note: focus } });
+check("by its full id", parseLine(`:note samu:${focus}`, perspectives).block, { note: focus });
+for (const bad of [":note", ":note #Nirgends", ":note @Büro", ":note ffffffff", ":note 01936f5e", ":notes"]) {
+  check(`refused: ${bad}`, parseLine(bad, perspectives).kind, "error");
+}
+const notes = [{ note: review, title: "Checkliste" }, { note: focus }, { view: "today" }];
+const noteText = notes.map((b) => lineOf(b, perspectiveOf, "de")).join("\n");
+check("note lines", noteText.split("\n"), [':note #"Wochen Rückblick" | Checkliste', ":note 4c5b7c02", ":today"]);
+check("note lines read back", fromLines(noteText, notes, perspectives).blocks, notes);
+
 if (failed) {
   console.error(`${failed} of ${checked} failed`);
   process.exit(1);

@@ -11,6 +11,8 @@ import { startNew, writableCalendars } from "./appointment.js";
 import { boardConfig, boardFull, boardView, clearBoard, closeBoardMenu, renderBoardMenu, setBoardFull, toggleBoardMenu } from "./board.js";
 import { rowClick, rowDrag } from "./bulk.js";
 import { $, el, replace } from "./dom.js";
+import { openObject } from "./address.js";
+import { noteEditor } from "./noteedit.js";
 import { calendarView } from "./calendar.js";
 import { setDone, toggleSequential } from "./detail.js";
 import { progress } from "./checklist.js";
@@ -25,7 +27,7 @@ import { asksForClosed, asksForWaiting, chipText, minutes, rangeOf, wantsAppoint
 import { rowDrop } from "./reorder.js";
 import { baseFilter, captureFrom, current as perspective, filterOf, holds, orderOf, perspectives, searchOf } from "./perspectives.js";
 import { forecastDay, inView, reviewProjects, startPerspectiveDraft, stuckProjects, VIEWS } from "./sidebar.js";
-import { byId, chooseOrder, chooseScope, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
+import { byId, chooseOrder, chooseScope, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, noteSource, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
 import { addDays, dueText, pathOf, shortDay, tagPath, today } from "./words.js";
 import { fieldParts } from "./rowfields.js";
 import { closeRowMenu, renderRowMenu, rowLayout, rowMenuOpen, toggleRowMenu } from "./rowmenu.js";
@@ -1064,14 +1066,54 @@ function drawBlocks(p) {
   place = "full";
   const statuses = state.statuses.filter((s) => !s.outside);
   const shows = (q, s) => holds(q, s) && passes(filterOf(q), s);
-  const sections = assemble(p, perspectives(), statuses, shows);
+  const sections = assemble(p, perspectives(), statuses, shows, undefined, noteSource);
   drawTables($("list"), (table) => {
     const drawn = sections.map((block, i) => blockSection(p, block, i, table));
     return drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") });
   });
 }
 
+// A note block (ADR 0146 §2, §3): its heading opens the project or task,
+// no count, and the note rendered and edited in place. It has no rows,
+// so j/k pass it by.
+function noteBlock(p, block, i) {
+  const fold = laneFold(`block:${p.id}:${i}`);
+  headings.push(fold);
+  const folded = state.folded.has(fold);
+  const opens = !block.missing;
+  const head = el("div", { class: "head block-head" }, [
+    el("button", {
+      type: "button",
+      class: "fold",
+      "aria-label": folded ? tr("aufklappen") : tr("zuklappen"),
+      "aria-expanded": String(!folded),
+      title: tr("Alt-Klick: nur diesen Block offen"),
+      text: folded ? "▸" : "▾",
+      onclick: (event) => foldClick(fold, event),
+    }),
+    el("h3", {
+      text: [block.icon, block.title].filter(Boolean).join(" "),
+      class: opens ? "opens" : null,
+      title: opens ? tr("öffnen") : null,
+      onclick: opens ? () => openObject(block.block.note) : (event) => foldClick(fold, event),
+    }),
+    block.missing ? el("span", { class: "missing", text: tr("fehlt") }) : null,
+  ]);
+  const kind = `block note-block${folded ? " folded" : ""}`;
+  if (folded || block.missing) return el("section", { class: kind }, [head]);
+  const note = noteEditor({
+    key: `block:${p.id}:${i}`,
+    id: block.block.note,
+    text: block.note ?? "",
+    write: (changes) => api.write(changes).catch((error) => update({ message: error.message })),
+    field: `block-note-${i}`,
+    quiet: true,
+  });
+  return el("section", { class: kind }, [head, el("div", { class: "block-body" }, note)]);
+}
+
 function blockSection(p, block, i, table) {
+  if (block.block?.note) return noteBlock(p, block, i);
   const prefix = `block:${p.id}:${i}:`;
   const fold = laneFold(`block:${p.id}:${i}`);
   const count = new Set(block.tasks.map((s) => s.task.id)).size;

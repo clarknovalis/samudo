@@ -13,7 +13,7 @@ import { closeTasks } from "./closeask.js";
 import { clockSection } from "./clock.js";
 import { checklistBody, checklistTitle, toItemButton } from "./checklistview.js";
 import { commentSections } from "./comments.js";
-import { $, el, icon, replace } from "./dom.js";
+import { $, el, replace } from "./dom.js";
 import { blockersOf, moveTo, openBlockPalette, openPalette, withScope } from "./palette.js";
 import { openObject } from "./address.js";
 import { newTagField } from "./placeops.js";
@@ -23,7 +23,7 @@ import { atTime, onDay, timeOf } from "./zoned.js";
 import { propertyBlock } from "./props.js";
 import { reminderSection } from "./remind.js";
 import { DAYS, FREQS, MODES, buildRule, formFits, nextText, parseRule, repeatText } from "./repeat.js";
-import { richText } from "./rich.js";
+import { noteEditor } from "./noteedit.js";
 import { byId, heldUpBy, isOpen, shown, state, statusOf, tagTitle, update } from "./state.js";
 import { dayOf, estimateText, logWords, parseEstimate, periodText, placeOf, reasonText, stamp } from "./words.js";
 import { tr } from "./i18n.js";
@@ -641,72 +641,17 @@ function facts(rows) {
 }
 
 // The note (ADR 0058 §6): rendered, and the field to type in after the
-// pencil or a double click; an empty note is the field at once. Leaving
-// the field saves as before and shows it rendered again.
-let noteEditing = null;
-let noteSaving = null;
-const PENCIL = ["M4 20h4L19 9l-4-4L4 16v4z", "M13.5 6.5l4 4"];
-
-function editNote(id) {
-  noteEditing = id;
-  update({});
-  requestAnimationFrame(() => {
-    const field = $("detail-note");
-    if (!field) return;
-    field.focus();
-    field.setSelectionRange(field.value.length, field.value.length);
-  });
-}
-
+// pencil or a double click (noteedit.js). ADR 0072 §2: in a scope that
+// wants the note rendered, an empty one is a quiet line, not a field.
 function noteView(task) {
-  const text = task.note ?? "";
-  // ADR 0072 §2: in a scope that wants the note rendered, an empty one is
-  // a quiet line, not a field.
-  if (!text.trim() && noteEditing !== task.id && noteMode() === "rendered") {
-    return el("button", { type: "button", class: "link note-start", text: tr("Notiz schreiben"), onclick: () => editNote(task.id) });
-  }
-  if (!text.trim() || noteEditing === task.id) {
-    return el("textarea", {
-      id: "detail-note",
-      rows: Math.max(6, Math.min(24, text.split("\n").length + 1)),
-      "aria-label": tr("Notiz"),
-      text,
-      onchange: (event) => {
-        noteSaving = write([change.set(task.id, "note", event.target.value || null)]);
-      },
-      onblur: async () => {
-        if (noteEditing !== task.id) return;
-        await noteSaving;
-        noteSaving = null;
-        noteEditing = null;
-        update({});
-      },
-    });
-  }
-  return el(
-    "div",
-    {
-      class: "note-view",
-      ondblclick: (event) => {
-        if (event.target.closest("a, input, summary, button")) return;
-        editNote(task.id);
-      },
-    },
-    [
-      el(
-        "button",
-        {
-          type: "button",
-          class: "edit-toggle",
-          title: tr("Bearbeiten (Doppelklick)"),
-          "aria-label": tr("Notiz bearbeiten"),
-          onclick: () => editNote(task.id),
-        },
-        icon(PENCIL),
-      ),
-      richText(text, { onText: (next) => write([change.set(task.id, "note", next)]) }),
-    ],
-  );
+  return noteEditor({
+    key: `detail:${task.id}`,
+    id: task.id,
+    text: task.note ?? "",
+    write,
+    field: "detail-note",
+    quiet: noteMode() === "rendered",
+  });
 }
 
 // The tasks this one waits for (ae5a3206): each opens on a click, ✕ takes

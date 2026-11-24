@@ -1134,7 +1134,12 @@ export const EN = {
   "Als Block in …": "As a block in …",
   "Neue Block-Perspektive …": "New block perspective …",
   "Blöcke als Text, eine Zeile je Block": "Blocks as text, one line per block",
-  "Eine Zeile je Block: „:today“ ist die Ansicht, der Name einer Perspektive verweist auf sie, alles andere ist eine eigene Suche. Nach „ | “ steht die Überschrift.": "One line per block: “:today” is the view, the name of a perspective points at it, anything else is a search of its own. A heading follows “ | ”.",
+  "Eine Zeile je Block: „:today“ ist die Ansicht, „:note #Projekt“ die Notiz des Projekts, der Name einer Perspektive verweist auf sie, alles andere ist eine eigene Suche. Nach „ | “ steht die Überschrift.": "One line per block: “:today” is the view, “:note #Project” the project's note, the name of a perspective points at it, anything else is a search of its own. A heading follows “ | ”.",
+  // Note blocks (ADR 0146).
+  "„:note“ nennt kein Projekt und keine Aufgabe.": "“:note” names no project and no task.",
+  "Kein Projekt und keine Aufgabe „{id}“.": "No project and no task “{id}”.",
+  "„{id}“ passt auf mehrere: {ids}": "“{id}” matches several: {ids}",
+  "Notiz eines Projekts": "A project's note",
   "Alle Aufgaben": "All tasks",
   "Suche, wie im Suchfeld": "Search, as in the search field",
   "Filter, Gruppieren, Sortieren und Darstellung einer Suche stellst du in der Listenansicht ein; sie bleiben erhalten, solange die Suche gleich bleibt.": "A search's filter, grouping, sorting and display are set in the list; they stay as long as the search stays the same.",
