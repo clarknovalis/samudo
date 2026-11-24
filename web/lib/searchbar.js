@@ -11,7 +11,7 @@ import { $, el, replace } from "./dom.js";
 import { chosenOrder } from "./list.js";
 import { isBlocks } from "./blocks.js";
 import { addAsBlock, asQuery, captureFrom, discardSearch, edited, perspectives, saveSearch } from "./perspectives.js";
-import { addAt, chipClass, chipText, isOr, mayOr, offers, parseWord, tidy, WORD } from "./query.js";
+import { addAt, chipClass, chipText, finishedByEnter, isOr, mayOr, offers, parseWord, tidy, WORD } from "./query.js";
 import { startPerspectiveDraft } from "./sidebar.js";
 import { shown, state, update } from "./state.js";
 import { tr } from "./i18n.js";
@@ -318,6 +318,15 @@ export function wireSearch() {
       } else return;
       event.preventDefault();
       event.stopPropagation();
+      return;
+    }
+    // Nothing offered: Enter makes the word a chip as a space would.
+    const finished = key === "Enter" && finishedByEnter(input.value, input.selectionStart ?? input.value.length);
+    if (finished) {
+      event.preventDefault();
+      input.value = finished.value;
+      input.setSelectionRange(finished.caret, finished.caret);
+      refresh();
       return;
     }
     if (key === "Escape") {

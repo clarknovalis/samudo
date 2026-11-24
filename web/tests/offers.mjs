@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 
 const root = new URL("../../", import.meta.url);
 const { state } = await import(new URL("web/lib/state.js", root));
-const { offers } = await import(new URL("web/lib/query.js", root));
+const { finishedByEnter, offers } = await import(new URL("web/lib/query.js", root));
 const doc = JSON.parse(readFileSync(new URL("testdata/query/offers.json", root), "utf8"));
 
 const inherited = (task) => {
@@ -43,6 +43,22 @@ for (const c of doc.cases) {
   if (got !== want) {
     failed += 1;
     console.error(`offers for ${JSON.stringify(c.word)}\n  got  ${got}\n  want ${want}`);
+  }
+}
+// Enter with nothing offered finishes a chip as a space does: `id:` with
+// a value offers nothing, and Enter used to leave it as text.
+for (const [value, caret, want] of [
+  ["id:a6d1df046c98", 15, { value: "id:a6d1df046c98 ", caret: 16 }],
+  ["milch id:00000000abcd", 21, { value: "milch id:00000000abcd ", caret: 22 }],
+  ["id:00000000abcd milch", 5, { value: "id:00000000abcd  milch", caret: 16 }],
+  ["milch", 5, null],
+  ["id:abc", 6, null],
+  ["", 0, null],
+]) {
+  const got = JSON.stringify(finishedByEnter(value, caret));
+  if (got !== JSON.stringify(want)) {
+    failed += 1;
+    console.error(`not ok  Enter in ${JSON.stringify(value)} at ${caret}: ${got}, want ${JSON.stringify(want)}`);
   }
 }
 if (doc.cases.length < 10) {

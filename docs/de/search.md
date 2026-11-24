@@ -32,7 +32,8 @@ Anführungszeichen: `"oder"` (siehe [Oder](#oder)).
 
 Ein Wort wird zum Chip, sobald man es aus der Liste unter dem Feld nimmt
 (im Web ↑ ↓, Tab oder Enter; in der App durch Tippen) oder mit einem
-Leerzeichen abschließt. Beim Tippen bietet die Liste an, was zum Wort
+Leerzeichen abschließt; im Web schließt Enter es auch ab, wenn die Liste
+nichts anbietet, wie bei `id:…`. Beim Tippen bietet die Liste an, was zum Wort
 passt: die Arten, dann Projekte, Tags, Ordner, Zustände und die Werte
 eines Datums. Bei leerem Feld zeigt das Web die Arten; die App zeigt
 schnelle Filter, die letzten Suchen und die Perspektiven (siehe

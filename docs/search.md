@@ -29,7 +29,9 @@ the word `or` itself, put it in quotes: `"or"` (see [Or](#or)).
 ## Chips
 
 A word becomes a chip once you take it from the list under the field (in
-the web ↑ ↓, Tab or Enter; in the app a tap) or finish it with a space.
+the web ↑ ↓, Tab or Enter; in the app a tap) or finish it with a space;
+in the web Enter finishes it too when the list offers nothing, as for
+`id:…`.
 While you type, the list offers what fits the word: the kinds, then
 projects, tags, folders, states and the values of a date. With an empty
 field the web lists the kinds; the app shows quick filters, recent

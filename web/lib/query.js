@@ -709,6 +709,21 @@ export const asksForWaiting = (chips) =>
       ((c.kind === "is" && (c.value === "wartet" || c.value === "blockiert")) || (c.kind === "defer" && c.value !== "ohne")),
   );
 
+// Enter in the search field with nothing offered finishes the word at the
+// caret as a space would, when it is a chip the language knows: `id:…`
+// offers nothing to take, so Enter left it as text that found nothing. The
+// field with a space after the word, ready for the chips to be taken, and
+// the caret after it; null when the word is no chip.
+export function finishedByEnter(value, caret) {
+  for (const m of value.matchAll(WORD)) {
+    const end = m.index + m[0].length;
+    if (m.index <= caret && caret <= end) {
+      return parseWord(m[0]) ? { value: `${value.slice(0, end)} ${value.slice(end)}`, caret: end + 1 } : null;
+    }
+  }
+  return null;
+}
+
 // --- What to offer ----------------------------------------------------
 
 const MAX = 8;
