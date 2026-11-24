@@ -19,6 +19,7 @@ import { openObject } from "./address.js";
 import { newTagField } from "./placeops.js";
 import { seriesSection } from "./habits.js";
 import { foldLine, noteMode, shownParts } from "./layout.js";
+import { onDay } from "./zoned.js";
 import { propertyBlock } from "./props.js";
 import { reminderSection } from "./remind.js";
 import { DAYS, FREQS, MODES, buildRule, formFits, nextText, parseRule, repeatText } from "./repeat.js";
@@ -63,9 +64,10 @@ export async function flushDetail() {
   await Promise.all([...inFlight]);
 }
 
+// A new day keeps the time the date had (ADR 0144 §3).
 function sendDate(input, id, name) {
   input.dataset.sent = input.value;
-  return write([change.set(id, name, input.value ? { date: input.value } : null)]);
+  return write([change.set(id, name, onDay(byId(state.tasks, id)?.[name], input.value))]);
 }
 
 // Completes a task, asking about open tasks below (ADR 0128), or opens it

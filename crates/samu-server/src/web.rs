@@ -352,6 +352,11 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
         include_str!("../../../web/lib/words.js"),
         JS,
     ),
+    (
+        "lib/zoned.js",
+        include_str!("../../../web/lib/zoned.js"),
+        JS,
+    ),
 ];
 
 const HTML: &str = "text/html; charset=utf-8";

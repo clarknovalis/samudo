@@ -77,6 +77,7 @@ web-check:
 	node web/tests/blocks.mjs
 	node web/tests/blocklines.mjs
 	node web/tests/close.mjs
+	node web/tests/zoned.mjs
 	node web/tests/together.mjs
 	node web/tests/checklist.mjs
 	node web/tests/text.mjs
