@@ -10,9 +10,9 @@
 // (query.js), and by samu-core for the other clients (§2, §3).
 
 import { api, change } from "./api.js";
-import { isBlocks } from "./blocks.js";
+import { isBlocks, passes } from "./blocks.js";
 import { uuidv7 } from "./dom.js";
-import { asksForClosed, asksForWaiting, matcher, withGroups, withOrs } from "./query.js";
+import { asksForClosed, asksForWaiting, matcher, namesTask, withGroups, withOrs } from "./query.js";
 import { byId, state, update } from "./state.js";
 
 export const byPosition = (a, b) => a.position - b.position || a.title.localeCompare(b.title);
@@ -50,6 +50,23 @@ export function holds(p, status) {
   }
   return made.test(status);
 }
+
+// Whether a word of the perspective's text names the task by its id; the
+// open one is judged by the field (6aec8bd3).
+const nameTests = new Map();
+export function named(p, status) {
+  const text = current()?.id === p.id ? state.search : p.text ?? "";
+  let made = nameTests.get(p.id);
+  if (!made || made.text !== text) {
+    made = { text, test: namesTask(text) };
+    nameTests.set(p.id, made);
+  }
+  return made.test(status);
+}
+
+// Whether the perspective shows a task: its chips and text, and its
+// filter, which a task its text names by id passes (6aec8bd3).
+export const perspectiveShows = (p, status) => holds(p, status) && (passes(filterOf(p), status) || named(p, status));
 
 // --- Arrangement: the browser's form and the wire's (ADR 0090 §1) ------
 

@@ -23,9 +23,9 @@ import { queryWords } from "./blocklines.js";
 import { columnsOf } from "./tabledata.js";
 import { habitControl, habitOf } from "./habits.js";
 import { reportView } from "./report.js";
-import { asksForClosed, asksForWaiting, chipText, minutes, rangeOf, wantsAppointments } from "./query.js";
+import { asksForClosed, asksForWaiting, chipText, minutes, namesTask, rangeOf, wantsAppointments } from "./query.js";
 import { rowDrop } from "./reorder.js";
-import { baseFilter, captureFrom, current as perspective, filterOf, holds, orderOf, perspectives, searchOf } from "./perspectives.js";
+import { baseFilter, captureFrom, current as perspective, filterOf, named, orderOf, perspectiveShows, perspectives, searchOf } from "./perspectives.js";
 import { forecastDay, inView, reviewProjects, startPerspectiveDraft, stuckProjects, VIEWS } from "./sidebar.js";
 import { byId, chooseOrder, chooseScope, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, noteSource, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
 import { addDays, dueText, pathOf, shortDay, tagPath, today } from "./words.js";
@@ -47,7 +47,17 @@ function filterNow() {
   return state.filter;
 }
 
-const matches = (status) => passes(filterNow(), status);
+// A task the search or the perspective names by its id passes the filter
+// (6aec8bd3).
+let searchNames = { text: null, test: () => false };
+function namedNow(status) {
+  if (shown().kind === "perspective") return Boolean(perspective()) && named(perspective(), status);
+  if (shown().kind !== "search") return false;
+  if (searchNames.text !== state.search) searchNames = { text: state.search, test: namesTask(state.search) };
+  return searchNames.test(status);
+}
+
+const matches = (status) => passes(filterNow(), status) || namedNow(status);
 
 // The block perspective the middle shows, or null (ADR 0116).
 const blocksShown = () => (shown().kind === "perspective" && isBlocks(perspective()) ? perspective() : null);
@@ -1065,7 +1075,7 @@ function openEmpty(fold) {
 function drawBlocks(p) {
   place = "full";
   const statuses = state.statuses.filter((s) => !s.outside);
-  const shows = (q, s) => holds(q, s) && passes(filterOf(q), s);
+  const shows = perspectiveShows;
   const sections = assemble(p, perspectives(), statuses, shows, undefined, noteSource);
   drawTables($("list"), (table) => {
     const drawn = sections.map((block, i) => blockSection(p, block, i, table));

@@ -129,11 +129,31 @@ function hiddenIds() {
 const ESTIMATES = ["<15m", "<30m", "<1h", ">1h", "mit", "ohne"];
 // `prio:` (ADR 0056 §4); `prio:-` is `prio:ohne`.
 const PRIORITIES = ["a", "b", "c", "mit", "ohne"];
-// `id:`: 8 characters of hex, or a whole id, in lower case.
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const taskId = (value) => {
-  const v = lower(value);
-  return /^[0-9a-f]{8}$/.test(v) || UUID.test(v) ? v : null;
+// The id a word names, in lower case, as samu_core::query::task_id reads
+// it (6aec8bd3): the end of an id from 8 characters on up to the whole id,
+// also after `samu:` as "Link kopieren" writes it, or a web address that
+// opens the task (`?open=<id>`, else `/o/<id>`). Null for any other word.
+const ID_FORM = "........-....-....-....-............";
+const isIdEnd = (word) =>
+  word.length >= 8 &&
+  word.length <= ID_FORM.length &&
+  [...word].every((c, i) => (ID_FORM[ID_FORM.length - word.length + i] === "-" ? c === "-" : /^[0-9a-f]$/.test(c)));
+export function taskId(value) {
+  const word = value.trim().toLowerCase();
+  // Regular expressions, not strings: the server's tests read a string
+  // with a slash or an address as a call the page makes.
+  if (/^https?:\/\//.test(word)) {
+    const id = (/open=([0-9a-f-]*)/.exec(word) ?? /\/o\/([0-9a-f-]*)/.exec(word))?.[1] ?? "";
+    return id.length === ID_FORM.length && isIdEnd(id) ? id : null;
+  }
+  const rest = word.startsWith("samu:") ? word.slice("samu:".length) : word;
+  return isIdEnd(rest) ? rest : null;
+}
+
+// Whether a free term names the task by its id.
+const namedBy = (term, id) => {
+  const named = taskId(term);
+  return Boolean(named) && lower(id).endsWith(named);
 };
 
 // What the list offers in an empty field: the kinds themselves.
@@ -657,8 +677,16 @@ export function matcher(chips, text) {
     if (!terms.length) return true;
     const task = status.task;
     const hay = lower(`${task.title}\n${task.note ?? ""}\n${task.id}`);
-    return terms.every((t) => hay.includes(t.term) !== t.not);
+    return terms.every((t) => (hay.includes(t.term) || namedBy(t.term, task.id)) !== t.not);
   };
+}
+
+// Whether a word of the free text names the task by its id, as
+// samu_core::query::names_task: such a task is shown whatever the view's
+// filter, the other hits keep to it (6aec8bd3).
+export function namesTask(text) {
+  const terms = freeTerms(text).filter((t) => !t.not && taskId(t.term));
+  return (status) => terms.some((t) => namedBy(t.term, status.task.id));
 }
 
 // A chip that asks for what is closed, or for a task by its id whatever

@@ -16,10 +16,10 @@
 import { api, change } from "./api.js";
 import { el, replace } from "./dom.js";
 import { tr } from "./i18n.js";
-import { assemble, isBlocks, knownView, passes, VIEWS } from "./blocks.js";
+import { assemble, isBlocks, knownView, VIEWS } from "./blocks.js";
 import { detached, fromLines, lineOf, parseLine, queryWords } from "./blocklines.js";
 import { GROUPS, SORTS } from "./list.js";
-import { filterOf, holds, perspectiveOf, perspectives, perspectiveValue } from "./perspectives.js";
+import { perspectiveOf, perspectiveShows, perspectives, perspectiveValue } from "./perspectives.js";
 import { noteSource, state, update } from "./state.js";
 
 const VIEW_TITLES = { inbox: () => "Inbox", today: () => tr("Heute"), flagged: () => tr("Markiert") };
@@ -87,7 +87,7 @@ export function openBlocks(p, { extract = null } = {}) {
 
   // How many tasks a block shows now, on its own.
   const statuses = () => state.statuses.filter((s) => !s.outside);
-  const shows = (q, s) => holds(q, s) && passes(filterOf(q), s);
+  const shows = perspectiveShows;
   const countOf = (block, i) => {
     const one = { id: `${p.id}:preview:${i}`, blocks: [block], dedupe: true };
     const [section] = assemble(one, all(), statuses(), shows);

@@ -16,16 +16,16 @@ import {
   createPerspective,
   deletePerspective,
   duplicate,
-  filterOf,
   holds,
   movePerspective,
   perspectiveOf,
+  perspectiveShows,
   perspectives,
   renamePerspective,
   searchOf,
   setIcon,
 } from "./perspectives.js";
-import { assemble, isBlocks, passes, union } from "./blocks.js";
+import { assemble, isBlocks, union } from "./blocks.js";
 import { isBlockOfAnother, openBlocks } from "./blockdialog.js";
 import { openSettings } from "./settings.js";
 import { matcher } from "./query.js";
@@ -128,7 +128,7 @@ function blockSet(p) {
   let made = unions.sets.get(p.id);
   if (!made || made.own !== own) {
     const statuses = state.statuses.filter((s) => !s.outside);
-    const shows = (q, s) => holds(q, s) && passes(filterOf(q), s);
+    const shows = perspectiveShows;
     const ids = union(assemble(p, perspectives(), statuses, shows)).map((s) => s.task.id);
     made = { own, set: new Set(ids) };
     unions.sets.set(p.id, made);
