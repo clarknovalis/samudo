@@ -802,6 +802,11 @@ span.prop-value { cursor: text; }
 .forecast-settings, .alarm-settings { display: grid; gap: 8px; justify-items: start; max-width: 36rem; }
 .forecast-settings .toggle, .alarm-settings .toggle { display: flex; gap: 8px; align-items: center; }
 .alarm-settings p { margin: 0; }
+/* The settings page "Export" (ADR 0145 §7). */
+.export-settings { display: grid; gap: 8px; justify-items: start; max-width: 36rem; }
+.export-settings .toggle { display: flex; gap: 8px; align-items: center; }
+.export-settings p { margin: 0; }
+.export-settings select { max-width: 100%; }
 /* The settings page "Sidebar" (ADR 0142 §3). */
 .sidebar-settings { display: grid; gap: 8px; justify-items: start; max-width: 36rem; }
 .sidebar-settings p, .sidebar-settings h4 { margin: 0; }

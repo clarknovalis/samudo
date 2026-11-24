@@ -24,6 +24,7 @@ import { propertiesPane } from "./props.js";
 import { sidebarPane } from "./sidebarpane.js";
 import { templatesPane } from "./templates.js";
 import { keysPane } from "./keycapture.js";
+import { exportPane } from "./export.js";
 import { accountPane } from "./register.js";
 import { forgetLogbook, logbookPane } from "./logbook.js";
 import { alarmChoice, permission, setAlarmChoice } from "./alarms.js";
@@ -50,6 +51,7 @@ const SECTIONS = [
   ["properties", "Properties"],
   ["templates", tr("Vorlagen")],
   ["keys", tr("Tastatur")],
+  ["export", "Export"],
   ["account", tr("Konto")],
   ["logbook", "Logbook"],
 ];
@@ -569,6 +571,8 @@ export function renderSettings() {
               ? templatesPane()
               : section === "keys"
                 ? keysPane()
+                : section === "export"
+                ? exportPane()
                 : section === "account"
                   ? accountPane()
                   : section === "logbook"

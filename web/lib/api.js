@@ -118,6 +118,11 @@ export const api = {
   // With `elsewhere` too what another own scope alone shows, marked with
   // it (ADR 0124 §2).
   statuses: (scope) => get(scoped("/available?all=true&bare=true&elsewhere=true", scope)),
+  // What a list shows, for the export in the settings (ADR 0145 §7):
+  // `query` like `&project=<id>`, `&perspective=<id>`, `&all=true`.
+  bareStatuses: (query, scope) => get(scoped(`/available?bare=true${query}`, scope)),
+  // The whole account as JSON, without the files (ADR 0074 §5).
+  exportAccount: () => get("/export"),
   // Every open project with what samu-core computed: available, stuck;
   // those of another own scope marked `elsewhere`.
   projectStatuses: (scope) => get(scoped("/available/projects?elsewhere=true", scope)),
