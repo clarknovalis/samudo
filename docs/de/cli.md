@@ -49,7 +49,7 @@ Datei; `--profile <name>` oder `SAMU_PROFILE` wählt eins.
 | | `SAMU_CONFIG` | die Konfigurationsdatei (vorgegeben `~/.config/samu/config.toml`) |
 | | `SAMU_STATE` | wo Sitzungs-Tokens liegen (vorgegeben `~/.local/state/samu`) |
 | | `SAMU_WEB` | die Web-Oberfläche für `samu:`-Links |
-| `--format` | | `plain` (Vorgabe), `json`, `jsonl`, `tsv` |
+| `--format` | | `plain` (Vorgabe), `json`, `jsonl`, `tsv`; für `samu list` auch `md`, `org` |
 
 Daten gehen nach stdout, Meldungen nach stderr.
 
@@ -162,6 +162,20 @@ Scope hat; diesen Scope wählen, um es zu sehen.
 Web-Oberfläche (`worked` ist die Zeit auf den Uhren, `remaining` Schätzung
 minus Ist; eine Aktionsgruppe zählt ihren Teilbaum); ohne Wert die
 Vorgabe-Spalten, eine Tabellen-Perspektive bringt ihre eigenen mit.
+
+`--format md` gibt die Aufgaben als Markdown-Aufgabenliste aus,
+`--format org` als Org-Überschriften, so wie `samu export-org` eine
+Aufgabe schreibt; eine Unteraufgabe, deren Elternaufgabe mit aufgelistet
+ist, steht darunter. Beide nehmen jeden Filter von `samu list` und sind
+das, was der Export der Web-Oberfläche schreibt:
+
+```sh
+samu list --perspective "Diese Woche" --format org > woche.org
+samu list --project Garten --all --format md
+```
+
+Jedes andere Kommando, `--bare` und eine Block-Perspektive lehnen sie ab
+(Exit-Code 2).
 
 Eine Block-Perspektive bekommt vor jedem Block eine Überschrift
 (`▸ Titel (n)`), in tsv die Überschrift als erste Spalte, in json die

@@ -48,7 +48,7 @@ file; `--profile <name>` or `SAMU_PROFILE` picks one.
 | | `SAMU_CONFIG` | the configuration file (default `~/.config/samu/config.toml`) |
 | | `SAMU_STATE` | where session tokens are kept (default `~/.local/state/samu`) |
 | | `SAMU_WEB` | the web UI for `samu:` links |
-| `--format` | | `plain` (default), `json`, `jsonl`, `tsv` |
+| `--format` | | `plain` (default), `json`, `jsonl`, `tsv`; for `samu list` also `md`, `org` |
 
 Data goes to stdout, messages to stderr.
 
@@ -158,6 +158,19 @@ missing; choose that scope to see it.
 (`worked` is the time on the clocks, `remaining` estimate minus worked;
 an action group counts its subtree); without a value the default columns,
 and a table perspective brings its own.
+
+`--format md` prints the tasks as a Markdown task list, `--format org` as
+Org headings the way `samu export-org` writes a task; a subtask whose
+parent is listed goes below it. Both take every filter of `samu list`
+and are what the web UI's export writes:
+
+```sh
+samu list --perspective "This week" --format org > week.org
+samu list --project Garden --all --format md
+```
+
+Any other command, `--bare` and a block perspective refuse them (exit
+code 2).
 
 A block perspective prints a heading before each block (`▸ Title (n)`), in
 tsv the heading as the first column, in json the blocks with their tasks.

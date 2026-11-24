@@ -198,7 +198,7 @@ arbeitet, steht das da, und ein Fehlschlag zeigt seinen Grund mit
 ### Viele auswählen
 
 Strg- oder ⌘-Klick nimmt eine Zeile dazu, Umschalt-Klick einen Bereich,
-Leertaste die aktuelle Zeile. Eine Leiste bietet dann erledigen, wieder
+Leertaste die aktuelle Zeile, Strg+A alle gezeigten (nochmal: keine). Eine Leiste bietet dann erledigen, wieder
 öffnen, verwerfen, markieren, verschieben, Tag an/aus, Zustand, Datum
 (fällig/geplant/Start: heute, morgen, ein Tag, leeren), „Bearbeiten …“
 und löschen. Die Auswahl lässt sich auf ein Projekt oder die Inbox in der
@@ -217,6 +217,27 @@ Aufgaben: ohne Titel, mit den Chips, die alle gemeinsam haben (✕ oder
 Rücktaste nimmt einen von jeder; beim Projekt heißt das: in die Inbox),
 und einer Zeile in der Syntax der [Schnellerfassung](quick-capture.md),
 die jeder etwas hinzufügt, etwa `@besorgung d:fr`.
+
+### Kopieren und exportieren
+
+„Kopieren“ im Kontextmenü einer Aufgabe oder der Auswahl legt die
+Aufgaben in die Zwischenablage; „Exportieren“ speichert sie als Datei,
+benannt nach Ansicht und Tag. Die Leiste über einer Auswahl bietet beides
+unter „Kopieren …“. Fünf Formen:
+
+- **IDs**: die vollen IDs, durch Leerzeichen getrennt, für `samu bulk …`.
+- **Text (Markdown)**: `- [ ] Titel`, `- [x]` wenn erledigt; eine
+  Unteraufgabe, die mit ihrer Elternaufgabe ausgewählt ist, steht
+  eingerückt darunter.
+- **Org**: eine Überschrift je Aufgabe, wie [`samu export-org`](cli.md)
+  sie schreibt, mit Schlüsselwort, Priorität, Tags,
+  `DEADLINE`/`SCHEDULED` und einer Schublade mit der ID.
+- **TSV**: eine Kopfzeile, dann id, Titel und die Spalten der Tabelle;
+  landet beim Einfügen in einer Tabellenkalkulation in Spalten.
+- **JSON**: die Aufgaben, wie `samu show --format json` sie ausgibt.
+
+Die Reihenfolge ist die gezeigte. „Link kopieren“ steht ebenfalls unter
+„Kopieren“.
 
 ### Statuszeile
 
@@ -290,6 +311,12 @@ Text stehen und unverändert, bis man sie ersetzt.
   Web-Oberfläche offen, kommt nichts.
 - **Properties** (Link-Vorlagen je Schlüssel); **„Vorlagen“** (Vorlagen
   und ihre Tasten); **„Tastatur“** (Tastenbelegung).
+- **„Export“**: eine Liste als Datei, ohne vorher Zeilen auszuwählen: die
+  Inbox, ein Projekt oder eine Perspektive (im gewählten Scope, mit oder
+  ohne Erledigtes und Verworfenes) in einer der Formen aus
+  [Kopieren und exportieren](#kopieren-und-exportieren), oder „Alles“:
+  das ganze Konto als JSON, ohne die Dateien der Anhänge (die volle
+  Sicherung macht `samu export`).
 - **„Konto“**: „Demodaten holen“ holt den Demo-Inhalt ins Konto (in ein
   leeres alles, sonst unter einen Ordner und einen Tag „Demo“), und ein
   registriertes Konto löscht sich dort mit seinem Passwort („Konto
@@ -315,6 +342,7 @@ nicht übersetzt, und Fehlermeldungen des Servers bleiben englisch.
 | `j` `k`, ↓ ↑ | nächste / vorige Aufgabe |
 | Enter | öffnen |
 | Leertaste | Aufgabe auswählen |
+| Strg+A | alle gezeigten Aufgaben auswählen, nochmal keine |
 | `x` | erledigen / wieder öffnen |
 | `s` | nächster Zustand (reihum) |
 | `t` + Taste | einen Zustand über seine Taste wählen |

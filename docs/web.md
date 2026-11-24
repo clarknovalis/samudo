@@ -183,7 +183,8 @@ so, and a failure shows its reason with "Try again".
 
 ### Selecting many
 
-Ctrl- or ⌘-click adds a row, Shift-click a range, Space the current row. A
+Ctrl- or ⌘-click adds a row, Shift-click a range, Space the current row,
+Ctrl+A every row shown (again: none). A
 bar then offers complete, reopen, drop, flag, move, tag on/off, state, date
 (due/planned/defer: today, tomorrow, a day, clear), "Edit …" and delete.
 The selection can be dragged onto a project or the inbox in the sidebar.
@@ -200,6 +201,25 @@ chips they all share (✕ or Backspace takes one off each; a project
 means a move to the inbox) and a line in
 [quick capture](quick-capture.md) syntax that adds to each, such as
 `@errand d:fri`.
+
+### Copying and exporting
+
+"Copy" in the context menu of a task, or of the selection, puts the
+tasks on the clipboard; "Export" saves them as a file named after the
+view and the day. The bar above a selection offers both under
+"Copy …". Five forms:
+
+- **IDs**: the full IDs separated by spaces, to follow `samu bulk …`.
+- **Text (Markdown)**: `- [ ] Title`, `- [x]` when closed; a subtask
+  selected with its parent is indented below it.
+- **Org**: a heading per task as [`samu export-org`](cli.md) writes it,
+  with keyword, priority, tags, `DEADLINE`/`SCHEDULED` and a drawer with
+  the ID.
+- **TSV**: a header row, then id, title and the table's columns; pastes
+  into a spreadsheet as columns.
+- **JSON**: the tasks as `samu show --format json` prints them.
+
+The order is the order shown. "Copy link" sits in "Copy" as well.
 
 ### Status line
 
@@ -269,6 +289,12 @@ stays as text and unchanged until you replace it.
   of the web UI is open.
 - **Properties** (link templates per key); **"Templates"** (templates
   and their keys); **"Keyboard"** (key bindings).
+- **"Export"**: a list as a file without selecting rows first: the
+  inbox, a project or a perspective (within the chosen scope, with or
+  without completed and dropped tasks) in one of the forms of
+  [Copying and exporting](#copying-and-exporting), or "Everything": the
+  whole account as JSON, without the files of attachments
+  (`samu export` makes the full backup).
 - **"Account"**: "Get demo data" fetches the demo content into the
   account (all of it into an empty one, else under a folder and a tag
   "Demo"), and a registered account deletes itself there with its
@@ -294,6 +320,7 @@ server stay English.
 | `j` `k`, ↓ ↑ | next / previous task |
 | Enter | open |
 | Space | select the task |
+| Ctrl+A | select every task shown, again none |
 | `x` | complete / reopen |
 | `s` | next state (round) |
 | `t` + key | pick a state by its key |
