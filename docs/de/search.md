@@ -15,8 +15,12 @@ und lehnt einen Chip ab (Exit 2); in doppelten Anführungszeichen
 ## Freier Text
 
 Jedes Wort, das kein Chip ist, muss im Titel, in der Notiz oder in der ID
-vorkommen. Die letzten acht Zeichen einer ID, wie die Kommandozeile sie
-ausgibt, finden ihre Aufgabe.
+vorkommen. Ein Wort, das eine Aufgabe über ihre ID nennt, findet diese
+Aufgabe, was auch immer der Filter der Ansicht zeigt, auch erledigt oder
+verworfen; die anderen Aufgaben, die die Wörter finden, halten sich an
+den Filter. So ein Wort ist das Ende einer ID ab acht Zeichen (die
+Kommandozeile gibt acht aus), die ganze ID, ein kopierter Link
+`samu:<id>` oder die Web-Adresse einer geöffneten Aufgabe.
 
 Ein Wort mit `-` davor darf nicht vorkommen: `Milch -Hafer`. Wörter in
 doppelten Anführungszeichen sind eine Phrase und müssen zusammen und in
@@ -47,7 +51,7 @@ schnelle Filter, die letzten Suchen und die Perspektiven (siehe
 | `~<15m`, `~>=1h`, `~30m`, `~mit`, `~ohne` | nach Schätzung (`<`, `<=`, `>`, `>=`, gleich; mit oder ohne) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:mit`, `prio:ohne` (oder `prio:-`) | nach Priorität |
 | `prop:jira`, `prop:jira=ABC-1` | mit der Property, eigen oder geerbt; mit Wert, ohne auf Groß- und Kleinschreibung zu achten |
-| `id:1a2b3c4d`, `id:` + ganze ID | die Aufgabe mit dieser ID, über ihre letzten acht Zeichen (wie die Kommandozeile sie ausgibt) oder die ganze ID; `id:1a2b3c4d id:5e6f7a8b` findet beide, so wird eine Suche zur Liste von Aufgaben |
+| `id:1a2b3c4d`, `id:` + ganze ID | die Aufgabe mit dieser ID, über ihr Ende ab acht Zeichen (die Kommandozeile gibt acht aus), die ganze ID, einen Link `samu:<id>` oder die Web-Adresse der geöffneten Aufgabe; `id:1a2b3c4d id:5e6f7a8b` findet beide, so wird eine Suche zur Liste von Aufgaben |
 
 ### Bereiche
 
@@ -76,7 +80,9 @@ Tage zählen in der Zeitzone des Kontos.
 Wer nach erledigten Aufgaben fragt (`ist:erledigt`, `erledigt:…`) oder
 nach einer Aufgabe über ihre ID (`id:…`), weitet die Ansicht auf „Alle“; wer nach wartenden fragt (`ist:wartet`,
 `start:…`), weitet „Verfügbar“ auf „Verbleibend“. Das gilt, sobald
-irgendein Chip danach fragt, in welcher Gruppe auch immer.
+irgendein Chip danach fragt, in welcher Gruppe auch immer. Ein freies
+Wort, das eine Aufgabe über ihre ID nennt, weitet die Ansicht nur für
+diese Aufgabe.
 
 ## Oder
 

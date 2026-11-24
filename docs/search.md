@@ -15,8 +15,11 @@ chip is searched for as text. Chips go into scopes (`samu scope filter`) and per
 ## Free text
 
 Every word that is not a chip must appear in the title, the note or the
-id. The last eight characters of an id, as the command line prints it,
-find their task.
+id. A word that names a task by its id finds that task whatever the
+view's filter shows, completed or dropped too, while the other tasks the
+words find keep to the filter. Such a word is the end of an id from
+eight characters on (the command line prints eight), the whole id, a
+copied link `samu:<id>`, or the web address of an open task.
 
 A word with a leading `-` must not appear: `milk -oat`. Words in double
 quotes are one phrase and must appear together, in that order:
@@ -45,7 +48,7 @@ searches and perspectives (see [Android app](android.md#search)).
 | `~<15m`, `~>=1h`, `~30m`, `~any`, `~none` | by estimate (`<`, `<=`, `>`, `>=`, equal; with or without one) |
 | `prio:a`, `prio:b`, `prio:c`, `prio:any`, `prio:none` (or `prio:-`) | by priority |
 | `prop:jira`, `prop:jira=ABC-1` | with the property, own or inherited; with a value, ignoring case |
-| `id:1a2b3c4d`, `id:` + a whole id | the task with that id, by its last eight characters (as the command line prints them) or the whole id; `id:1a2b3c4d id:5e6f7a8b` finds both, so a search can be a list of tasks |
+| `id:1a2b3c4d`, `id:` + a whole id | the task with that id, by its end from eight characters on (the command line prints eight), the whole id, a link `samu:<id>` or the web address of the open task; `id:1a2b3c4d id:5e6f7a8b` finds both, so a search can be a list of tasks |
 
 ### Ranges
 
@@ -74,7 +77,8 @@ Days are counted in the account's time zone.
 Asking for completed tasks (`is:done`, `done:…`) or for a task by its
 id (`id:…`) widens the view to "All"; asking for waiting tasks (`is:waiting`, `defer:…`) widens
 "Available" to "Remaining". This holds when any chip asks for it, in
-whichever group.
+whichever group. A free word that names a task by its id widens the view
+for that task alone.
 
 ## Or
 

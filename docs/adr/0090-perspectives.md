@@ -57,7 +57,11 @@ first.
    contain the free text, then the filter. As in the search, a chip for
    finished tasks (`ist:erledigt`, `ist:verworfen`, `erledigt:`) lifts
    the filter to "all", and one for waiting tasks (`ist:wartet`,
-   `start:`) lifts "available" to "remaining" (ADR 0042 §4). `GET
+   `start:`) lifts "available" to "remaining" (ADR 0042 §4). A word of
+   the free text that names a task by its id (its end from 8 characters,
+   the whole id, `samu:<id>`, a web address that opens it) lets that task
+   alone pass the filter, as an `id:` chip, which takes the same forms,
+   does for all. `GET
    /available?perspective=<id>` answers this way, with `scope=` beside
    it; the local replica (ADR 0066) computes the same. Unknown id: 404.
 3. **The web computes in the browser** like the search (ADR 0042 §1,
@@ -109,3 +113,5 @@ first.
 - 2026-11-16 (ADR 0115): §1 had only `list` and `board` as views.
 - 2026-11-16 (ADR 0116): §1 had no `blocks`; a perspective was one query.
 - 2026-11-17 (ADR 0121): chips had no `group`; §2 had no OR across kinds.
+- 2026-11-24: §2: a free word naming a task by its id did not lift the
+  filter for it, and `id:` took only the last 8 characters or the whole id.
