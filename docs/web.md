@@ -149,6 +149,10 @@ Markdown; a pencil or double click edits it, checkboxes are clickable,
 comments, time, habit streak, logbook. A scope's layout can fold parts of
 it away.
 
+Start, due and planned each have a day and, beside it, a time of day.
+An empty time is a whole day. Changing the day keeps the time, changing
+the time keeps the day, and the time is read in the account's zone.
+
 `]` (or ⤢, or a double click on its row) shows the task across the middle
 and right columns, the text in readable width.
 

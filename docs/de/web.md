@@ -159,6 +159,11 @@ Aufgabe), Properties, Links, Blocker, Anhänge, Kommentare, Zeit, Serie
 einer Gewohnheit, Logbuch. Das Layout eines Scopes kann Teile davon
 wegklappen.
 
+Start, Fällig und Geplant haben je einen Tag und daneben eine Uhrzeit.
+Ohne Uhrzeit ist es ein ganzer Tag. Ein geänderter Tag behält die
+Uhrzeit, eine geänderte Uhrzeit den Tag; die Uhrzeit gilt in der Zone
+des Kontos.
+
 `]` (oder ⤢, oder ein Doppelklick auf ihre Zeile) zeigt die Aufgabe über
 die mittlere und rechte Spalte, den Text in lesbarer Breite.
 

@@ -7,7 +7,7 @@
 // `make check` with node, no packages; synthetic data only.
 
 const root = new URL("../../", import.meta.url);
-const { onDay } = await import(new URL("web/lib/zoned.js", root));
+const { atTime, onDay, timeOf } = await import(new URL("web/lib/zoned.js", root));
 
 let failed = 0;
 const check = (what, got, want) => {
@@ -42,6 +42,20 @@ check(
   onDay({ at: "2026-11-20T09:30:00+01:00[Nowhere/Never]" }, "2026-11-27"),
   { date: "2026-11-27" },
 );
+
+// A time field next to the day (ADR 0144 §3, §5).
+check("a time on a day", atTime("2026-11-25", "14:30", "Europe/Berlin"), {
+  at: "2026-11-25T14:30:00+01:00[Europe/Berlin]",
+});
+check("a time in summer", atTime("2026-07-01", "09:05", "Europe/Berlin"), {
+  at: "2026-07-01T09:05:00+02:00[Europe/Berlin]",
+});
+check("no time is a whole day", atTime("2026-11-25", "", "Europe/Berlin"), { date: "2026-11-25" });
+check("no day is nothing", atTime("", "14:30", "Europe/Berlin"), null);
+check("an unknown zone keeps the day", atTime("2026-11-25", "14:30", "Nowhere/Never"), { date: "2026-11-25" });
+check("the time of an instant", timeOf({ at: "2026-11-25T09:05:00+01:00[Europe/Berlin]" }), "09:05");
+check("a whole day has none", timeOf({ date: "2026-11-25" }), "");
+check("nothing has none", timeOf(null), "");
 
 if (failed) {
   console.error(`${failed} failed`);

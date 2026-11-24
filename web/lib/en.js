@@ -1186,4 +1186,6 @@ export const EN = {
   "{label} morgen": "{label} tomorrow",
   "{label} leeren": "clear {label}",
   "{count} Aufgaben bearbeiten": "Edit {count} tasks",
+  "{field}: Uhrzeit": "{field}: time",
+  "Uhrzeit, leer für den ganzen Tag": "Time of day, empty for the whole day",
 };

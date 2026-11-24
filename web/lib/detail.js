@@ -19,7 +19,7 @@ import { openObject } from "./address.js";
 import { newTagField } from "./placeops.js";
 import { seriesSection } from "./habits.js";
 import { foldLine, noteMode, shownParts } from "./layout.js";
-import { onDay } from "./zoned.js";
+import { atTime, onDay, timeOf } from "./zoned.js";
 import { propertyBlock } from "./props.js";
 import { reminderSection } from "./remind.js";
 import { DAYS, FREQS, MODES, buildRule, formFits, nextText, parseRule, repeatText } from "./repeat.js";
@@ -61,6 +61,12 @@ export async function flushDetail() {
     if (!task || input.value === (dayOf(task[name]) ?? "")) continue;
     sendDate(input, task.id, name);
   }
+  for (const input of $("detail")?.querySelectorAll("input[data-time-field]") ?? []) {
+    if (input.disabled || input.validity.badInput || input.value === input.dataset.sent) continue;
+    const task = byId(state.tasks, input.dataset.task);
+    if (!task || input.value === timeOf(task[input.dataset.timeField])) continue;
+    sendTime(input, task.id, input.dataset.timeField);
+  }
   await Promise.all([...inFlight]);
 }
 
@@ -68,6 +74,16 @@ export async function flushDetail() {
 function sendDate(input, id, name) {
   input.dataset.sent = input.value;
   return write([change.set(id, name, onDay(byId(state.tasks, id)?.[name], input.value))]);
+}
+
+// A time is read in the account's zone, the browser's only without one
+// (ADR 0144 §2); the day is the one in the field beside it. An emptied
+// time makes the date a whole day again.
+function sendTime(input, id, name) {
+  input.dataset.sent = input.value;
+  const day = input.parentElement?.querySelector("input[data-date-field]")?.value;
+  const zone = state.session?.zone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return write([change.set(id, name, atTime(day, input.value, zone))]);
 }
 
 // Completes a task, asking about open tasks below (ADR 0128), or opens it
@@ -144,9 +160,11 @@ export function toggleSequential(status) {
 
 const DATE_LABELS = { defer: tr("Start"), due: tr("Fällig"), planned: tr("Geplant") };
 
+// A day and, beside it, an optional time of day (ADR 0144 §5): an empty
+// time is a whole day, and without a day there is no time to set.
 function dateInput(task, name) {
   const value = dayOf(task[name]) ?? "";
-  return el("input", {
+  const date = el("input", {
     type: "date",
     "aria-label": DATE_LABELS[name],
     value,
@@ -156,6 +174,20 @@ function dateInput(task, name) {
       if (event.target.value !== event.target.dataset.sent) sendDate(event.target, task.id, name);
     },
   });
+  const time = el("input", {
+    type: "time",
+    class: "date-time",
+    "aria-label": tr("{field}: Uhrzeit", { field: DATE_LABELS[name] }),
+    title: tr("Uhrzeit, leer für den ganzen Tag"),
+    value: timeOf(task[name]),
+    disabled: !value,
+    "data-task": task.id,
+    "data-time-field": name,
+    onchange: (event) => {
+      if (event.target.value !== event.target.dataset.sent) sendTime(event.target, task.id, name);
+    },
+  });
+  return el("span", { class: "date-row" }, [date, time]);
 }
 
 // How long before „Fällig“ the task counts as due soon, its own
