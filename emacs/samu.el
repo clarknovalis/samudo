@@ -1326,23 +1326,32 @@ States of a workflow stay as they are; `t' sets them."
       (samu--forget)
       (samu--after-action nil))))
 
-(defun samu--read-date (prompt clear)
-  "A date read with `org-read-date' and PROMPT, or \"none\" if CLEAR."
+(defvar org-time-was-given)
+
+(defun samu--read-date (prompt clear &optional with-time)
+  "A date read with `org-read-date' and PROMPT, or \"none\" if CLEAR.
+With WITH-TIME a time typed after the day is kept, \"2026-11-25 14:30\",
+read by samudo in the account's zone (ADR 0144); else it is the day."
   (if clear
       "none"
     (require 'org)
-    (org-read-date nil nil nil prompt)))
+    (if with-time
+        (let ((org-time-was-given nil))
+          (org-read-date nil nil nil prompt))
+      (org-read-date nil nil nil prompt))))
 
 (defun samu-set-planned (clear)
-  "Set the planned date; with C-u (CLEAR) take it off."
+  "Set the planned date, a day or a day with a time; with C-u (CLEAR)
+take it off."
   (interactive "P")
-  (samu--bulk "date" (samu--targets) "planned" (samu--read-date "Planned: " clear))
+  (samu--bulk "date" (samu--targets) "planned" (samu--read-date "Planned: " clear t))
   (samu--after-action nil))
 
 (defun samu-set-due (clear)
-  "Set the due date; with C-u (CLEAR) take it off."
+  "Set the due date, a day or a day with a time; with C-u (CLEAR) take
+it off."
   (interactive "P")
-  (samu--bulk "date" (samu--targets) "due" (samu--read-date "Due: " clear))
+  (samu--bulk "date" (samu--targets) "due" (samu--read-date "Due: " clear t))
   (samu--after-action nil))
 
 (defun samu--open-tasks ()
@@ -2772,12 +2781,18 @@ Without `samu-web-url' or `samu-profile' it stays a `samu:' link."
   "The property of an Org heading that names the task made from it.")
 
 (defun samu--org-date (property)
-  "The day of the heading's PROPERTY, SCHEDULED or DEADLINE, or nil.
-A time of day and a repeater are left behind."
+  "The date of the heading's PROPERTY, SCHEDULED or DEADLINE, or nil.
+A day, or a day with its time as \"2026-11-23 09:30\" (ADR 0144); the
+start of a time range is the time, a repeater is left behind."
   (let ((stamp (org-entry-get nil property)))
     (and stamp
-         (string-match "[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}" stamp)
-         (match-string 0 stamp))))
+         (string-match (concat "\\([0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\)"
+                               "\\(?: +[^]>0-9 \t\n+-]+\\)?"
+                               "\\(?: +\\([0-9]\\{1,2\\}:[0-9]\\{2\\}\\)\\)?")
+                       stamp)
+         (if (match-string 2 stamp)
+             (concat (match-string 1 stamp) " " (match-string 2 stamp))
+           (match-string 1 stamp)))))
 
 (defun samu--org-body ()
   "The text below the heading at point, without planning and drawers.
@@ -2807,11 +2822,12 @@ depth and in any case; none is made."
 (defun samu-org-capture-heading ()
   "Make a task of samudo from the Org heading at point.
 The title is the heading without keyword, priority and tags, the note
-the text below it.  SCHEDULED becomes planned and DEADLINE due, as
-days.  Tags are put on where samudo has a tag of that name.  The task
-goes to the inbox, and its `samu:' link is stored in the property SAMU
-of the heading: asked again there, the command opens the task instead
-of making a second one.  The heading itself stays as it is."
+the text below it.  SCHEDULED becomes planned and DEADLINE due, with
+their time of day; a repeater is left behind.  Tags are put on where
+samudo has a tag of that name.  The task goes to the inbox, and its
+`samu:' link is stored in the property SAMU of the heading: asked again
+there, the command opens the task instead of making a second one.  The
+heading itself stays as it is."
   (interactive)
   (unless (derived-mode-p 'org-mode) (user-error "Not in an Org buffer"))
   (require 'ol)

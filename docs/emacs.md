@@ -71,7 +71,7 @@ together.
 | `e` | edit with marks: `@tag #project !A d:fri ~30m every:1w // note /template z:30m` |
 | `,` | priority A/B/C, Space: none |
 | `:` | tags; missing ones are created |
-| `C-c C-s` / `C-c C-d` | planned / due, `C-u` clears |
+| `C-c C-s` / `C-c C-d` | planned / due with `org-read-date`, a typed time is kept (`+1 14:30`), `C-u` clears |
 | `a` / `A` | capture / as a child task |
 | `C` | capture with a template: then the template's key, as in org-capture |
 | `/` | search |
@@ -177,15 +177,15 @@ of it, in the inbox:
 |---|---|
 | the heading, without keyword, priority and tags | title |
 | the text below it, up to the next heading | note |
-| `SCHEDULED` | planned, as a day |
-| `DEADLINE` | due, as a day |
+| `SCHEDULED` | planned, a day or a day with its time |
+| `DEADLINE` | due, a day or a day with its time |
 | tags | the tags of that name that exist; the others are named in the echo area, none is made |
 
 The task's `samu:` link is stored in the property `SAMU` of the heading.
 On a heading that has it, the command opens the task instead of making a
 second one. The heading stays as it is, and nothing flows back: after
-that the task lives in samudo. A time of day, a repeater and the priority
-are not taken along.
+that the task lives in samudo. A repeater and the priority are not taken
+along.
 
 ## In the Org agenda
 

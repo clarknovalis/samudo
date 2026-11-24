@@ -72,7 +72,7 @@ die von Emacs. Mit `M` markierte Aufgaben nehmen
 | `e` | mit Zeichen bearbeiten: `@tag #projekt !A d:fr ~30m every:1w // notiz /vorlage z:30m` |
 | `,` | Priorität A/B/C, Leertaste: keine |
 | `:` | Tags; fehlende werden angelegt |
-| `C-c C-s` / `C-c C-d` | geplant / fällig, `C-u` leert |
+| `C-c C-s` / `C-c C-d` | geplant / fällig mit `org-read-date`, eine getippte Uhrzeit bleibt (`+1 14:30`), `C-u` leert |
 | `a` / `A` | erfassen / als Unteraufgabe |
 | `C` | mit Vorlage erfassen: danach die Taste der Vorlage, wie in org-capture |
 | `/` | suchen |
@@ -184,15 +184,15 @@ macht daraus eine Aufgabe, im Eingang:
 |---|---|
 | die Überschrift, ohne Schlüsselwort, Priorität und Tags | Titel |
 | der Text darunter, bis zur nächsten Überschrift | Notiz |
-| `SCHEDULED` | geplant, als Tag |
-| `DEADLINE` | fällig, als Tag |
+| `SCHEDULED` | geplant, als Tag oder Tag mit Uhrzeit |
+| `DEADLINE` | fällig, als Tag oder Tag mit Uhrzeit |
 | Tags | die Tags dieses Namens, die es gibt; die übrigen nennt der Echo-Bereich, angelegt wird keiner |
 
 Der `samu:`-Link der Aufgabe steht danach in der Property `SAMU` der
 Überschrift. Auf einer Überschrift, die sie hat, öffnet das Kommando die
 Aufgabe, statt eine zweite anzulegen. Die Überschrift bleibt, wie sie
 ist, und nichts fließt zurück: von da an lebt die Aufgabe in samudo.
-Uhrzeit, Wiederholung und Priorität werden nicht übernommen.
+Wiederholung und Priorität werden nicht übernommen.
 
 ## In der Org-Agenda
 

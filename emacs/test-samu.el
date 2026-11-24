@@ -1362,6 +1362,37 @@ STATUS is a plist: :day, :amount, :target, :met, :streak, :longest."
           (should (null (samu-org-agenda)))))
       (should (= (length (samu-test--called '("forecast"))) 1)))))
 
+;;;; A time in the date fields (ADR 0144)
+
+(ert-deftest samu-test-org-date-keeps-the-time ()
+  (require 'org)
+  (dolist (case '(("<2026-11-23 Mon 09:30 +1w>" . "2026-11-23 09:30")
+                  ("<2026-11-23 Mo. 9:05-10:00>" . "2026-11-23 9:05")
+                  ("<2026-11-27 Fri>" . "2026-11-27")
+                  ("<2026-11-27 Fri .+2d>" . "2026-11-27")
+                  ("<2026-11-27>" . "2026-11-27")))
+    (with-temp-buffer
+      (insert "* T\nSCHEDULED: " (car case) "\n")
+      (org-mode)
+      (goto-char (point-min))
+      (should (equal (samu--org-date "SCHEDULED") (cdr case))))))
+
+(ert-deftest samu-test-set-planned-passes-a-typed-time ()
+  (samu-test--with-cli '((("bulk") 0 "[]" ""))
+    (with-temp-buffer
+      (samu-list-mode)
+      (setq samu--task-id "d"
+            samu--task-row (samu-test--row "d" "Dehnen"))
+      (cl-letf (((symbol-function 'samu--after-action) #'ignore)
+                ((symbol-function 'org-read-date)
+                 (lambda (&rest _)
+                   (if (boundp 'org-time-was-given) "2026-11-25 14:30" "2026-11-25"))))
+        (samu-set-planned nil)
+        (samu-set-due '(4)))
+      (should (equal (samu-test--called '("bulk"))
+                     '(("bulk" "date" "planned" "2026-11-25 14:30" "d" "--format" "json")
+                       ("bulk" "date" "due" "none" "d" "--format" "json")))))))
+
 ;;;; From an Org heading
 
 (defconst samu-test--heading
@@ -1397,7 +1428,7 @@ Not part of the note.
                        "The tap in the kitchen drips.\n\nNumber is on the fridge."
                        "--literal" "Call the plumber" "--format" "json")))
       (should (equal (samu-test--called '("bulk"))
-                     '(("bulk" "date" "planned" "2026-11-23" "01a1-77" "--format" "json")
+                     '(("bulk" "date" "planned" "2026-11-23 09:30" "01a1-77" "--format" "json")
                        ("bulk" "date" "due" "2026-11-27" "01a1-77" "--format" "json")
                        ("bulk" "tag" "--add" "Places/Home" "--add" "calls" "01a1-77"
                         "--format" "json"))))
