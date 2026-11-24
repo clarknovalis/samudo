@@ -224,15 +224,48 @@ fn priority_test(word: &str) -> Option<impl Fn(Option<Priority>) -> bool + use<>
     })
 }
 
-/// An `id:` chip's value as samu keeps it: a short id (the last 8
-/// characters, as the command line prints it) in lower case, or a whole id
-/// in its usual form. `None` when it is neither.
-fn task_id(value: &str) -> Option<String> {
-    let value = value.to_lowercase();
-    if value.len() == 8 && value.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Some(value);
+/// An id in its usual form, `-` where it has one and hex elsewhere.
+const ID_FORM: &[u8; 36] = b"........-....-....-....-............";
+
+/// Whether a word in lower case is the end of an id in its usual form,
+/// from 8 characters to the whole id.
+fn is_id_end(word: &str) -> bool {
+    let n = word.len();
+    (8..=ID_FORM.len()).contains(&n)
+        && word
+            .bytes()
+            .zip(&ID_FORM[ID_FORM.len() - n..])
+            .all(|(b, f)| {
+                if *f == b'-' {
+                    b == b'-'
+                } else {
+                    b.is_ascii_hexdigit()
+                }
+            })
+}
+
+/// The id a word names, in lower case, as an `id:` chip keeps it and as a
+/// free word finds its task (6aec8bd3): the end of an id from 8 characters
+/// on (the command line prints 8, an agent often writes the last block of
+/// 12) up to the whole id, also after `samu:` as "Copy link" writes it, or
+/// a web address that opens the task (`?open=<id>`, else `/o/<id>`).
+/// `None` for any other word. `web/lib/query.js` reads it the same way.
+#[must_use]
+pub fn task_id(word: &str) -> Option<String> {
+    let word = word.trim().to_lowercase();
+    if word.starts_with("http://") || word.starts_with("https://") {
+        let from = word
+            .find("open=")
+            .map(|at| at + "open=".len())
+            .or_else(|| word.find("/o/").map(|at| at + "/o/".len()))?;
+        let id: String = word[from..]
+            .chars()
+            .take_while(|c| c.is_ascii_hexdigit() || *c == '-')
+            .collect();
+        return (id.len() == ID_FORM.len() && is_id_end(&id)).then_some(id);
     }
-    value.parse::<Id>().ok().map(|id| id.to_string())
+    let word = word.strip_prefix("samu:").unwrap_or(&word);
+    is_id_end(word).then(|| word.to_owned())
 }
 
 /// Whether a chip can be part of a filter: a kind and a word samu knows, an
@@ -1058,9 +1091,24 @@ pub fn text_matches(text: &str, task: &Task) -> bool {
         task.id
     )
     .to_lowercase();
-    terms
+    let id = task.id.to_string();
+    terms.iter().all(|(not, term)| {
+        let holds =
+            hay.contains(term.as_str()) || task_id(term).is_some_and(|named| id.ends_with(&named));
+        holds != *not
+    })
+}
+
+/// Whether a word of the free text names the task by its id
+/// ([`task_id`]): such a task is shown whatever the view's filter, as with
+/// an `id:` chip, while the other tasks the words find keep to it
+/// (6aec8bd3). An excluded word names nothing.
+#[must_use]
+pub fn names_task(text: &str, task: &Task) -> bool {
+    let id = task.id.to_string();
+    free_terms(text)
         .iter()
-        .all(|(not, term)| hay.contains(term.as_str()) != *not)
+        .any(|(not, term)| !*not && task_id(term).is_some_and(|named| id.ends_with(&named)))
 }
 
 /// The terms of free text, lower case: whether each is excluded, and the
@@ -1373,6 +1421,86 @@ mod tests {
         assert!(!asks_for_closed(&[chip(Kind::Id, &short, true)]));
     }
 
+    /// 6aec8bd3: any end of an id from 8 characters on, a copied link and
+    /// a web address name a task; shorter words and other ends do not.
+    #[test]
+    fn an_id_is_read_in_every_form_it_is_copied_in() {
+        let whole = "01936f5e-8a00-7c3e-9b1a-00000000abcd";
+        for (word, want) in [
+            ("0000abcd", Some("0000abcd")),
+            ("00000000ABCD", Some("00000000abcd")),
+            ("9b1a-00000000abcd", Some("9b1a-00000000abcd")),
+            ("-00000000abcd", Some("-00000000abcd")),
+            (whole, Some(whole)),
+            (&format!("samu:{whole}"), Some(whole)),
+            ("samu:00000000abcd", Some("00000000abcd")),
+            (&format!("https://example.org/o/{whole}"), Some(whole)),
+            (
+                &format!("https://example.org/v/today?q=x&open={whole}&full=1"),
+                Some(whole),
+            ),
+            (
+                &format!("https://example.org/o/{}?open={whole}", id(3)),
+                Some(whole),
+            ),
+            ("000abcd", None),
+            ("0000abcg", None),
+            ("9b1a00000000abcd", None),
+            ("https://example.org/o/00000000abcd", None),
+            ("samu:", None),
+            ("milchtüte", None),
+        ] {
+            assert_eq!(task_id(word).as_deref(), want, "{word:?}");
+        }
+        let snapshot = Snapshot::default();
+        let read = parse(&format!("id:00000000ABCD id:samu:{whole}"), &snapshot).unwrap();
+        assert_eq!(
+            read,
+            [
+                chip(Kind::Id, "00000000abcd", false),
+                chip(Kind::Id, whole, false)
+            ]
+        );
+        assert!(read.iter().all(|c| check(c).is_ok()));
+        let mut t = task(1);
+        t.id = whole.parse().unwrap();
+        let filter = Filter::new(&read[..1], &snapshot, Timestamp::UNIX_EPOCH, &TimeZone::UTC);
+        assert!(filter.matches(&t, &state(true, DueState::None)));
+    }
+
+    /// 6aec8bd3: a free word that names a task by its id lifts the view's
+    /// filter for that task only; a word that only stands in the text does
+    /// not, nor does an excluded one.
+    #[test]
+    fn a_free_word_names_a_task_by_its_id() {
+        let mut named = task(1);
+        named.id = "01936f5e-8a00-7c3e-9b1a-00000000abcd".parse().unwrap();
+        let mut mentions = task(2);
+        mentions.note = Some("rest of 0000abcd".into());
+        for text in [
+            "0000abcd",
+            "00000000abcd",
+            "samu:01936f5e-8a00-7c3e-9b1a-00000000abcd",
+        ] {
+            assert!(text_matches(text, &named), "{text:?}");
+            assert!(names_task(text, &named), "{text:?}");
+            assert!(!names_task(text, &mentions), "{text:?}");
+        }
+        assert!(text_matches("0000abcd", &mentions));
+        assert!(!text_matches("00000000abcd", &mentions));
+        assert!(!names_task("-0000abcd", &named));
+        assert!(!names_task("abcd", &named));
+        assert!(!names_task("", &named));
+        // A copied link or address stays free text when a search is split.
+        let snapshot = Snapshot::default();
+        for word in [
+            "samu:01936f5e-8a00-7c3e-9b1a-00000000abcd",
+            "https://example.org/o/01936f5e-8a00-7c3e-9b1a-00000000abcd",
+        ] {
+            assert_eq!(split_search(word, &snapshot), (Vec::new(), word.to_owned()));
+        }
+    }
+
     #[test]
     fn groups_are_written_with_oder_and_read_back() {
         let snapshot = Snapshot::default();
@@ -1418,6 +1546,9 @@ mod tests {
             let text = case["text"].as_str().unwrap();
             let want = case["matches"].as_bool().unwrap();
             assert_eq!(text_matches(text, &t), want, "{text:?}");
+            if let Some(names) = case["names"].as_bool() {
+                assert_eq!(names_task(text, &t), names, "names {text:?}");
+            }
         }
     }
 

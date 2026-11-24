@@ -1722,7 +1722,8 @@ impl Samu {
             "search",
             tag.as_deref(),
             |t, s| {
-                (closed || arrange::passes(show, t, s))
+                // A task named by its id whatever the filter (6aec8bd3).
+                (closed || samu_core::query::names_task(&free, t) || arrange::passes(show, t, s))
                     && filter.matches(t, s)
                     && samu_core::query::text_matches(&free, t)
             },

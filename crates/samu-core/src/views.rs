@@ -183,12 +183,19 @@ impl<'a> PerspectiveTest<'a> {
         self.filter.matches(task, state) && crate::query::text_matches(self.text, task)
     }
 
+    /// Whether a word of its free text names the task by its id: then the
+    /// filter does not hold for it (6aec8bd3).
+    pub fn names(&self, task: &Task) -> bool {
+        crate::query::names_task(self.text, task)
+    }
+
     /// Whether the perspective shows a task the scope shows: its chips,
-    /// its free text and its filter.
+    /// its free text and its filter, which a task named by its id passes.
     pub fn shows(&self, status: &TaskStatus, state: &TaskState) -> bool {
         let open = status.task.completed_at.is_none() && status.task.dropped_at.is_none();
-        (open || self.all)
-            && (status.available || !self.available)
+        let named = self.names(&status.task);
+        (open || self.all || named)
+            && (status.available || !self.available || named)
             && self.task(&status.task, state)
     }
 }
@@ -255,8 +262,10 @@ pub fn available(
             continue;
         }
         let open = task.completed_at.is_none() && task.dropped_at.is_none();
-        if (!open && !all)
-            || (only_available && !computed.available)
+        // A task the search names by its id passes the filter (6aec8bd3).
+        let named = asked.as_ref().is_some_and(|a| a.names(task));
+        if (!open && !all && !named)
+            || (only_available && !computed.available && !named)
             || (filter.today && !computed.today)
             || (filter.project.is_some() && task.project != filter.project)
         {
@@ -1499,6 +1508,38 @@ mod tests {
         };
         assert_eq!(shown_in(&objects, &of(asks_id)), ["done"]);
         assert_eq!(shown_in(&objects, &of(all_id)), ["done", "open"]);
+    }
+
+    /// 6aec8bd3: a free word that names a completed task by its id shows
+    /// it in an `available` perspective; a completed task that only
+    /// mentions the id stays out, an open one that does stays in.
+    #[test]
+    fn a_perspective_shows_a_task_its_text_names_by_id() {
+        let mut objects = Objects::default();
+        let mut epic = task("epic", 0);
+        epic.completed_at = Some(now());
+        let short = epic.id.to_string()[24..].to_owned();
+        let mut rest = task("rest", 1);
+        rest.note = Some(format!("rest of {short}"));
+        let mut old = task("old", 2);
+        old.note = Some(format!("before {short}"));
+        old.completed_at = Some(now());
+        objects.tasks = vec![epic.clone(), rest, old];
+        for text in [short.clone(), format!("samu:{}", epic.id)] {
+            let p = perspective(serde_json::json!({ "text": text }));
+            let id = p.id;
+            objects.perspectives = vec![p];
+            let filter = AvailableFilter {
+                perspective: Some(id),
+                ..AvailableFilter::default()
+            };
+            let want: &[&str] = if text.starts_with("samu:") {
+                &["epic"]
+            } else {
+                &["epic", "rest"]
+            };
+            assert_eq!(shown_in(&objects, &filter), want, "{text:?}");
+        }
     }
 
     /// ADR 0090 §2: `available` leaves out what waits, `remaining` and a

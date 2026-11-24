@@ -1,5 +1,5 @@
 {
-  "comment": "Free text of the search against one task, the same answers in samu-core (text_matches) and web/lib/query.js (matcher). A lone - is an ordinary word, and every id holds one.",
+  "comment": "Free text of the search against one task, the same answers in samu-core (text_matches) and web/lib/query.js (matcher). A lone - is an ordinary word, and every id holds one. A word that names the task by its id (its end from 8 characters on, samu:<id>, a web address with open=<id> or /o/<id>) holds too, and `names` says whether the search names it (samu-core names_task, web namesTask), which lifts the view's filter for that task.",
   "task": {
     "id": "01936f5e-8a00-7c3e-9b1a-00000000abcd",
     "title": "Milch kaufen bis Freitag",
@@ -24,6 +24,19 @@
     { "text": "\"\"", "matches": true },
     { "text": "-", "matches": true },
     { "text": "- milch", "matches": true },
-    { "text": "- käse", "matches": false }
+    { "text": "- käse", "matches": false },
+    { "text": "0000abcd", "matches": true, "names": true },
+    { "text": "00000000ABCD", "matches": true, "names": true },
+    { "text": "9b1a-00000000abcd", "matches": true, "names": true },
+    { "text": "samu:01936f5e-8a00-7c3e-9b1a-00000000abcd", "matches": true, "names": true },
+    { "text": "samu:00000000abcd", "matches": true, "names": true },
+    { "text": "https://example.org/o/01936f5e-8a00-7c3e-9b1a-00000000abcd", "matches": true, "names": true },
+    { "text": "https://example.org/v/today?q=milch&open=01936f5e-8a00-7c3e-9b1a-00000000abcd&full=1", "matches": true, "names": true },
+    { "text": "samu:01936f5e-8a00-7c3e-9b1a-00000000ffff", "matches": false, "names": false },
+    { "text": "-samu:01936f5e-8a00-7c3e-9b1a-00000000abcd", "matches": false, "names": false },
+    { "text": "milch 00000000abcd", "matches": true, "names": true },
+    { "text": "käse 00000000abcd", "matches": false, "names": true },
+    { "text": "abcd", "matches": true, "names": false },
+    { "text": "milch", "matches": true, "names": false }
   ]
 }

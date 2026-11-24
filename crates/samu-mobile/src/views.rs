@@ -344,7 +344,10 @@ impl Samu {
         let snapshot = objects.snapshot();
         let test = PerspectiveTest::new(perspective, &snapshot, Timestamp::now(), &settings.zone);
         let pick = |t: &Task, s: &samu_core::availability::TaskState| {
-            (test.all || is_open(t)) && (!test.available || s.available) && test.task(t, s)
+            let named = test.names(t);
+            (test.all || named || is_open(t))
+                && (!test.available || named || s.available)
+                && test.task(t, s)
         };
         // What its filter shows, for the children of a group it finds.
         let show = if test.all {
