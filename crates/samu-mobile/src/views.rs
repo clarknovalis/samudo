@@ -326,7 +326,7 @@ impl Samu {
             // `/available?perspective=` answers it (ADR 0116 §4). The
             // scope chosen here applies in `listed_as`, as for the rest.
             let hits: HashSet<Id> = samu_core::blocks::union(
-                samu_core::views::blocks(&objects, &settings, Timestamp::now(), None, id)
+                samu_core::views::blocks(&objects, &settings, Timestamp::now(), None, id, None)
                     .map_err(|e| input(e.to_string()))?,
             )
             .into_iter()
@@ -366,16 +366,27 @@ impl Samu {
     /// or search, a fixed view's as this phone keeps it. Through the scope
     /// chosen here and, if given, only with `tag` or below; a note block
     /// in every scope (ADR 0146 §2). A plain perspective is one block.
-    pub fn blocks(&self, id: String, tag: Option<String>) -> Result<Vec<ShownBlock>, MobileError> {
+    /// `filter` (`available`, `remaining`, `all`), when given, holds for
+    /// every block in place of its own, for the moment (ADR 0116 §9).
+    pub fn blocks(
+        &self,
+        id: String,
+        tag: Option<String>,
+        filter: Option<String>,
+    ) -> Result<Vec<ShownBlock>, MobileError> {
         let id = parse_id(&id)?;
+        let filter = filter
+            .map(|f| crate::arrange::show_named(&f).ok_or_else(|| input(format!("no filter {f}"))))
+            .transpose()?;
         let scope = self.chosen_id()?;
         let (settings, objects) = {
             let cache = self.cache()?;
             (Self::settings(&cache)?.0, Self::view(&cache)?.0)
         };
         let lang = self.ui_lang();
-        let found = samu_core::views::blocks(&objects, &settings, Timestamp::now(), scope, id)
-            .map_err(|e| input(e.to_string()))?;
+        let found =
+            samu_core::views::blocks(&objects, &settings, Timestamp::now(), scope, id, filter)
+                .map_err(|e| input(e.to_string()))?;
         let own = objects
             .perspectives
             .iter()
@@ -384,7 +395,16 @@ impl Samu {
             .unwrap_or_default();
         found
             .into_iter()
-            .map(|section| self.block(section, &objects.perspectives, &own, tag.as_deref(), lang))
+            .map(|section| {
+                self.block(
+                    section,
+                    &objects.perspectives,
+                    &own,
+                    tag.as_deref(),
+                    filter,
+                    lang,
+                )
+            })
             .collect()
     }
 }
@@ -397,6 +417,7 @@ impl Samu {
         perspectives: &[samu_api::Perspective],
         own: &PerspectiveArrange,
         tag: Option<&str>,
+        filter: Option<PerspectiveFilter>,
         lang: samu_core::query::Lang,
     ) -> Result<ShownBlock, MobileError> {
         let block = section.block.clone().unwrap_or_default();
@@ -453,7 +474,9 @@ impl Samu {
                 tag,
                 pick,
                 |_| true,
-                PerspectiveFilter::Remaining,
+                // The children below a hit as far as the chosen filter
+                // lets them through, else what remains.
+                filter.unwrap_or(PerspectiveFilter::Remaining),
             )?
         };
         let count = sections

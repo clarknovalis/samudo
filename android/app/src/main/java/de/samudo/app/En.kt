@@ -592,6 +592,7 @@ val EN: Map<String, String> = mapOf(
     "zuklappen" to "fold",
     "Verbleibend" to "Remaining",
     "Alle" to "All",
+    "Je Block" to "Per block",
     "Ordnung ist eindeutig" to "Order is unique",
     "⇄ {label}" to "⇄ {label}",
     "Erledigen …" to "Complete …",

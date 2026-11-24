@@ -179,7 +179,9 @@ Each argument of `samu perspective blocks` is one block: `:today`,
 a project or task, the name of a plain perspective, or else a search of
 the block's own; ` | Heading` gives it a heading. A note block prints its
 heading without a count and the note as written, indented; json carries
-it as `note`, tsv has no row for it.
+it as `note`, tsv has no row for it. `--available`, `--remaining` or
+`--all` hold for every block in place of its own filter, for this call;
+`--remaining` is refused elsewhere, where it is the default.
 
 ## Changing
 

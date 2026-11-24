@@ -42,7 +42,7 @@ gegen eine Sitzung.
 | Route | |
 |---|---|
 | `GET /available` | offene Aufgaben mit Verfügbarkeit, jedem Grund, Zustand und nächstem Zustand; Filter: nur verfügbar, heute, Projekt, alle, Scope, Perspektive; `elsewhere=true` nimmt dazu, was nur ein anderer eigener Scope zeigt, mit diesem Scope als `elsewhere` markiert, nur für einen Hinweis |
-| `GET /blocks?perspective=<id>` | was eine Perspektive zeigt, Block für Block: `[{title, icon, block, missing, note, tasks}]`, `tasks` wie bei `/available`, `note` der Text eines Notiz-Blocks (ADR 0146); eine einfache Perspektive ist ein Block, und `/available` antwortet für eine Block-Perspektive mit den Aufgaben aller Blöcke, jede einmal; mit `scope` |
+| `GET /blocks?perspective=<id>` | was eine Perspektive zeigt, Block für Block: `[{title, icon, block, missing, note, tasks}]`, `tasks` wie bei `/available`, `note` der Text eines Notiz-Blocks (ADR 0146); eine einfache Perspektive ist ein Block, und `/available` antwortet für eine Block-Perspektive mit den Aufgaben aller Blöcke, jede einmal; mit `scope`, und `filter=available|remaining|all` für jeden Block statt seines eigenen (ADR 0116 §9) |
 | `GET /available/projects`, `/available/folders` | Projekte (stuck, Review fällig) und Ordner; Projekte nehmen ebenso `elsewhere=true` |
 | `GET /forecast` | die Abschnitte des Forecasts, jede Zeile mit dem Grund, warum sie dort steht |
 | `GET /objects/{id}` | ein Objekt beliebiger Art |

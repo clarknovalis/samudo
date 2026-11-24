@@ -32,7 +32,7 @@ let found = 0;
 for (const c of doc.cases) {
   const p = { ...doc.perspectives.find((o) => o.title === c.perspective) };
   if (typeof c.dedupe === "boolean") p.dedupe = c.dedupe;
-  const got = assemble(p, doc.perspectives, doc.statuses, shows, undefined, (id) => doc.notes[id] ?? null);
+  const got = assemble(p, doc.perspectives, doc.statuses, shows, undefined, (id) => doc.notes[id] ?? null, c.filter ?? null);
   found += got.reduce((n, s) => n + s.tasks.length, 0);
   check(
     c.about,
@@ -50,7 +50,13 @@ check("known views", VIEWS.every(knownView) && !knownView("forecast"), true);
 // A block perspective opens with an empty search field, even when it was
 // made from a search and still carries its chips: the search would hide
 // the blocks (ADR 0116 §6).
-const { searchOf } = await import(new URL("web/lib/perspectives.js", root));
+const { filterOf, searchOf } = await import(new URL("web/lib/perspectives.js", root));
+// A filter for every block, for the moment (ADR 0116 §9), stands for the
+// perspective's own and is lifted as that one is.
+const waiting = { kind: "is", value: "wartet" };
+check("a block's filter for the moment", filterOf({ id: "a", filter: "available" }, "all"), "all");
+check("a block's filter for the moment, lifted", filterOf({ id: "a", filter: "all", chips: [waiting] }, "available"), "remaining");
+check("without one its own", filterOf({ id: "a", filter: "remaining" }), "remaining");
 const chip = { kind: "tag", value: "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6d01" };
 check("a block perspective's field", searchOf({ title: "@today", chips: [chip], text: "x", blocks: [{ view: "today" }] }), { search: "", searchChips: [] });
 check("a plain perspective's field", searchOf({ title: "@today", chips: [chip], text: "x" }).searchChips.length, 1);

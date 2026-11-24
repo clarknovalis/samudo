@@ -26,12 +26,13 @@ const FILTERS = ["available", "remaining", "all"];
 // A filter from a newer samu is read as the default (ADR 0090 §1).
 export const baseFilter = (p) => (FILTERS.includes(p.filter) ? p.filter : "available");
 
-// The filter that holds: the perspective's, lifted by what its chips ask
-// for (ADR 0042 §4). The open one is judged by the chips in the field.
-export function filterOf(p) {
+// The filter that holds: the perspective's, or `base` in its place (a
+// block perspective's for the moment, ADR 0116 §9), lifted by what its
+// chips ask for (ADR 0042 §4). The open one is judged by the chips in the
+// field.
+export function filterOf(p, base = baseFilter(p)) {
   const chips = current()?.id === p.id ? state.searchChips : p.chips ?? [];
   if (asksForClosed(chips)) return "all";
-  const base = baseFilter(p);
   if (base === "available" && asksForWaiting(chips)) return "remaining";
   return base;
 }

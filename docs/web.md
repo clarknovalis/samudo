@@ -85,6 +85,11 @@ shows the blocks as lines, one per block, as described under
 line becomes and how many tasks it shows; a line that is no block is
 marked, and the dialog saves only once it is fixed.
 
+Above a block perspective the filter reads "Per block": each block shows
+what its own filter lets through. "Available", "Remaining" or "All"
+there hold for every block at once, the views Inbox, Today and Flagged
+included, until you leave the perspective; nothing is saved.
+
 In the list each block is a section that folds; an empty one is dimmed
 and folded each time the perspective is opened. Its heading opens the
 block's perspective or view, and its rows are arranged as that

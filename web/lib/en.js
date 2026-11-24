@@ -147,6 +147,8 @@ export const EN = {
   "Verfügbar": "Available",
   "Verbleibend": "Remaining",
   "Alle": "All",
+  "Je Block": "Per block",
+  "Für alle Blöcke, nur bis du die Perspektive verlässt": "For every block, only until you leave the perspective",
   "Alle zu": "Fold all",
   "↵ verschieben · ⇥ als Kind · Esc abbrechen": "↵ move · ⇥ as child · Esc cancel",
   "Schließen": "Close",

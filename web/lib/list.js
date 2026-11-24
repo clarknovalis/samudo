@@ -25,7 +25,7 @@ import { habitControl, habitOf } from "./habits.js";
 import { reportView } from "./report.js";
 import { asksForClosed, asksForWaiting, chipText, minutes, namesTask, rangeOf, wantsAppointments } from "./query.js";
 import { rowDrop } from "./reorder.js";
-import { baseFilter, captureFrom, current as perspective, filterOf, named, orderOf, perspectiveShows, perspectives, searchOf } from "./perspectives.js";
+import { baseFilter, captureFrom, current as perspective, filterOf, holds, named, orderOf, perspectives, searchOf } from "./perspectives.js";
 import { forecastDay, inView, reviewProjects, startPerspectiveDraft, stuckProjects, VIEWS } from "./sidebar.js";
 import { byId, chooseOrder, chooseScope, foldAll, foldOthers, heldUpBy, holdsUp, isOpen, laneFold, noteSource, shown, state, statusOf, tagTitle, toggleFold, toggleOpened, update } from "./state.js";
 import { addDays, dueText, pathOf, shortDay, tagPath, today } from "./words.js";
@@ -61,6 +61,21 @@ const matches = (status) => passes(filterNow(), status) || namedNow(status);
 
 // The block perspective the middle shows, or null (ADR 0116).
 const blocksShown = () => (shown().kind === "perspective" && isBlocks(perspective()) ? perspective() : null);
+
+// The filter for every block of the open block perspective, for the moment
+// (ADR 0116 §9): null for each block's own. Nothing keeps it; another
+// view ends it.
+let blockFilter = null;
+
+// A filter button in a block perspective: "blocks" for each block's own.
+export function chooseBlockFilter(filter) {
+  blockFilter = filter === "blocks" ? null : filter;
+  update({});
+}
+
+// Whether the middle shows a block perspective, whose filter buttons are
+// its own (§9).
+export const showsBlocks = () => Boolean(blocksShown());
 
 // The built-in views of time show open tasks whatever the filter; each
 // block of a block perspective has its own.
@@ -939,18 +954,26 @@ function drawList() {
   if (blocksShown()?.id !== emptyFor) {
     emptyFor = blocksShown()?.id;
     openedEmpty.clear();
+    blockFilter = null;
   }
   clearBoard();
   replace($("list-title"), title());
   const base = shown().kind === "perspective" && perspective() ? baseFilter(perspective()) : state.filter;
   const closed = filterNow() !== base;
+  const inBlocks = Boolean(blocksShown());
   for (const button of document.querySelectorAll("#filter button")) {
-    button.classList.toggle("current", button.dataset.filter === filterNow());
-    button.disabled = !filtered() || closed;
+    const own = button.dataset.filter === "blocks";
+    // Each block has its own filter (ADR 0116 §5); one for all of them
+    // holds only for the moment (§9).
+    button.hidden = own && !inBlocks;
+    button.classList.toggle("current", inBlocks ? (own ? !blockFilter : button.dataset.filter === blockFilter) : button.dataset.filter === filterNow());
+    button.disabled = !inBlocks && (!filtered() || closed);
   }
-  // Each block has its own filter (ADR 0116 §5).
-  $("filter").hidden = Boolean(blocksShown());
-  $("filter").title = closed ? tr("Die Suche fragt danach: es gilt „{filter}“", { filter: { all: tr("Alle"), remaining: tr("Verbleibend") }[filterNow()] }) : "";
+  $("filter").title = inBlocks
+    ? tr("Für alle Blöcke, nur bis du die Perspektive verlässt")
+    : closed
+      ? tr("Die Suche fragt danach: es gilt „{filter}“", { filter: { all: tr("Alle"), remaining: tr("Verbleibend") }[filterNow()] })
+      : "";
   renderOrder();
   // The calendar fills the middle and scrolls its hours itself.
   $("middle").classList.toggle("calendar", shown().kind === "calendar");
@@ -1075,8 +1098,11 @@ function openEmpty(fold) {
 function drawBlocks(p) {
   place = "full";
   const statuses = state.statuses.filter((s) => !s.outside);
-  const shows = perspectiveShows;
-  const sections = assemble(p, perspectives(), statuses, shows, undefined, noteSource);
+  // A task named by its id passes the filter, the one chosen for every
+  // block as well (ADR 0116 §9).
+  const over = blockFilter ?? undefined;
+  const shows = (q, s) => holds(q, s) && (passes(filterOf(q, over), s) || named(q, s));
+  const sections = assemble(p, perspectives(), statuses, shows, undefined, noteSource, blockFilter);
   drawTables($("list"), (table) => {
     const drawn = sections.map((block, i) => blockSection(p, block, i, table));
     return drawn.length ? drawn : el("p", { class: "empty", text: tr("Nichts hier.") });

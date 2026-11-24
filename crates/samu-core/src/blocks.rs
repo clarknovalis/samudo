@@ -15,7 +15,9 @@
 
 use std::collections::HashSet;
 
-use crate::api::{BlockQuery, BlockSection, Id, Perspective, PerspectiveBlock, TaskStatus};
+use crate::api::{
+    BlockQuery, BlockSection, Id, Perspective, PerspectiveBlock, PerspectiveFilter, TaskStatus,
+};
 
 /// The fixed views a block may show (ADR 0116 §2): the ones whose hits
 /// this crate already computes per task.
@@ -31,12 +33,34 @@ pub fn known_view(view: &str) -> bool {
 /// Today, a view of time, what is open. None for a view this samu does not
 /// know.
 pub fn in_view(view: &str, status: &TaskStatus) -> Option<bool> {
+    in_view_with(view, status, None)
+}
+
+/// [`in_view`] through `filter` instead of the view's own, when there is
+/// one: a block perspective's filter chosen for the moment (ADR 0116 §9).
+pub fn in_view_with(
+    view: &str,
+    status: &TaskStatus,
+    filter: Option<PerspectiveFilter>,
+) -> Option<bool> {
+    use PerspectiveFilter as F;
+    let (member, own) = match view {
+        "inbox" => (status.inbox, F::Available),
+        "today" => (status.today, F::Remaining),
+        "flagged" => (status.task.flagged, F::Available),
+        _ => return None,
+    };
+    Some(member && passes(filter.unwrap_or(own), status))
+}
+
+/// Whether a task passes a filter: available, remaining or all; a value
+/// from a newer samu is read as available (ADR 0090 §1).
+pub fn passes(filter: PerspectiveFilter, status: &TaskStatus) -> bool {
     let open = status.task.completed_at.is_none() && status.task.dropped_at.is_none();
-    match view {
-        "inbox" => Some(open && status.available && status.inbox),
-        "today" => Some(open && status.today),
-        "flagged" => Some(open && status.available && status.task.flagged),
-        _ => None,
+    match filter {
+        PerspectiveFilter::All => true,
+        PerspectiveFilter::Remaining => open,
+        PerspectiveFilter::Available | PerspectiveFilter::Unknown => open && status.available,
     }
 }
 
@@ -115,10 +139,14 @@ pub fn query_name(query: &BlockQuery, snapshot: &crate::availability::Snapshot<'
 /// `missing` and empty. With `dedupe` a task stands only in the first
 /// block that shows it. A note block (ADR 0146 §2) has no tasks and the
 /// note that `note_of` finds for its object, or is missing without one.
+/// `filter`, when given, stands for the filter of every block (ADR 0116
+/// §9): `shows` must apply it to perspectives and searches, the fixed
+/// views take it here.
 pub fn assemble(
     perspective: &Perspective,
     perspectives: &[Perspective],
     statuses: &[TaskStatus],
+    filter: Option<PerspectiveFilter>,
     shows: impl Fn(Shown<'_>, &TaskStatus) -> bool,
     name: impl Fn(&BlockQuery) -> String,
     note_of: impl Fn(Id) -> Option<NoteSource>,
@@ -165,7 +193,8 @@ pub fn assemble(
                     tasks: Vec::new(),
                 };
             }
-            let (title, icon, hits) = hits_of(i, block, perspectives, statuses, &shows, &name);
+            let (title, icon, hits) =
+                hits_of(i, block, perspectives, statuses, filter, &shows, &name);
             let missing = hits.is_none();
             let tasks: Vec<TaskStatus> = hits
                 .unwrap_or_default()
@@ -191,6 +220,7 @@ fn hits_of(
     block: &PerspectiveBlock,
     perspectives: &[Perspective],
     statuses: &[TaskStatus],
+    filter: Option<PerspectiveFilter>,
     shows: &impl Fn(Shown<'_>, &TaskStatus) -> bool,
     name: &impl Fn(&BlockQuery) -> String,
 ) -> (String, Option<String>, Option<Vec<TaskStatus>>) {
@@ -218,7 +248,7 @@ fn hits_of(
             let hits = known_view(view).then(|| {
                 statuses
                     .iter()
-                    .filter(|s| in_view(view, s) == Some(true))
+                    .filter(|s| in_view_with(view, s, filter) == Some(true))
                     .cloned()
                     .collect()
             });
@@ -306,7 +336,17 @@ mod tests {
                 ids.is_some_and(|ids| ids.contains(&s.task.id))
             };
             let name = |q: &BlockQuery| q.text.clone();
-            let got = assemble(&perspective, &perspectives, &statuses, shows, name, note_of);
+            let filter: Option<PerspectiveFilter> =
+                serde_json::from_value(case["filter"].clone()).unwrap();
+            let got = assemble(
+                &perspective,
+                &perspectives,
+                &statuses,
+                filter,
+                shows,
+                name,
+                note_of,
+            );
             let want = case["sections"].as_array().unwrap();
             assert_eq!(got.len(), want.len(), "{about}");
             for (got, want) in got.iter().zip(want) {

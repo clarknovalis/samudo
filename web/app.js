@@ -27,7 +27,7 @@ import { today } from "./lib/words.js";
 import { wireKeyCapture } from "./lib/keycapture.js";
 import { helpRows, keyOf, wireKeys } from "./lib/keys.js";
 import { pretty } from "./lib/keymap.js";
-import { renderList, wireOrder } from "./lib/list.js";
+import { chooseBlockFilter, renderList, showsBlocks, wireOrder } from "./lib/list.js";
 import { listen, stopListening, watchConnection } from "./lib/live.js";
 import { renderPalette, wirePalette } from "./lib/palette.js";
 import { wireResize } from "./lib/resize.js";
@@ -306,11 +306,14 @@ wireMenu();
 wireSidebar();
 wireResize();
 for (const button of document.querySelectorAll("#filter button")) {
-  // In a perspective the filter is the perspective's (ADR 0090 §6).
+  // In a perspective the filter is the perspective's (ADR 0090 §6); in a
+  // block perspective one for every block, for the moment (ADR 0116 §9).
   button.addEventListener("click", () =>
-    state.view.kind === "perspective"
-      ? chooseFilterOf(state.view.perspective, button.dataset.filter)
-      : update({ filter: button.dataset.filter }),
+    showsBlocks()
+      ? chooseBlockFilter(button.dataset.filter)
+      : state.view.kind === "perspective"
+        ? chooseFilterOf(state.view.perspective, button.dataset.filter)
+        : update({ filter: button.dataset.filter }),
   );
 }
 routePerspectiveOrder(chooseOrderOf);

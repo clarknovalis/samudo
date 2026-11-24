@@ -1647,6 +1647,8 @@ pub(crate) struct BlocksQuery {
     pub(crate) perspective: Id,
     /// Only what this scope shows (ADR 0035 §5).
     pub(crate) scope: Option<Id>,
+    /// One filter for every block in place of each one's own (ADR 0116 §9).
+    pub(crate) filter: Option<samu_store::core::api::PerspectiveFilter>,
 }
 
 /// `GET /blocks`: what a perspective shows, block by block, computed in
@@ -1663,6 +1665,7 @@ async fn blocks(
         Timestamp::now(),
         query.scope,
         query.perspective,
+        query.filter,
     )?;
     Ok(Json(sections).into_response())
 }

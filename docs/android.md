@@ -93,7 +93,9 @@ dropped leaves the bar by itself.
   task only in the first block that shows it. A note block shows the note
   of its project or task; tick its checkboxes, or tap ✎ to edit it. Tap a
   block's heading to fold it, ↗ at its right opens what it refers to; an
-  empty block starts folded.
+  empty block starts folded. The row above the blocks sets one filter for
+  all of them, "Per block" being each block's own; it holds until you
+  leave the list.
 - A **project** opens as from the tree, a **tag** shows the available
   tasks with it.
 

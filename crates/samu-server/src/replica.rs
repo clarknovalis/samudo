@@ -994,6 +994,7 @@ async fn blocks(
         Timestamp::now(),
         query.scope,
         query.perspective,
+        query.filter,
     )?;
     Ok(Json(sections).into_response())
 }

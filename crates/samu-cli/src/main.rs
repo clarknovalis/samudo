@@ -508,6 +508,11 @@ enum Command {
         /// Completed and dropped tasks too.
         #[arg(long)]
         all: bool,
+        /// Open tasks, blocked ones too: only for a block perspective,
+        /// whose --available, --remaining or --all stand for every block's
+        /// own filter (ADR 0116 §9); elsewhere it is the default.
+        #[arg(long, conflicts_with_all = ["available", "all"])]
+        remaining: bool,
         /// Only tasks with this tag or one below it, by title or path a/b.
         #[arg(long, add = ArgValueCompleter::new(complete::tag_path))]
         tag: Option<String>,
@@ -2327,6 +2332,7 @@ fn run(args: Args) -> Result<()> {
             project,
             inbox,
             all,
+            remaining,
             tag,
             flagged,
             search,
@@ -2349,15 +2355,26 @@ fn run(args: Args) -> Result<()> {
             if let Some(perspective) = perspective {
                 let found = perspectives::resolve(&client, &perspective)?;
                 if !found.blocks.is_empty() {
-                    if available || today || all || bare || project.is_some() || columns.is_some() {
+                    if today || bare || project.is_some() || columns.is_some() {
                         bail!(
-                            "a block perspective shows its blocks as they are: no --available, \
-                             --today, --all, --project, --bare or --columns"
+                            "a block perspective shows its blocks as they are: no --today, \
+                             --project, --bare or --columns"
                         );
                     }
                     let mut path = format!("/blocks?perspective={}", found.id);
                     if let Some(scope) = scoped {
                         path.push_str(&format!("&scope={scope}"));
+                    }
+                    // One filter for every block, for this call (ADR 0116 §9).
+                    let filter = [
+                        (available, "available"),
+                        (remaining, "remaining"),
+                        (all, "all"),
+                    ]
+                    .into_iter()
+                    .find_map(|(on, name)| on.then_some(name));
+                    if let Some(filter) = filter {
+                        path.push_str(&format!("&filter={filter}"));
                     }
                     let sections: Vec<BlockSection> =
                         serde_json::from_value(client.call("GET", &path, None)?.json()?)?;
@@ -2375,6 +2392,9 @@ fn run(args: Args) -> Result<()> {
                     columns = Some(found.table.map(|t| t.columns).unwrap_or_default());
                 }
                 query.push(format!("perspective={}", found.id));
+            }
+            if remaining {
+                bail!("--remaining is only for a block perspective; elsewhere it is the default");
             }
             if available {
                 query.push("available=true".to_string());

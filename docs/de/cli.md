@@ -185,7 +185,10 @@ ist ein Block: `:today`, `:inbox` oder `:flagged`, `:note #Projekt` oder
 einer einfachen Perspektive, sonst eine eigene Suche des Blocks;
 ` | Überschrift` gibt ihm eine Überschrift. Ein Notiz-Block druckt seine
 Überschrift ohne Zahl und die Notiz, wie sie geschrieben ist, eingerückt;
-in json steht sie als `note`, in tsv hat er keine Zeile.
+in json steht sie als `note`, in tsv hat er keine Zeile. `--available`,
+`--remaining` oder `--all` gelten für diesen Aufruf in jedem Block statt
+seines eigenen Filters; `--remaining` wird sonst abgelehnt, dort ist es
+die Vorgabe.
 
 ## Ändern
 

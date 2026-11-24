@@ -1,5 +1,5 @@
 {
- "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included, `queries` the same for a block's own search (ADR 0143), by its text, which is also its name without a heading, and `notes` the projects and tasks a note block (ADR 0146) may show, by id; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden, and gives the sections in order and the union `/available` answers with.",
+ "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included, `queries` the same for a block's own search (ADR 0143), by its text, which is also its name without a heading, and `notes` the projects and tasks a note block (ADR 0146) may show, by id; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden and a `filter` for every block (ADR 0116 §9), which the fixed views take here and the perspectives through `shows`, and gives the sections in order and the union `/available` answers with.",
  "perspectives": [
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01",
@@ -305,6 +305,94 @@
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+   ]
+  },
+  {
+   "about": "a filter for the moment holds for the fixed views in place of their own: all brings the completed task into Today and the waiting one into Flagged",
+   "perspective": "Morgen",
+   "filter": "all",
+   "sections": [
+    {
+     "title": "today",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b07"
+     ]
+    },
+    {
+     "title": "Kurz im Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02"
+     ]
+    },
+    {
+     "title": "Wartet",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+     ]
+    },
+    {
+     "title": "flagged",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b08"
+     ]
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b07",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b08"
+   ]
+  },
+  {
+   "about": "with remaining Today keeps what is open, Flagged shows the waiting one",
+   "perspective": "Morgen",
+   "filter": "remaining",
+   "sections": [
+    {
+     "title": "today",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    },
+    {
+     "title": "Kurz im Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02"
+     ]
+    },
+    {
+     "title": "Wartet",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04"
+     ]
+    },
+    {
+     "title": "flagged",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b08"
+     ]
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b04",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b08"
    ]
   },
   {

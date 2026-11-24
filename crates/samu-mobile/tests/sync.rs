@@ -4199,7 +4199,7 @@ fn a_block_perspective_shows_its_blocks_one_by_one() {
     let samu = phone(&server);
     samu.sync().unwrap();
 
-    let blocks = samu.blocks(morning.clone(), None).unwrap();
+    let blocks = samu.blocks(morning.clone(), None, None).unwrap();
     let shown: Vec<_> = blocks
         .iter()
         .map(|b| (b.title.as_str(), b.count, section_titles(&b.sections)))
@@ -4223,7 +4223,9 @@ fn a_block_perspective_shows_its_blocks_one_by_one() {
     assert!(blocks[1].note.is_none() && blocks[1].object.is_none());
 
     // Only what carries the tag, and the count with it.
-    let tagged_only = samu.blocks(morning.clone(), Some(office.clone())).unwrap();
+    let tagged_only = samu
+        .blocks(morning.clone(), Some(office.clone()), None)
+        .unwrap();
     assert_eq!(
         tagged_only.iter().map(|b| b.count).collect::<Vec<_>>(),
         [0, 2, 0]
@@ -4233,11 +4235,79 @@ fn a_block_perspective_shows_its_blocks_one_by_one() {
     samu.set_note(garden.clone(), Some("- [ ] Beete".into()))
         .unwrap();
     assert_eq!(
-        samu.blocks(morning, None).unwrap()[0].note.as_deref(),
+        samu.blocks(morning, None, None).unwrap()[0].note.as_deref(),
         Some("- [ ] Beete")
     );
     samu.sync().unwrap();
     assert_eq!(stored(&other, &garden)["note"], "- [ ] Beete");
+}
+
+/// ADR 0116 §9: a filter chosen for the moment holds for every block, the
+/// fixed views included, in place of each one's own; without it each
+/// keeps its own.
+#[test]
+fn a_block_perspective_takes_one_filter_for_the_moment() {
+    let server = Server::start();
+    let other = server.other_client();
+    let office = make_tag(&other, "Büro", None);
+    make_task(&other, "anrufen", tagged(&office));
+    let mut later = tagged(&office);
+    later["defer"] = json!({"date": "2999-01-01"});
+    later["position"] = json!(1);
+    make_task(&other, "später", later);
+    let mut done = tagged(&office);
+    done["completed_at"] = json!("2026-11-08T09:00:00Z");
+    done["position"] = json!(2);
+    make_task(&other, "erledigt", done);
+    make_task(
+        &other,
+        "markiert später",
+        json!({"flagged": true, "defer": {"date": "2999-01-01"}, "position": 3}),
+    );
+    let calls = make_perspective(
+        &other,
+        "Büro",
+        json!({"chips": [{"kind": "tag", "value": office}],
+               "arrange": {"group": "none", "sort": "title"}}),
+    );
+    let morning = make_perspective(
+        &other,
+        "Morgens",
+        json!({"blocks": [{"perspective": calls}, {"view": "flagged"}], "position": 1}),
+    );
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let titles = |filter: Option<&str>| -> Vec<Vec<String>> {
+        samu.blocks(morning.clone(), None, filter.map(str::to_owned))
+            .unwrap()
+            .iter()
+            .map(|b| {
+                let mut all: Vec<String> = section_titles(&b.sections)
+                    .into_iter()
+                    .flat_map(|(_, rows)| rows)
+                    .map(str::to_owned)
+                    .collect();
+                all.sort();
+                all
+            })
+            .collect()
+    };
+    let own: Vec<Vec<String>> = vec![vec!["anrufen".into()], vec![]];
+    assert_eq!(titles(None), own, "each block its own filter");
+    assert_eq!(titles(Some("available")), own);
+    assert_eq!(
+        titles(Some("remaining")),
+        [vec!["anrufen", "später"], vec!["markiert später"]]
+    );
+    assert_eq!(
+        titles(Some("all")),
+        [
+            vec!["anrufen", "erledigt", "später"],
+            vec!["markiert später"]
+        ]
+    );
+    assert!(samu.blocks(morning, None, Some("nonsense".into())).is_err());
 }
 
 /// ADR 0103 §5: a search saved as a perspective offline, its chips and

@@ -93,6 +93,12 @@ was aus jeder Zeile wird und wie viele Aufgaben sie zeigt; eine Zeile,
 die kein Block ist, wird markiert, und der Dialog sichert erst, wenn sie
 stimmt.
 
+Über einer Block-Perspektive steht im Filter „Je Block“: jeder Block
+zeigt, was sein eigener Filter durchlässt. „Verfügbar“, „Verbleibend“
+oder „Alle“ gelten dort für alle Blöcke zugleich, auch die Ansichten
+Inbox, Heute und Markiert, bis du die Perspektive verlässt; gespeichert
+wird nichts.
+
 In der Liste ist jeder Block ein Abschnitt zum Zuklappen; ein leerer
 ist gedimmt und bei jedem Öffnen der Perspektive zugeklappt. Seine
 Überschrift öffnet die Perspektive oder Ansicht des Blocks, und seine

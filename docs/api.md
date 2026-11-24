@@ -42,7 +42,7 @@ for ten minutes; `POST /pair` trades it for a session on the new device.
 | Route | |
 |---|---|
 | `GET /available` | open tasks with availability, every reason, state and next state; filters: available only, today, project, all, scope, perspective; `elsewhere=true` adds what another own scope alone shows, marked `elsewhere` with that scope, for a hint only |
-| `GET /blocks?perspective=<id>` | what a perspective shows, block by block: `[{title, icon, block, missing, note, tasks}]`, `tasks` as in `/available`, `note` the text of a note block (ADR 0146); a plain perspective is one block, and `/available` answers a block perspective with every block's tasks once; with `scope` |
+| `GET /blocks?perspective=<id>` | what a perspective shows, block by block: `[{title, icon, block, missing, note, tasks}]`, `tasks` as in `/available`, `note` the text of a note block (ADR 0146); a plain perspective is one block, and `/available` answers a block perspective with every block's tasks once; with `scope`, and `filter=available|remaining|all` for every block in place of its own (ADR 0116 §9) |
 | `GET /available/projects`, `/available/folders` | projects (stuck, review due) and folders; projects take `elsewhere=true` as well |
 | `GET /forecast` | the forecast sections, each row with why it is there |
 | `GET /objects/{id}` | one object of any kind |

@@ -4936,6 +4936,35 @@ fn a_block_perspective_lists_block_by_block() {
     ok(server.samu(&["perspective", "dedupe", "Morgen", "off"], None));
     assert_eq!(sections("Morgen")[1].1.len(), 3);
 
+    // One filter for every block, for the call (ADR 0116 §9): a completed
+    // office task only with --all, in the office and, dedupe being off,
+    // in the inbox as well.
+    let added = json_out(&ok(
+        server.samu(&["add", "Altlast @Büro", "--format", "json"], None)
+    ));
+    let old = added[0]["id"].as_str().unwrap().to_owned();
+    ok(server.samu(&["done", &old], None));
+    let with = |flag: &str| -> Vec<usize> {
+        let shown = json_out(&ok(server.samu(
+            &["list", "--perspective", "Morgen", flag, "--format", "json"],
+            None,
+        )));
+        shown
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["tasks"].as_array().unwrap().len())
+            .collect()
+    };
+    assert_eq!(with("--available"), [2, 3]);
+    assert_eq!(with("--remaining"), [2, 3]);
+    assert_eq!(with("--all"), [3, 4], "the completed one in both");
+    assert_eq!(
+        code(&server.samu(&["list", "--perspective", "Büro", "--remaining"], None)),
+        1,
+        "only for a block perspective"
+    );
+
     // Plain: a heading before each block; tsv: the block first.
     let plain = ok(server.samu(&["list", "--perspective", "Morgen"], None));
     let plain = String::from_utf8_lossy(&plain.stdout);

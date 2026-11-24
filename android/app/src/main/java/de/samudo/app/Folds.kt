@@ -5,8 +5,11 @@
 package de.samudo.app
 
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -19,12 +22,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -165,7 +173,8 @@ internal fun LazyListScope.groups(
  * its icon, title and count that folds; a symbol at its right opens what
  * it refers to. Below, its groups, or a note block's note, rendered and
  * editable as in the inspector. An empty block starts folded; opened, it
- * stays open while the list is shown.
+ * stays open while the list is shown. Above the blocks one filter for all
+ * of them, for the moment (ADR 0116 §9): leaving the list ends it.
  */
 @Composable
 fun BlockList(
@@ -180,7 +189,9 @@ fun BlockList(
     val t = LocalTokens.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val (blocks, error) = loaded(tick, Triple("blocks", id, tag) to Arranging.rev.intValue) { it.blocks(id, tag) }
+    // Null: each block its own filter.
+    var filter by remember(id) { mutableStateOf<String?>(null) }
+    val (blocks, error) = loaded(tick, listOf("blocks", id, tag, filter) to Arranging.rev.intValue) { it.blocks(id, tag, filter) }
     error?.let { Text(it, color = t.overdue, modifier = Modifier.padding(16.dp)) }
     val list = blocks ?: return
     LaunchedEffect(list) { Picks.refresh(list.flatMap { b -> b.sections.flatMap { it.rows } }) }
@@ -203,6 +214,7 @@ fun BlockList(
     }
     LazyColumn(Modifier.fillMaxSize()) {
         head?.let { item(key = "list-head") { Box(Modifier.heightIn(min = 1.dp)) { it() } } }
+        item(key = "block-filter") { BlockFilter(filter) { filter = it } }
         if (list.isEmpty()) item(key = "empty") { Text(tr("Nichts hier."), color = t.muted, modifier = Modifier.padding(16.dp)) }
         list.forEachIndexed { i, block ->
             val folded = shut(i, block)
@@ -264,5 +276,29 @@ fun BlockList(
             )
         }
         item { Spacer(Modifier.heightIn(min = 96.dp)) }
+    }
+}
+
+/** Je Block, Verfügbar, Verbleibend, Alle: the filter above a block perspective, for the moment (ADR 0116 §9). */
+@Composable
+private fun BlockFilter(chosen: String?, choose: (String?) -> Unit) {
+    val t = LocalTokens.current
+    val choices = listOf<Pair<String?, String>>(null to tr("Je Block")) + Arranging.shows()
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()).padding(16.dp, 4.dp, 16.dp, 0.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        choices.forEach { (value, label) ->
+            val on = value == chosen
+            Text(
+                label,
+                color = if (on) t.onAccent else t.fg,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .background(if (on) t.accent else t.side, RoundedCornerShape(14.dp))
+                    .clickable { choose(value) }
+                    .padding(12.dp, 5.dp),
+            )
+        }
     }
 }

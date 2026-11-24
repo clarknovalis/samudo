@@ -154,16 +154,28 @@ impl<'a> PerspectiveTest<'a> {
         now: Timestamp,
         zone: &jiff::tz::TimeZone,
     ) -> Self {
+        Self::with_filter(perspective, None, view, now, zone)
+    }
+
+    /// [`Self::new`] with `filter` in place of the perspective's own, lifted
+    /// the same way: a block perspective's filter chosen for the moment
+    /// (ADR 0116 §9).
+    pub fn with_filter(
+        perspective: &'a crate::api::Perspective,
+        filter: Option<crate::api::PerspectiveFilter>,
+        view: &crate::availability::Snapshot<'a>,
+        now: Timestamp,
+        zone: &jiff::tz::TimeZone,
+    ) -> Self {
         use crate::api::PerspectiveFilter as F;
         use crate::query::{asks_for_closed, asks_for_waiting};
         let chips = &perspective.chips;
+        let base = filter.unwrap_or(perspective.filter);
         let mode = if asks_for_closed(chips) {
             F::All
-        } else if perspective.filter == F::Remaining
-            || (perspective.filter != F::All && asks_for_waiting(chips))
-        {
+        } else if base == F::Remaining || (base != F::All && asks_for_waiting(chips)) {
             F::Remaining
-        } else if perspective.filter == F::All {
+        } else if base == F::All {
             F::All
         } else {
             // `available`, and a value from a newer samu (ADR 0090 §1).
@@ -235,7 +247,7 @@ pub fn available(
     let chosen = chosen_perspective(objects, filter.perspective)?;
     if let Some(perspective) = chosen.filter(|p| !p.blocks.is_empty()) {
         // A block perspective: every block's tasks once (ADR 0116 §4).
-        let sections = blocks_of(objects, settings, now, filter.scope, perspective)?;
+        let sections = blocks_of(objects, settings, now, filter.scope, perspective, None)?;
         return Ok(crate::blocks::union(sections));
     }
     let asked = chosen.map(|p| PerspectiveTest::new(p, &view, now, &settings.zone));
@@ -298,17 +310,19 @@ pub fn available(
 
 /// `GET /blocks`: what a perspective shows, block by block (ADR 0116 §3-4);
 /// a plain perspective is one block. Only what the scope shows, no task
-/// marked `outside`.
+/// marked `outside`. `filter`, when given, holds for every block in place
+/// of its own, for the moment (ADR 0116 §9).
 pub fn blocks(
     objects: &Objects,
     settings: &Settings,
     now: Timestamp,
     scope: Option<Id>,
     perspective: Id,
+    filter: Option<crate::api::PerspectiveFilter>,
 ) -> Result<Vec<crate::api::BlockSection>, ViewError> {
     let chosen = chosen_perspective(objects, Some(perspective))?
         .ok_or(ViewError::NoPerspective(perspective))?;
-    blocks_of(objects, settings, now, scope, chosen)
+    blocks_of(objects, settings, now, scope, chosen, filter)
 }
 
 /// What a note block shows of a live project or task (ADR 0146 §2),
@@ -338,6 +352,7 @@ fn blocks_of(
     now: Timestamp,
     scope: Option<Id>,
     perspective: &crate::api::Perspective,
+    filter: Option<crate::api::PerspectiveFilter>,
 ) -> Result<Vec<crate::api::BlockSection>, ViewError> {
     let everything = AvailableFilter {
         all: true,
@@ -354,18 +369,25 @@ fn blocks_of(
         .perspectives
         .iter()
         .filter(|p| p.blocks.is_empty())
-        .map(|p| (p.id, PerspectiveTest::new(p, &view, now, &settings.zone)))
+        .map(|p| {
+            let test = PerspectiveTest::with_filter(p, filter, &view, now, &settings.zone);
+            (p.id, test)
+        })
         .collect();
     // The searches of the blocks' own (ADR 0143 §2), each tested once.
     let queries = crate::blocks::queries(perspective);
     let query_tests: HashMap<usize, PerspectiveTest<'_>> = queries
         .iter()
-        .map(|(i, p)| (*i, PerspectiveTest::new(p, &view, now, &settings.zone)))
+        .map(|(i, p)| {
+            let test = PerspectiveTest::with_filter(p, filter, &view, now, &settings.zone);
+            (*i, test)
+        })
         .collect();
     Ok(crate::blocks::assemble(
         perspective,
         &objects.perspectives,
         &statuses,
+        filter,
         |source, status| {
             let test = match source {
                 crate::blocks::Shown::Perspective(p) => tests.get(&p.id),
@@ -1698,7 +1720,7 @@ mod tests {
         let titles = |s: &crate::api::BlockSection| -> Vec<String> {
             s.tasks.iter().map(|t| t.task.title.clone()).collect()
         };
-        let sections = blocks(&objects, &settings(), now(), None, morning_id).unwrap();
+        let sections = blocks(&objects, &settings(), now(), None, morning_id, None).unwrap();
         let heads: Vec<(&str, bool)> = sections
             .iter()
             .map(|s| (s.title.as_str(), s.missing))
@@ -1721,14 +1743,33 @@ mod tests {
             ["Angebot lesen", "Angebot schreiben"]
         );
 
+        // One filter for every block, for the moment (ADR 0116 §9): `all`
+        // brings the closed offer into the perspective's block and the
+        // fixed view's; `available` is what each had anyway here.
+        let with = |filter| {
+            blocks(&objects, &settings(), now(), None, morning_id, Some(filter))
+                .unwrap()
+                .iter()
+                .take(2)
+                .map(|s| titles(s).len())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            with(crate::api::PerspectiveFilter::All),
+            [1, 2],
+            "a task once"
+        );
+        assert_eq!(with(crate::api::PerspectiveFilter::Remaining), [1, 1]);
+        assert_eq!(with(crate::api::PerspectiveFilter::Available), [1, 1]);
+
         // A plain perspective is one section under its name.
-        let one = blocks(&objects, &settings(), now(), None, offers_id).unwrap();
+        let one = blocks(&objects, &settings(), now(), None, offers_id, None).unwrap();
         assert_eq!(one.len(), 1);
         assert_eq!(one[0].title, "Angebote");
         assert_eq!(titles(&one[0]).len(), 2);
         let missing = Id::new();
         assert_eq!(
-            blocks(&objects, &settings(), now(), None, missing),
+            blocks(&objects, &settings(), now(), None, missing, None),
             Err(ViewError::NoPerspective(missing))
         );
     }
@@ -1759,7 +1800,7 @@ mod tests {
         let titles = |s: &crate::api::BlockSection| -> Vec<String> {
             s.tasks.iter().map(|t| t.task.title.clone()).collect()
         };
-        let sections = blocks(&objects, &settings(), now(), None, morning_id).unwrap();
+        let sections = blocks(&objects, &settings(), now(), None, morning_id, None).unwrap();
         let heads: Vec<(&str, bool)> = sections
             .iter()
             .map(|s| (s.title.as_str(), s.missing))

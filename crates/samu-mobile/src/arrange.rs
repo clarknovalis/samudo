@@ -60,7 +60,7 @@ pub struct Show {
 
 /// A filter by its name on the wire; none for a name this samu does not
 /// know.
-fn show_named(name: &str) -> Option<PerspectiveFilter> {
+pub(crate) fn show_named(name: &str) -> Option<PerspectiveFilter> {
     serde_json::from_value(Value::String(name.to_owned()))
         .ok()
         .filter(|f| *f != PerspectiveFilter::Unknown)

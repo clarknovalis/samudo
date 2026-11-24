@@ -101,7 +101,9 @@ Leiste.
   die Notiz seines Projekts oder seiner Aufgabe; Checkboxen lassen sich
   abhaken, ✎ macht ein Feld daraus. Ein Tipp auf die Überschrift klappt
   den Block zu, ↗ rechts öffnet, worauf er verweist; ein leerer Block
-  beginnt zugeklappt.
+  beginnt zugeklappt. Die Zeile über den Blöcken setzt einen Filter für
+  alle, „Je Block“ ist der eigene jedes Blocks; er gilt, bis du die Liste
+  verlässt.
 - Ein **Projekt** öffnet wie aus dem Baum, ein **Tag** zeigt die
   verfügbaren Aufgaben mit ihm.
 
