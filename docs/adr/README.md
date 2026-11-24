@@ -75,4 +75,4 @@ its citations in the code have no target.
 | [0145](0145-copying-and-exporting-tasks.md) | accepted | Copying and exporting tasks: Ctrl+A picks every row; the picks or one task go to the clipboard or a file as IDs, a Markdown list, TSV or JSON |
 | [0146](0146-a-note-as-a-block.md) | accepted | A note as a block: a block perspective can show the note of a project or task, rendered and editable in place; `:note #Project` as its line |
 | [0147](0147-block-perspectives-in-the-app.md) | accepted | Block perspectives in the app block by block, note blocks editable in place; every group heading of the app's lists folds, kept per device |
-| [0148](0148-properties-in-quick-capture.md) | draft | Properties in quick capture: `prop:key=value` in the line and in a template's text, merged per key |
+| [0148](0148-properties-in-quick-capture.md) | accepted | Properties in quick capture: `prop:key=value` in the line and in a template's text, merged per key |

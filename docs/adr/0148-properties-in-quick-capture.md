@@ -1,7 +1,7 @@
 ---
 number: 0148
 title: Properties in quick capture – `prop:key=value` in the line and in a template's text
-status: draft
+status: accepted
 date: 2026-11-24
 adds_to: ["0011", "0054", "0073", "0078"]
 ---
