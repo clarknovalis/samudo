@@ -74,3 +74,4 @@ its citations in the code have no target.
 | [0144](0144-a-time-in-the-date-fields.md) | accepted | A time of day in the date fields: every editor of defer, due and planned writes a day or a day with a time, read as quick capture reads it |
 | [0145](0145-copying-and-exporting-tasks.md) | accepted | Copying and exporting tasks: Ctrl+A picks every row; the picks or one task go to the clipboard or a file as IDs, a Markdown list, TSV or JSON |
 | [0146](0146-a-note-as-a-block.md) | accepted | A note as a block: a block perspective can show the note of a project or task, rendered and editable in place; `:note #Project` as its line |
+| [0147](0147-block-perspectives-in-the-app.md) | draft | Block perspectives in the app block by block, note blocks editable in place; every group heading of the app's lists folds, kept per device |
