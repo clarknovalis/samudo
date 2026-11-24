@@ -27,7 +27,7 @@ The date fields of the editors write only days:
 - Emacs reads `planned` and `due` with `org-read-date` but passes on the
   day only, and taking over an Org heading drops the time of its
   `SCHEDULED` and `DEADLINE`;
-- the CLI's `samu date` takes `today`, `tomorrow`, `YYYY-MM-DD` or `none`.
+- the CLI's `samu bulk date` takes `today`, `tomorrow`, `YYYY-MM-DD` or `none`.
 
 Someone coming from Org mode sets a time where the date is set, not in a
 second syntax. And a field that silently loses part of its value is a
@@ -47,8 +47,8 @@ bug, whatever else is decided.
    the date words of quick capture, with an optional time after them,
    from the one parser in `samu-core`.
 5. **Per editor:**
-   - **CLI:** `samu date <field> <value>` takes those words:
-     `samu date planned "tomorrow 14:30"`, `"2026-11-25 9:30"`,
+   - **CLI:** `samu bulk date <field> <value>` takes those words:
+     `samu bulk date planned "tomorrow 14:30"`, `"2026-11-25 9:30"`,
      `fri`, `none`.
    - **Web:** a time field next to the date field of each of the three;
      empty means a whole day.
@@ -71,4 +71,5 @@ bug, whatever else is decided.
 
 ## Changes
 
-None yet.
+- 2026-11-24: the command is `samu bulk date`; §5 named it `samu date`.
+  The decision is unchanged.
