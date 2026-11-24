@@ -1,7 +1,7 @@
 ---
 number: 0147
 title: Block perspectives in the app – block by block as in the web, and every group heading of the app's lists can be folded
-status: draft
+status: accepted
 date: 2026-11-24
 adds_to: ["0102", "0116", "0146"]
 ---

@@ -76,8 +76,8 @@ synced and does not change the web's sidebar.
   §9). The evaluation comes from `samu-core` through `samu-mobile`
   (`perspective(id)`), with scope and filter as `GET
   /available?perspective=`; the perspective's grouping and sorting are
-  applied by the app. A block perspective (ADR 0116) shows the union of
-  its blocks.
+  applied by the app. A block perspective (ADR 0116) shows its blocks
+  one by one, as ADR 0147 decides.
 - The header shows the perspective's chips. Changing its arrangement in
   the app came with ADR 0125 §4; changing chips, text and name, creating
   and renaming stay in web and CLI. "Save as perspective" from the search
@@ -128,3 +128,5 @@ tree, tags an `@`.
 - 2026-11-14 (ADR 0103, 0104): §4 had no "save as perspective" in the
   app; gestures had no undo.
 - 2026-11-18 (ADR 0125): §4 left arranging a perspective to web and CLI.
+- 2026-11-24 (ADR 0147): §4 showed a block perspective as the union of
+  its blocks.

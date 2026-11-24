@@ -87,7 +87,8 @@ evaluated in `samu-core`.
    `filter`, `arrange`, `view`) reject a block perspective with the exit
    code for invalid input.
 8. **Later, each with its own decision:** block perspectives in the app
-   (until then it shows the union of §4) and in the Emacs package;
+   (done by ADR 0147) and in the Emacs package (until then it shows
+   the union of §4);
    appointments and forecast as blocks; blocks carrying a search of their
    own, without a perspective.
 
@@ -106,4 +107,5 @@ evaluated in `samu-core`.
 
 ## Changes
 
-None yet.
+- 2026-11-24 (ADR 0147): §8 left block perspectives in the app open;
+  the app showed the union of §4.
