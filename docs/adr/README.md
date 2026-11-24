@@ -71,3 +71,4 @@ its citations in the code have no target.
 | [0141](0141-checklists.md) | accepted | Checklists: items of a task as objects of their own, typed and pasted fast, turned into subtasks and back |
 | [0142](0142-arranging-the-sidebar.md) | accepted | Arranging the web sidebar: fixed views and perspectives in one order, each hideable (a hidden perspective still works as a block), kept per browser |
 | [0143](0143-blocks-with-a-search-of-their-own.md) | accepted | Blocks with a search of their own: a block can carry its search instead of pointing at a perspective, written line by line like org-super-agenda |
+| [0144](0144-a-time-in-the-date-fields.md) | accepted | A time of day in the date fields: every editor of defer, due and planned writes a day or a day with a time, read as quick capture reads it |
