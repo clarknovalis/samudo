@@ -1,0 +1,27 @@
+{
+  "task": {
+    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6c95",
+    "created": "2026-11-24T09:00:00Z",
+    "modified": "2026-11-24T09:00:00Z",
+    "title": "ABC-345 prop:Ticket=x",
+    "flagged": false,
+    "sequential": false,
+    "complete_with_last_child": false,
+    "position": 0,
+    "properties": {"ticket": "ABC-345"}
+  },
+  "created": true,
+  "marks": [
+    {
+      "start": 9,
+      "end": 29,
+      "meaning": "property"
+    }
+  ],
+  "warnings": [
+    {
+      "warning": "unknown_property",
+      "text": "prop:Ticket=x"
+    }
+  ]
+}

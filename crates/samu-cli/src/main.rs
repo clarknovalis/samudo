@@ -1509,6 +1509,11 @@ pub(crate) fn warning_text(warning: &CaptureWarning) -> String {
         CaptureWarning::UnknownHabit { text } => {
             format!("{text}: no habit I know (habit:, 3/w, 8/d:Glas, avoid); it stays in the title")
         }
+        CaptureWarning::UnknownProperty { text } => {
+            format!(
+                "{text}: no property I can set (prop:key=value, key in lower case); it stays in the title"
+            )
+        }
         CaptureWarning::Twice { meaning, text } => {
             format!("{text}: a second {}; it stays in the title", what(meaning))
         }

@@ -30,6 +30,7 @@ type and warnings appear under the field.
 | `every:` | repeat, fixed: `every:1d`, `every:2w`, `every:1m`, `every:1y`, `every:mon` |
 | `every+:` | repeat, fixed, skipping missed occurrences up to today |
 | `every!:` | repeat, due counted from the day you complete it |
+| `prop:key=value` | set a property: `prop:ticket=ABC-345`, `prop:place="two words"`; the key in lower case, several allowed. A key that does not read or a system key (`org_id`, `source`) stays in the title, with a warning |
 | `habit:` | make it a [habit](habits.md): `habit:` (daily), `habit:3/w`, `habit:2/m`, `habit:8/d:glass`, `habit:avoid` |
 | `z:` | book time already spent: `z:1h30` (ending now), `z:yesterday 2h`, `z:14-15:30`, `z:yesterday 14:00-15:30` |
 | `x:` | made already completed: `x:` (now), `x:yesterday` |
@@ -76,7 +77,7 @@ samu edit 4f2a91c3 "@errand !A d:mon // ask for the price"
 ```
 
 Tags are added (a state of a workflow replaces its sibling), a project,
-priority, date, estimate, repeat or flag overwrites, `// text` is appended
+priority, date, estimate, repeat, flag or `prop:key=value` overwrites, `// text` is appended
 to the note, `/name` applies a template. Free text is refused, since the
 title has its own field: `samu set <id> title "New title"`.
 
@@ -124,7 +125,8 @@ task leaves its title alone.
 
 Relative dates in a template count from the moment of capture. The line
 wins field by field: what it names overrides the template, tags are not
-mixed. A scope's capture settings fill in only what both leave open.
+mixed. Properties mix per key: `prop:team=infra` in a template and
+`prop:ticket=ABC-345` in the line set both. A scope's capture settings fill in only what both leave open.
 
 ## Scope and place
 

@@ -1339,7 +1339,7 @@ fn capture_edit(
     for (field, value) in &applied.fields {
         changes.push(Change::Set {
             object: id,
-            field: (*field).into(),
+            field: field.clone(),
             value: value.clone(),
             note: None,
             hlc: placeholder.clone(),

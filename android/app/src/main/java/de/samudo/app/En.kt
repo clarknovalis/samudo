@@ -49,6 +49,7 @@ val EN: Map<String, String> = mapOf(
     "1 Woche" to "1 week",
     "4 Wochen" to "4 weeks",
     "@{text}: mehrdeutig oder neu unter einem Ablauf; bleibt im Titel" to "@{text}: ambiguous or new under a workflow; stays in the title",
+    "„{text}“: keine Property, die ich setzen kann (prop:key=wert, Key klein); bleibt im Titel" to "“{text}”: no property I can set (prop:key=value, key in lower case); stays in the title",
     "Abbrechen" to "Cancel",
     "Ablauf" to "Workflow",
     "Abschnitt „Markiert“ nach Heute" to "Section “Flagged” after Today",

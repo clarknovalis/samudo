@@ -386,6 +386,7 @@ export const EN = {
   "„{text}“: endet in der Zukunft; nicht gebucht": "“{text}”: ends in the future; not booked",
   "„{text}“: keine Zeit, die ich kenne; bleibt im Titel": "“{text}”: no time I know; stays in the title",
   "„{text}“: kein Habit, das ich kenne (habit:, 3/w, 8/d:Glas, avoid); bleibt im Titel": "“{text}”: no habit I know (habit:, 3/w, 8/d:glass, avoid); stays in the title",
+  "„{text}“: keine Property, die ich setzen kann (prop:key=wert, Key klein); bleibt im Titel": "“{text}”: no property I can set (prop:key=value, key in lower case); stays in the title",
   "Gruppe: erst die Kinder": "group: the children first",
   "Gruppe darüber nicht verfügbar": "group above not available",
   "Zyklus in den Daten": "cycle in the data",

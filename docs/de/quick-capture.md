@@ -31,6 +31,7 @@ erscheinen unter dem Feld.
 | `every:` | Wiederholung, fest: `every:1d`, `every:2w`, `every:1m`, `every:1y`, `every:mon` |
 | `every+:` | Wiederholung, fest, verpasste Termine bis heute übersprungen |
 | `every!:` | Wiederholung, Fälligkeit ab dem Tag des Erledigens gezählt |
+| `prop:key=wert` | setzt eine Property: `prop:ticket=ABC-345`, `prop:ort="zwei Wörter"`; der Key klein, mehrere erlaubt. Ein Key, der nicht passt, oder ein Systemschlüssel (`org_id`, `source`) bleibt im Titel, mit Warnung |
 | `habit:` | macht eine [Gewohnheit](habits.md) daraus: `habit:` (täglich), `habit:3/w`, `habit:2/m`, `habit:8/d:glas`, `habit:avoid` |
 | `z:` | schon verbrachte Zeit buchen: `z:1h30` (endet jetzt), `z:gestern 2h`, `z:14-15:30`, `z:gestern 14:00-15:30` |
 | `x:` | gleich als erledigt anlegen: `x:` (jetzt), `x:gestern` |
@@ -78,8 +79,8 @@ samu edit 4f2a91c3 "@besorgung !A d:mo // nach dem Preis fragen"
 ```
 
 Tags kommen hinzu (ein Zustand eines Ablaufs ersetzt seinen Geschwister),
-Projekt, Priorität, Datum, Schätzung, Wiederholung und Markierung
-überschreiben, `// text` wird an die Notiz angehängt, `/name` wendet eine
+Projekt, Priorität, Datum, Schätzung, Wiederholung, Markierung und
+`prop:key=wert` überschreiben, `// text` wird an die Notiz angehängt, `/name` wendet eine
 Vorlage an. Freier Text wird abgelehnt, denn der Titel hat sein eigenes
 Feld: `samu set <id> title "Neuer Titel"`.
 
@@ -127,7 +128,8 @@ bestehende Aufgabe angewendet, lässt eine Vorlage deren Titel in Ruhe.
 
 Relative Daten in einer Vorlage zählen ab dem Moment des Erfassens. Die
 Zeile gewinnt Feld für Feld: Was sie nennt, überschreibt die Vorlage, Tags
-werden nicht gemischt. Die Erfassen-Einstellungen eines Scopes füllen nur,
+werden nicht gemischt. Properties mischen je Key: `prop:team=infra` in
+der Vorlage und `prop:ticket=ABC-345` in der Zeile setzen beide. Die Erfassen-Einstellungen eines Scopes füllen nur,
 was beide offen lassen.
 
 ## Scope und Ort

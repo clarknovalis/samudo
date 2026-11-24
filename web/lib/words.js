@@ -229,6 +229,7 @@ const MEANINGS = {
   clock: tr("Zeit"),
   completed: tr("Erledigt"),
   habit: "Habit",
+  property: "Property",
 };
 
 // A capture warning in words (ADR 0027 §4: the server sends codes).
@@ -257,6 +258,8 @@ export function captureWarningText(w) {
       return tr("„{text}“: keine Zeit, die ich kenne; bleibt im Titel", { text: w.text });
     case "unknown_habit":
       return tr("„{text}“: kein Habit, das ich kenne (habit:, 3/w, 8/d:Glas, avoid); bleibt im Titel", { text: w.text });
+    case "unknown_property":
+      return tr("„{text}“: keine Property, die ich setzen kann (prop:key=wert, Key klein); bleibt im Titel", { text: w.text });
     default:
       return tr("Hinweis von einem neueren Server");
   }

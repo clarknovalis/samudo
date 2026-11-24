@@ -47,6 +47,8 @@ pub enum Meaning {
     Completed,
     /// `habit:`, the task is a habit (ADR 0091 §5).
     Habit,
+    /// `prop:key=value`, a property (ADR 0148).
+    Property,
 }
 
 /// A recognised stretch of the input, as byte offsets into it, so a surface
@@ -89,6 +91,9 @@ pub enum Warning {
     UnknownClock { text: String },
     /// A `habit:` whose value is none of the short forms (ADR 0091 §5).
     UnknownHabit { text: String },
+    /// A `prop:` without `key=value`, with an empty value, an invalid key
+    /// or a system key (ADR 0148 §2); it stays in the title.
+    UnknownProperty { text: String },
 }
 
 /// Time booked with `z:` (ADR 0081 §2), as written; [`place_clocks`]
@@ -152,6 +157,8 @@ pub struct Draft {
     pub completed: Option<Option<Date>>,
     /// `habit:`, the task is a habit (ADR 0091 §5).
     pub habit: Option<Habit>,
+    /// `prop:key=value`, by key (ADR 0148).
+    pub properties: std::collections::BTreeMap<String, String>,
     pub marks: Vec<Mark>,
     pub warnings: Vec<Warning>,
     /// The words the title is made of, `#name` and `@name` among them.
@@ -226,6 +233,10 @@ impl Draft {
         }
         if self.note.is_none() {
             self.note = other.note;
+        }
+        // Properties mix per key, the line's first (ADR 0148 §3).
+        for (key, value) in other.properties {
+            self.properties.entry(key).or_insert(value);
         }
         // The template's free text goes before the line's title (ADR 0120).
         self.prefix = other.title;
@@ -335,6 +346,7 @@ impl From<Meaning> for samu_api::CaptureMeaning {
             Meaning::Clock => Self::Clock,
             Meaning::Completed => Self::Completed,
             Meaning::Habit => Self::Habit,
+            Meaning::Property => Self::Property,
         }
     }
 }
@@ -369,6 +381,7 @@ impl From<&Warning> for samu_api::CaptureWarning {
             Warning::ClockInFuture { text } => Self::ClockInFuture { text },
             Warning::UnknownClock { text } => Self::UnknownClock { text },
             Warning::UnknownHabit { text } => Self::UnknownHabit { text },
+            Warning::UnknownProperty { text } => Self::UnknownProperty { text },
         }
     }
 }
@@ -531,7 +544,7 @@ pub fn resolve(
         sequential: false,
         complete_with_last_child: false,
         tags: Vec::new(),
-        properties: std::collections::BTreeMap::new(),
+        properties: draft.properties.clone(),
         position,
     };
     Resolved {
@@ -717,6 +730,12 @@ fn tokenize(text: &str) -> Vec<Token<'_>> {
             {
                 quoted_until = at + 2 + close + 1;
             }
+            // `prop:key="two words"` (ADR 0148 §1).
+            if let Some(open) = quoted_property(rest)
+                && let Some(close) = rest[open..].find('"')
+            {
+                quoted_until = at + open + close + 1;
+            }
         }
     }
     if let Some(begin) = start {
@@ -727,6 +746,26 @@ fn tokenize(text: &str) -> Vec<Token<'_>> {
         });
     }
     tokens
+}
+
+/// Where the value of `prop:key="…"` starts after its quote, if `rest`
+/// begins with one; the key holds no space or quote.
+fn quoted_property(rest: &str) -> Option<usize> {
+    let after = rest.strip_prefix("prop:")?;
+    let eq = after.find("=\"")?;
+    let key = &after[..eq];
+    (!key.contains(|c: char| c.is_whitespace() || c == '"')).then_some("prop:".len() + eq + 2)
+}
+
+/// `key=value` of a `prop:` mark (ADR 0148 §1), the value unquoted;
+/// `None` for no `=`, an empty value, an invalid or a system key.
+fn property_mark(value: &str) -> Option<(String, String)> {
+    let (key, value) = value.split_once('=')?;
+    let value = unquote(value);
+    (crate::properties::is_key(key)
+        && !crate::properties::SYSTEM.contains(&key)
+        && !value.trim().is_empty())
+    .then(|| (key.to_owned(), value))
 }
 
 fn unquote(name: &str) -> String {
@@ -865,7 +904,7 @@ pub struct Applied {
     pub tags: Vec<(Id, i64)>,
     /// The fields of the task to set, by name as on the wire, each to its
     /// value in wire form (`null` clears).
-    pub fields: Vec<(&'static str, serde_json::Value)>,
+    pub fields: Vec<(String, serde_json::Value)>,
     /// Descendants that follow the task into its new project (ADR 0040 §3).
     pub moved: Vec<Id>,
     /// The draft with what did not resolve put back into the title, and
@@ -912,7 +951,7 @@ pub fn apply_to(
         draft.warnings.push(Warning::FreeText { text: line });
     }
     let mut after = task.clone();
-    let mut fields: Vec<(&'static str, Value)> = Vec::new();
+    let mut fields: Vec<(String, Value)> = Vec::new();
     let mut moved = Vec::new();
 
     // A project that resolved and is another one: to its top level, last.
@@ -920,9 +959,9 @@ pub fn apply_to(
         after.project = resolved.task.project;
         after.parent = None;
         after.position = resolved.task.position;
-        fields.push(("project", wire(to_value(after.project))));
-        fields.push(("parent", Value::Null));
-        fields.push(("position", Value::from(after.position)));
+        fields.push(("project".into(), wire(to_value(after.project))));
+        fields.push(("parent".into(), Value::Null));
+        fields.push(("position".into(), Value::from(after.position)));
         let mut below = vec![task.id];
         while let Some(above) = below.pop() {
             for child in known.tasks.iter().filter(|t| t.parent == Some(above)) {
@@ -935,25 +974,25 @@ pub fn apply_to(
     }
     if draft.flagged && !task.flagged {
         after.flagged = true;
-        fields.push(("flagged", Value::Bool(true)));
+        fields.push(("flagged".into(), Value::Bool(true)));
     }
     if let Some(priority) = draft.priority
         && task.priority != Some(priority)
     {
         after.priority = Some(priority);
-        fields.push(("priority", wire(to_value(priority))));
+        fields.push(("priority".into(), wire(to_value(priority))));
     }
     if let Some(estimate) = draft.estimate
         && task.estimate != Some(estimate)
     {
         after.estimate = Some(estimate);
-        fields.push(("estimate", wire(to_value(estimate))));
+        fields.push(("estimate".into(), wire(to_value(estimate))));
     }
     if let Some(habit) = &draft.habit
         && task.habit.as_ref() != Some(habit)
     {
         after.habit = Some(habit.clone());
-        fields.push(("habit", wire(to_value(habit))));
+        fields.push(("habit".into(), wire(to_value(habit))));
     }
     let schedule = [
         ("defer", &draft.defer, &mut after.schedule.defer),
@@ -965,14 +1004,14 @@ pub fn apply_to(
             && old.as_ref() != Some(new)
         {
             *old = Some(new.clone());
-            fields.push((field, wire(to_value(new))));
+            fields.push((field.into(), wire(to_value(new))));
         }
     }
     if let Some(repeat) = &draft.repeat
         && after.schedule.repeat.as_ref() != Some(repeat)
     {
         after.schedule.repeat = Some(repeat.clone());
-        fields.push(("repeat", wire(to_value(repeat))));
+        fields.push(("repeat".into(), wire(to_value(repeat))));
     }
     if let Some(text) = draft
         .note
@@ -985,7 +1024,14 @@ pub fn apply_to(
             _ => text.to_owned(),
         };
         after.note = Some(note.clone());
-        fields.push(("note", Value::String(note)));
+        fields.push(("note".into(), Value::String(note)));
+    }
+    // Each property the line names, overwriting the task's (ADR 0148 §4).
+    for (key, value) in &draft.properties {
+        if after.properties.get(key) != Some(value) {
+            after.properties.insert(key.clone(), value.clone());
+            fields.push((format!("properties.{key}"), Value::String(value.clone())));
+        }
     }
 
     // Tags: added after those present; a state of an exclusive group
@@ -1212,6 +1258,24 @@ pub fn parse(text: &str, now: Timestamp, zone: &TimeZone) -> Draft {
                 kind: PieceKind::Tag(name),
                 start: token.start,
             });
+            continue;
+        }
+        if let Some(value) = raw.strip_prefix("prop:") {
+            match property_mark(value) {
+                Some((key, value)) if !draft.properties.contains_key(&key) => {
+                    draft.properties.insert(key, value);
+                    mark(&mut draft, token.end, Meaning::Property);
+                    continue;
+                }
+                Some(_) => draft.warnings.push(Warning::Twice {
+                    meaning: Meaning::Property,
+                    text: raw.to_owned(),
+                }),
+                None => draft.warnings.push(Warning::UnknownProperty {
+                    text: raw.to_owned(),
+                }),
+            }
+            pieces.push(text_piece(raw));
             continue;
         }
         if let Some(value) = raw.strip_prefix("habit:") {
@@ -2236,7 +2300,7 @@ mod tests {
             a.task.note.as_deref(),
             Some("erste Zeile\n\nNummer im Brief")
         );
-        let names: Vec<&str> = a.fields.iter().map(|(f, _)| *f).collect();
+        let names: Vec<&str> = a.fields.iter().map(|(f, _)| f.as_str()).collect();
         assert_eq!(names, ["flagged", "priority", "estimate", "due", "note"]);
         assert!(a.draft.warnings.is_empty());
 
@@ -2277,7 +2341,7 @@ mod tests {
         assert_eq!(a.task.parent, None);
         assert_eq!(a.task.position, 5);
         assert_eq!(a.moved, [id(0x42), id(0x43)]);
-        let names: Vec<&str> = a.fields.iter().map(|(f, _)| *f).collect();
+        let names: Vec<&str> = a.fields.iter().map(|(f, _)| f.as_str()).collect();
         assert_eq!(names, ["project", "parent", "position"]);
     }
 
@@ -2389,10 +2453,113 @@ mod tests {
         let task = existing(0x40, "Dehnen", Some(2), None);
         let a = applied(&task, std::slice::from_ref(&task), &tags, "habit:3/w");
         assert_eq!(a.task.habit.as_ref().unwrap().times, 3);
-        let names: Vec<&str> = a.fields.iter().map(|(f, _)| *f).collect();
+        let names: Vec<&str> = a.fields.iter().map(|(f, _)| f.as_str()).collect();
         assert_eq!(names, ["habit"]);
         let again = applied(&a.task, std::slice::from_ref(&a.task), &tags, "habit:3/w");
         assert!(again.fields.is_empty());
+    }
+
+    /// ADR 0148 §1, §2: `prop:key=value` sets a property, quoted with
+    /// spaces; what does not read stays in the title with a warning.
+    #[test]
+    fn prop_marks_set_properties() {
+        let d = draft(
+            r#"ABC-345 prop:ticket=ABC-345 prop:link=https://x.example/a?b=c prop:ort="Keller links" @telefon"#,
+        );
+        assert_eq!(d.title, "ABC-345");
+        assert!(d.warnings.is_empty(), "{:?}", d.warnings);
+        assert_eq!(
+            d.properties.get("ticket").map(String::as_str),
+            Some("ABC-345")
+        );
+        assert_eq!(
+            d.properties.get("link").map(String::as_str),
+            Some("https://x.example/a?b=c")
+        );
+        assert_eq!(
+            d.properties.get("ort").map(String::as_str),
+            Some("Keller links")
+        );
+        let marked: Vec<&str> = d
+            .marks
+            .iter()
+            .filter(|m| m.meaning == Meaning::Property)
+            .map(|m| &r#"ABC-345 prop:ticket=ABC-345 prop:link=https://x.example/a?b=c prop:ort="Keller links" @telefon"#[m.start..m.end])
+            .collect();
+        assert_eq!(marked[2], r#"prop:ort="Keller links""#);
+        assert_eq!(d.tags, ["telefon"]);
+
+        for bad in [
+            "prop:ticket",
+            "prop:ticket=",
+            "prop:Ticket=x",
+            "prop:1x=y",
+            "prop:org_id=abc",
+            "prop:source=x",
+            "prop:=x",
+        ] {
+            let d = draft(&format!("X {bad}"));
+            assert!(d.properties.is_empty(), "{bad}");
+            assert_eq!(d.title, format!("X {bad}"));
+            assert_eq!(
+                d.warnings,
+                vec![Warning::UnknownProperty { text: bad.into() }],
+                "{bad}"
+            );
+        }
+        let d = draft("X prop:a=1 prop:a=2 prop:b=3");
+        assert_eq!(d.properties.len(), 2);
+        assert_eq!(d.properties["a"], "1");
+        assert_eq!(d.title, "X prop:a=2");
+        assert_eq!(
+            d.warnings,
+            vec![Warning::Twice {
+                meaning: Meaning::Property,
+                text: "prop:a=2".into()
+            }]
+        );
+    }
+
+    /// ADR 0148 §3: a template's properties fill in per key, the line's win.
+    #[test]
+    fn template_properties_mix_per_key() {
+        assert!(check_template_text("#Haus prop:team=bad prop:kunde=acme").is_ok());
+        let tpl = [template("Ticket", "prop:team=bad prop:kunde=acme")];
+        let mut d = draft("ABC-1 prop:kunde=globex prop:ticket=ABC-1 /ticket");
+        apply_template(&mut d, &tpl, None, saturday(), &berlin());
+        let got: Vec<(&str, &str)> = d
+            .properties
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [("kunde", "globex"), ("team", "bad"), ("ticket", "ABC-1")]
+        );
+        let r = resolved("ABC-2 prop:ticket=ABC-2", None);
+        assert_eq!(r.task.properties["ticket"], "ABC-2");
+        assert_eq!(r.task.title, "ABC-2");
+    }
+
+    /// ADR 0148 §4: on a task, a named property is set or overwritten,
+    /// one that is the same is not written.
+    #[test]
+    fn a_line_applied_sets_properties() {
+        let (_, tags) = known_world();
+        let mut task = existing(0x40, "Fliesen", Some(2), None);
+        task.properties.insert("ticket".into(), "ALT-1".into());
+        task.properties.insert("kunde".into(), "acme".into());
+        let a = applied(
+            &task,
+            std::slice::from_ref(&task),
+            &tags,
+            "prop:ticket=NEU-2 prop:kunde=acme prop:ort=Keller",
+        );
+        let names: Vec<&str> = a.fields.iter().map(|(f, _)| f.as_str()).collect();
+        assert_eq!(names, ["properties.ort", "properties.ticket"]);
+        assert_eq!(a.task.properties["ticket"], "NEU-2");
+        assert_eq!(a.task.properties["ort"], "Keller");
+        assert!(a.draft.warnings.is_empty(), "{:?}", a.draft.warnings);
     }
 
     /// ADR 0073 §2: `every+:` is `fixed` with catch-up.

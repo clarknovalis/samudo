@@ -122,6 +122,8 @@ pub enum CaptureMeaning {
     Completed,
     /// `habit:`, the task is a habit (ADR 0091 §5).
     Habit,
+    /// `prop:key=value`, a property (ADR 0148).
+    Property,
     /// A value from a newer samu that this reader does not know (ADR 0015).
     #[serde(other)]
     Unknown,
@@ -172,6 +174,11 @@ pub enum CaptureWarning {
     },
     /// A `habit:` whose value is none of the short forms (ADR 0091 §5).
     UnknownHabit {
+        text: String,
+    },
+    /// A `prop:` that does not read as `key=value` (ADR 0148 §2); it stays
+    /// in the title.
+    UnknownProperty {
         text: String,
     },
     /// A warning from a newer samu (ADR 0015).

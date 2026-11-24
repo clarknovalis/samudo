@@ -171,6 +171,7 @@ object Words {
         "estimate" -> tr("Schätzung: {n}", "n" to estimate(chip.value))
         "repeat" -> tr("Wiederholung: {value}", "value" to chip.value)
         "note" -> tr("Notiz")
+        "property" -> "Property: ${chip.value}"
         else -> chip.value
     }
 
@@ -189,6 +190,7 @@ object Words {
         w.code.startsWith("twice") -> tr("„{text}“: doppelt; bleibt im Titel", "text" to w.text)
         w.code == "unknown_project" -> tr("#{text}: kein oder kein eindeutiges Projekt; geht in die Inbox", "text" to w.text)
         w.code == "unknown_tag" -> tr("@{text}: mehrdeutig oder neu unter einem Ablauf; bleibt im Titel", "text" to w.text)
+        w.code == "unknown_property" -> tr("„{text}“: keine Property, die ich setzen kann (prop:key=wert, Key klein); bleibt im Titel", "text" to w.text)
         else -> w.text
     }
 

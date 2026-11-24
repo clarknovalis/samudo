@@ -3497,3 +3497,67 @@ async fn closing_a_group_asks_then_closes_or_lifts_its_open_children() {
         .unwrap();
     assert!(dropped);
 }
+
+/// ADR 0148: `prop:key=value` lands in the store, on a new task and on an
+/// existing one; the preview marks it.
+#[tokio::test]
+async fn capture_sets_properties() {
+    let (address, _dir) = start(true).await;
+    let token = sign_in(address).await;
+    let text = r#"ABC-345 prop:ticket=ABC-345 prop:ort="Keller links""#;
+    let preview = call(
+        address,
+        "POST",
+        "/capture",
+        Some(&token),
+        Some(&json!({"text": text, "preview": true})),
+    )
+    .await;
+    assert_eq!(preview.status, 200, "{}", preview.body);
+    let marks = preview.json()["marks"].clone();
+    assert_eq!(marks[0]["meaning"], "property", "{marks}");
+
+    let answer = call(
+        address,
+        "POST",
+        "/capture",
+        Some(&token),
+        Some(&json!({"text": text})),
+    )
+    .await;
+    assert_eq!(answer.status, 200, "{}", answer.body);
+    let task = answer.json()["task"]["id"].as_str().unwrap().to_owned();
+    let stored = || async {
+        call(
+            address,
+            "GET",
+            &format!("/objects/{task}"),
+            Some(&token),
+            None,
+        )
+        .await
+        .json()["object"]
+            .clone()
+    };
+    let object = stored().await;
+    assert_eq!(object["title"], "ABC-345");
+    assert_eq!(
+        object["properties"],
+        json!({"ticket": "ABC-345", "ort": "Keller links"})
+    );
+
+    let edit = call(
+        address,
+        "POST",
+        "/capture",
+        Some(&token),
+        Some(&json!({"text": "prop:ticket=ABC-346", "task": task})),
+    )
+    .await;
+    assert_eq!(edit.status, 200, "{}", edit.body);
+    let object = stored().await;
+    assert_eq!(
+        object["properties"],
+        json!({"ticket": "ABC-346", "ort": "Keller links"})
+    );
+}

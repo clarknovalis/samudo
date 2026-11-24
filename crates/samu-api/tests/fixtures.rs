@@ -238,6 +238,11 @@ fn unknown_enum_values_read_as_unknown() {
         ("any_object/template.json", &["kind"]),
         ("scope/layout.json", &["layout", "inspector", "note"]),
         ("capture_response/priority.json", &["marks", "0", "meaning"]),
+        ("capture_response/property.json", &["marks", "0", "meaning"]),
+        (
+            "capture_response/property.json",
+            &["warnings", "0", "warning"],
+        ),
         ("login/agent.json", &["kind"]),
         ("session_info/agent.json", &["kind"]),
         ("grant/rw.json", &["access"]),

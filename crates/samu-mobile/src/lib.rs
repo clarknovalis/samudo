@@ -2716,6 +2716,21 @@ impl Samu {
         if task.note.is_some() {
             chip("note", String::new(), spans_of(Meaning::Note));
         }
+        // Each property by `key=value`, with the mark that names its key
+        // (ADR 0148).
+        for (key, value) in &resolved.draft.properties {
+            let named = format!("prop:{key}=");
+            let spans = marks
+                .iter()
+                .filter(|m| m.meaning == Meaning::Property)
+                .filter(|m| {
+                    text.get(m.start..m.end)
+                        .is_some_and(|w| w.starts_with(&named))
+                })
+                .map(span)
+                .collect();
+            chip("property", format!("{key}={value}"), spans);
+        }
         Ok(CapturePreview {
             title: task.title.clone(),
             project: task.project.map(|p| names.project(p)),
@@ -4834,6 +4849,7 @@ fn warning_row(warning: &Warning) -> WarningRow {
         Warning::ClockInFuture { text } => ("clock_in_future".into(), text.clone()),
         Warning::UnknownClock { text } => ("unknown_clock".into(), text.clone()),
         Warning::UnknownHabit { text } => ("unknown_habit".into(), text.clone()),
+        Warning::UnknownProperty { text } => ("unknown_property".into(), text.clone()),
     };
     WarningRow { code, text }
 }

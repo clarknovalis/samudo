@@ -177,6 +177,8 @@ function chips(answer, text) {
   if (task.repeat) out.push(["plain", `${tr("Wiederholung:")} ${task.repeat.rule}${task.repeat.catch_up ? ` (${tr("aufholen")})` : ""}`]);
   if (task.habit) out.push(["plain", `${tr("Habit:")} ${goalText(task.habit)}`]);
   if (task.note) out.push(["plain", tr("Notiz")]);
+  // ADR 0148: each property `prop:key=value` sets.
+  for (const [key, value] of Object.entries(task.properties ?? {})) out.push(["plain", `${key}: ${value}`]);
   // ADR 0073: the template called, and what reminds.
   const called = (answer.marks ?? []).find((m) => m.meaning === "template");
   if (called && text !== null) {
