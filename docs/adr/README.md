@@ -73,3 +73,4 @@ its citations in the code have no target.
 | [0143](0143-blocks-with-a-search-of-their-own.md) | accepted | Blocks with a search of their own: a block can carry its search instead of pointing at a perspective, written line by line like org-super-agenda |
 | [0144](0144-a-time-in-the-date-fields.md) | accepted | A time of day in the date fields: every editor of defer, due and planned writes a day or a day with a time, read as quick capture reads it |
 | [0145](0145-copying-and-exporting-tasks.md) | accepted | Copying and exporting tasks: Ctrl+A picks every row; the picks or one task go to the clipboard or a file as IDs, a Markdown list, TSV or JSON |
+| [0146](0146-a-note-as-a-block.md) | accepted | A note as a block: a block perspective can show the note of a project or task, rendered and editable in place; `:note #Project` as its line |
