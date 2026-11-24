@@ -172,19 +172,31 @@ fun EditableText(
     }
 }
 
-/** Start, due and planned as whole days with the system's picker (ADR 0040 §2). */
+/**
+ * Start, due and planned: a day with the system's date picker and, beside
+ * it, an optional time with its time picker, whose third button makes it
+ * a whole day again (ADR 0144 §5, replacing the last sentence of ADR 0040
+ * §2). A new day keeps the time, a new time the day; the time is read in
+ * the account's zone (§2, `setDate`).
+ */
 @Composable
 fun DateLine(label: String, value: String?, set: (String?) -> Unit) {
     val context = LocalContext.current
     val t = LocalTokens.current
+    val time = timeOf(value)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = t.muted, fontSize = 13.sp, modifier = Modifier.width(96.dp))
         Text(
-            value?.let { Words.day(it) } ?: "–",
+            value?.let { Words.day(it.take(10)) } ?: "–",
             color = t.fg, fontSize = 14.sp,
-            modifier = Modifier.weight(1f).clickable { pickDay(context, value) { set(it) } }.padding(vertical = 8.dp),
+            modifier = Modifier.weight(1f).clickable { pickDay(context, value) { set(withDay(value, it)) } }.padding(vertical = 8.dp),
         )
-        if (value != null) TextButton(onClick = { set(null) }) { Text(tr("weg")) }
+        if (value != null) {
+            TextButton(onClick = { pickTime(context, value) { set(it) } }) {
+                Text(time ?: tr("Uhrzeit"), color = if (time != null) t.fg else t.muted, fontSize = 14.sp)
+            }
+            TextButton(onClick = { set(null) }) { Text(tr("weg")) }
+        }
     }
 }
 
@@ -193,6 +205,31 @@ internal fun pickDay(context: android.content.Context, value: String?, then: (St
     android.app.DatePickerDialog(context, { _, year, month, day ->
         then(java.time.LocalDate.of(year, month + 1, day).toString())
     }, start.year, start.monthValue - 1, start.dayOfMonth).show()
+}
+
+/** `14:30` of `2026-11-25 14:30`, null for a whole day. */
+internal fun timeOf(value: String?): String? =
+    value?.takeIf { it.length >= 16 && it[10] == ' ' }?.substring(11, 16)
+
+/** The new day with the time `value` had, if it had one (ADR 0144 §3). */
+internal fun withDay(value: String?, day: String): String =
+    timeOf(value)?.let { "$day $it" } ?: day
+
+/** The day of `value` at a picked time, or the whole day ("Ganzer Tag"). */
+internal fun pickTime(context: android.content.Context, value: String, then: (String) -> Unit) {
+    val day = value.take(10)
+    val start = timeOf(value)?.let { runCatching { java.time.LocalTime.parse(it) }.getOrNull() }
+        ?: java.time.LocalTime.of(9, 0)
+    val dialog = android.app.TimePickerDialog(
+        context,
+        { _, hour, minute -> then("%s %02d:%02d".format(java.util.Locale.ROOT, day, hour, minute)) },
+        start.hour, start.minute,
+        android.text.format.DateFormat.is24HourFormat(context),
+    )
+    if (timeOf(value) != null) {
+        dialog.setButton(android.content.DialogInterface.BUTTON_NEUTRAL, tr("Ganzer Tag")) { _, _ -> then(day) }
+    }
+    dialog.show()
 }
 
 private val WARNINGS = listOf(0L, 1L, 2L, 3L, 7L, 14L)

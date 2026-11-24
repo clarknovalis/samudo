@@ -2492,6 +2492,13 @@ fn the_task_page_edits_every_field_through_the_outbox() {
         .unwrap();
     samu.set_date(task.clone(), "defer".into(), Some("2026-12-01".into()))
         .unwrap();
+    samu.set_date(task.clone(), "due".into(), Some("2026-12-24 14:30".into()))
+        .unwrap();
+    assert!(
+        samu.set_date(task.clone(), "due".into(), Some("2026-12-24 lunch".into()))
+            .is_err(),
+        "words left over"
+    );
     assert!(
         samu.set_date(task.clone(), "soon".into(), None).is_err(),
         "no such date"
@@ -2521,7 +2528,9 @@ fn the_task_page_edits_every_field_through_the_outbox() {
     let held = stored(&other, &task);
     assert_eq!(held["title"], "Zaun streichen");
     assert_eq!(held["note"], "grün");
-    assert_eq!(held["due"], json!({"date": "2026-12-24"}));
+    // ADR 0144 §2: in the account's zone, the test server's default.
+    let due = held["due"]["at"].as_str().unwrap_or_default();
+    assert!(due.starts_with("2026-12-24T14:30:00"), "{held}");
     assert_eq!(held["defer"], json!({"date": "2026-12-01"}));
     assert_eq!(held["planned"], json!({"date": day(&samu, 1)}));
     assert_eq!(held["estimate"], "PT90M");

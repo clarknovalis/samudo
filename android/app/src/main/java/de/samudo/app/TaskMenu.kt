@@ -112,7 +112,7 @@ internal fun TaskMenu(row: TaskRow, act: (Samu.() -> Unit) -> Unit, flag: () -> 
             }
             if (open) {
                 item(tr("Zurückstellen bis …")) {
-                    pickDay(context, row.defer) { day -> act { setDate(row.id, "defer", day) } }
+                    pickDay(context, row.defer) { day -> act { setDate(row.id, "defer", withDay(row.defer, day)) } }
                     close()
                 }
             }

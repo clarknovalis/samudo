@@ -468,6 +468,8 @@ val EN: Map<String, String> = mapOf(
     "Was in diesem Ordner liegt, erscheint" to "What lies in this folder appears",
     "Was unten steht, in welcher Reihenfolge, nur hier" to "What sits at the bottom, in which order, here only",
     "weg" to "clear",
+    "Uhrzeit" to "time",
+    "Ganzer Tag" to "All day",
     "Weg" to "Remove",
     "Weniger" to "Less",
     "Wert" to "Value",

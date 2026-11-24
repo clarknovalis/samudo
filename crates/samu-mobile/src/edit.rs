@@ -380,12 +380,17 @@ impl Samu {
         }
         let value = match date {
             None => Value::Null,
+            // A day, or a day with a time read in the account's zone
+            // (ADR 0144 §2, §4): `2026-11-25`, `2026-11-25 14:30`.
             Some(text) => {
-                let date: jiff::civil::Date = text
-                    .trim()
-                    .parse()
-                    .map_err(|_| input(format!("{text:?} is no date")))?;
-                json!({"date": date.to_string()})
+                let zone = {
+                    let cache = self.cache()?;
+                    Self::settings(&cache)?.0.zone
+                };
+                let today = Timestamp::now().to_zoned(zone.clone()).date();
+                let when = samu_core::capture::when_of(&text, today, &zone)
+                    .ok_or_else(|| input(format!("{text:?} is no date")))?;
+                serde_json::to_value(when).map_err(|e| input(e.to_string()))?
             }
         };
         self.set_field(&id, &which, value)

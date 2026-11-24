@@ -135,7 +135,9 @@ it.
   clock.
 - **The task page** is editable: title, note, defer, due and planned dates,
   estimate, tags and state as chips, the project line moves the task, and
-  repetition and reminders.
+  repetition and reminders. Each date has a day and, beside it, an
+  optional time ("time"): its picker sets one, read in the account's
+  zone, and "All day" takes it away again. A new day keeps the time.
 - **Checklist:** on the task page, below the note, "CHECKLIST" with
   `done/all`. Tap the check to tick an item, tap its text to edit it;
   ↑ and ↓ move it, ✕ deletes it, "Turn into a subtask" makes a task of

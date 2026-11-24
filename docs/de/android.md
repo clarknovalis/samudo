@@ -148,7 +148,10 @@ und Name) und öffnet sie.
   die Uhr.
 - **Die Aufgabenseite** ist bearbeitbar: Titel, Notiz, Start-, Fälligkeits-
   und Plandatum, Schätzung, Tags und Zustand als Chips, die Projektzeile
-  verschiebt die Aufgabe, dazu Wiederholung und Erinnerungen.
+  verschiebt die Aufgabe, dazu Wiederholung und Erinnerungen. Jedes Datum
+  hat einen Tag und daneben wahlweise eine Uhrzeit („Uhrzeit“): ihr
+  Wähler setzt sie, in der Zone des Kontos, und „Ganzer Tag“ nimmt sie
+  wieder weg. Ein neuer Tag behält die Uhrzeit.
 - **Checkliste:** auf der Aufgabenseite unter der Notiz, „CHECKLISTE“ mit
   `erledigt/alle`. Der Haken hakt einen Punkt ab, ein Tipp auf den Text
   bearbeitet ihn; ↑ und ↓ verschieben ihn, ✕ löscht ihn, „In Unteraufgabe
