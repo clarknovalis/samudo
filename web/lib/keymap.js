@@ -41,6 +41,7 @@ export const ACTIONS = [
     place: "task",
     hint: tr("auch Strg-/⌘-Klick; Umschalt-Klick wählt einen Bereich"),
   },
+  { id: "pick.all", title: tr("alle auswählen / Auswahl aufheben"), key: "Ctrl+a", place: "task" },
   { id: "complete", title: tr("erledigen / wieder öffnen"), key: "x", place: "task", picks: true },
   { id: "state.cycle", title: tr("Zustand weiterschalten"), key: "s", place: "task", picks: true },
   { id: "state.pick", title: tr("Zustand wählen"), key: "t", place: "task", picks: true, hint: tr("danach das Kürzel des Zustands") },

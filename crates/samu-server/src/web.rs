@@ -64,6 +64,16 @@ pub(crate) const FILES: &[(&str, &str, &str)] = &[
     ),
     ("lib/bulk.js", include_str!("../../../web/lib/bulk.js"), JS),
     (
+        "lib/export.js",
+        include_str!("../../../web/lib/export.js"),
+        JS,
+    ),
+    (
+        "lib/exporttext.js",
+        include_str!("../../../web/lib/exporttext.js"),
+        JS,
+    ),
+    (
         "lib/columns.js",
         include_str!("../../../web/lib/columns.js"),
         JS,
@@ -620,6 +630,20 @@ mod tests {
                 "new Function(",
                 "createObjectURL",
             ] {
+                // Saving a file (ADR 0145 §3): a blob URL handed to an
+                // `<a download>` and revoked, never loaded into the page.
+                // The policy above still refuses `blob:` as a source.
+                if written == "createObjectURL" && name == "lib/export.js" {
+                    assert!(
+                        body.contains(".download") || body.contains("download: name"),
+                        "lib/export.js makes a blob URL for something else than a download"
+                    );
+                    assert!(
+                        body.contains("revokeObjectURL"),
+                        "lib/export.js keeps its blob URL"
+                    );
+                    continue;
+                }
                 assert!(!body.contains(written), "{name} uses {written}");
             }
             checked += 1;

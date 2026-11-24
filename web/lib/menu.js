@@ -27,6 +27,7 @@ import { closeTasks } from "./closeask.js";
 import { openEdit } from "./edit.js";
 import { running, toggleClock } from "./clock.js";
 import { $, el, replace } from "./dom.js";
+import { copyEntries } from "./export.js";
 import { enterState, setDone, statesOf, toggleFlag, toggleSequential } from "./detail.js";
 import { habitMenu } from "./habits.js";
 import { ownOrder } from "./list.js";
@@ -166,7 +167,8 @@ function single(status) {
     open || ticking
       ? { label: ticking ? tr("Uhr stoppen") : tr("Uhr starten"), key: k("clock"), run: () => toggleClock(status) }
       : null,
-    { label: tr("Link kopieren"), key: k("copy-link"), run: () => copyLink(task.id) },
+    "-",
+    ...copyEntries([status], [{ label: tr("Link kopieren"), key: k("copy-link"), run: () => copyLink(task.id) }]),
     "-",
     { label: tr("Löschen …"), key: k("delete"), danger: true, run: () => askDelete([task.id]) },
   ];
@@ -199,6 +201,8 @@ function many() {
     },
     "-",
     { label: tr("Verschieben …"), key: k("move"), run: moveAll },
+    "-",
+    ...copyEntries(pickedStatuses()),
     "-",
     { label: tr("Löschen …"), key: k("delete"), danger: true, run: () => askDelete() },
   ];

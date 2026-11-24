@@ -12,6 +12,7 @@ import { clickCounter } from "./clicks.js";
 import { closeTasks } from "./closeask.js";
 import { statesOf } from "./detail.js";
 import { openEdit } from "./edit.js";
+import { barChoices, runChoice } from "./export.js";
 import { order } from "./list.js";
 import { descendants, moveMany, openPalette, ancestors } from "./palette.js";
 import { newTagField } from "./placeops.js";
@@ -46,6 +47,13 @@ export function pickRange(id) {
   const picked = new Set(state.picked);
   for (const at of order.slice(Math.min(from, to), Math.max(from, to) + 1)) picked.add(at);
   update({ picked, selected: id });
+}
+
+// Every row drawn (ADR 0145 §1); when all are picked already, none.
+export function pickAll() {
+  const all = order.length > 0 && order.every((id) => state.picked.has(id));
+  if (all || !order.length) return clearPicks();
+  update({ picked: new Set(order), selected: state.selected ?? order[0] });
 }
 
 export function clearPicks() {
@@ -352,6 +360,12 @@ function dateSelect() {
   });
 }
 
+// Copying and saving the picks (ADR 0145 §4).
+function copySelect() {
+  const groups = barChoices().map(([label, choices]) => el("optgroup", { label }, choices.map(([value, text]) => option(value, text))));
+  return select(tr("Kopieren …"), groups, (value) => runChoice(value, pickedStatuses()));
+}
+
 function asking() {
   if (bar.note) {
     return el("span", { class: "ask" }, [
@@ -429,6 +443,7 @@ export function renderBulk() {
     ...tagSelects(list),
     stateSelect(),
     dateSelect(),
+    copySelect(),
     button(tr("Löschen …"), () => ((bar = { confirm: true }), update({})), k("delete")),
     asking(),
     el("button", { type: "button", class: "close", text: "✕", title: tr("Auswahl aufheben (Esc)"), "aria-label": tr("Auswahl aufheben"), onclick: clearPicks }),

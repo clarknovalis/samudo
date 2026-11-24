@@ -73,6 +73,7 @@ web-check:
 	node web/tests/i18n.mjs
 	node web/tests/lang.mjs
 	node web/tests/table.mjs
+	node web/tests/exporttext.mjs
 	node web/tests/clicks.mjs
 	node web/tests/blocks.mjs
 	node web/tests/blocklines.mjs

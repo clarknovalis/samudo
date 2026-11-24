@@ -22,6 +22,7 @@ import {
   dropAll,
   flagAll,
   moveAll,
+  pickAll,
   pickStateAll,
   pickedStatuses,
   picking,
@@ -100,6 +101,7 @@ const RUN = {
     if (event.target.tagName === "BUTTON") return false;
     if (s) togglePick(s.task.id);
   },
+  "pick.all": () => pickAll(),
   complete: (s) => (picking() ? completeAll() : s && setDone(s, isOpen(s.task))),
   "state.cycle": (s) => (picking() ? cycleAll() : s && cycleState(s)),
   "state.pick": (s) => (picking() || s) && (pickingState = true),

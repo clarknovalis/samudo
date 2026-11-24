@@ -22,6 +22,7 @@ import { isKey, knownKeys, targetOf } from "./props.js";
 import { byId, state, statusOf, tagTitle, update } from "./state.js";
 import { COLUMNS, DEFAULT_COLUMNS, PROPERTY, cellWrite, editable, estimated, hoursText, stepColumn, sums, worked } from "./tabledata.js";
 import { dayOf, estimateText, localDay, parseEstimate, placeOf, shortDay, tagPath } from "./words.js";
+import { dateText } from "./exporttext.js";
 
 // What each column is called, and the sort of "Anordnen" its head sets
 // (§5); none for the columns that do not sort in this round.
@@ -126,6 +127,28 @@ function cell(column, status, n) {
       // A column from a newer samu: nothing to show (ADR 0015).
       return "";
   }
+}
+
+// The cells of `statuses` as plain text for TSV (ADR 0145 §2): every
+// column of the table, dates as `YYYY-MM-DD[ HH:MM]`, stamps as their
+// day. A map from task id to `{ column: text }`.
+export function plainCells(statuses) {
+  const n = numbersNow();
+  const day = (stamp) => localDay(stamp) ?? "";
+  const text = (value) => (value === null || value === undefined ? "" : typeof value === "string" ? value : value.textContent);
+  return new Map(
+    statuses.map((status) => {
+      const task = status.task;
+      const cells = {};
+      for (const column of COLUMNS) {
+        if (column === "defer" || column === "due" || column === "planned") cells[column] = dateText(task[column]);
+        else if (column === "created" || column === "modified") cells[column] = day(task[column]);
+        else if (column === "completed") cells[column] = day(task.completed_at);
+        else cells[column] = text(cell(column, status, n));
+      }
+      return [task.id, cells];
+    }),
+  );
 }
 
 const remaining = (seconds) => (seconds < 0 ? el("span", { class: "over", text: hoursText(seconds) }) : hoursText(seconds));
