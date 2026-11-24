@@ -11,7 +11,7 @@ use clap::Subcommand;
 use samu_api::{
     BlockQuery, Change, Id, ObjectKind, Perspective, PerspectiveArrange, PerspectiveBlock,
     PerspectiveFilter, PerspectiveGroup, PerspectiveSort, PerspectiveTable, PerspectiveView,
-    ScopeChip,
+    ScopeChip, ScopeChipKind,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -67,9 +67,10 @@ pub(crate) enum PerspectiveCommand {
         )]
         blocks: Vec<String>,
     },
-    /// Set the blocks of a block perspective (ADR 0116, ADR 0143), one
-    /// argument per block: a fixed view as `:inbox`, `:today` or
-    /// `:flagged`; a plain perspective's name; any other text a search of
+    /// Set the blocks of a block perspective (ADR 0116, ADR 0143, ADR
+    /// 0146), one argument per block: a fixed view as `:inbox`, `:today`
+    /// or `:flagged`; the note of a project or task as `:note #Project` or
+    /// `:note <id>`; a plain perspective's name; any other text a search of
     /// the block's own, like `"@Büro ~<15m"`. ` | Heading` after it gives
     /// a heading of its own, like `"Büro | Kurz im Büro"`; `Büro=Kurz im
     /// Büro` still works for a name or a view. Without blocks it prints
@@ -242,8 +243,28 @@ fn split_search(snapshot: &Snapshot, words: &[String]) -> Result<(Vec<ScopeChip>
 }
 
 /// A block as a line of `samu perspective blocks` (ADR 0143 §3): the
-/// view, the perspective's name or the search, then ` | Heading`.
+/// view, the perspective's name, the search or `:note` with a project as
+/// the search writes it or a task's short id (ADR 0146 §4), then
+/// ` | Heading`.
 fn block_word(snapshot: &Snapshot, block: &PerspectiveBlock) -> String {
+    if let Some(id) = block.note {
+        let target = if snapshot.projects.iter().any(|p| p.id == id) {
+            let chip = ScopeChip {
+                kind: ScopeChipKind::Project,
+                value: id.to_string(),
+                not: false,
+                group: 0,
+            };
+            query::words(&[chip], &snapshot.core())
+        } else {
+            short(&id)
+        };
+        let name = format!(":note {target}");
+        return match &block.title {
+            Some(title) => format!("{name} | {title}"),
+            None => name,
+        };
+    }
     let name = match (&block.perspective, &block.view, &block.query) {
         (Some(id), None, None) => snapshot
             .perspectives
@@ -307,9 +328,9 @@ fn parse_blocks(
         .collect()
 }
 
-/// One block from one line: `:view`, a plain perspective's name, or a
-/// search of its own; ` | Heading` or, after a name or view,
-/// `=Heading`.
+/// One block from one line: `:view`, `:note` with a project or task
+/// (ADR 0146 §4), a plain perspective's name, or a search of its own;
+/// ` | Heading` or, after a name or view, `=Heading`.
 fn parse_block(snapshot: &Snapshot, of: Option<Id>, line: &str) -> Result<PerspectiveBlock> {
     let heading = |title: &str| -> Result<String> {
         let title = title.trim();
@@ -333,6 +354,16 @@ fn parse_block(snapshot: &Snapshot, of: Option<Id>, line: &str) -> Result<Perspe
             },
         },
     };
+    if let Some(target) = body
+        .strip_prefix(":note")
+        .filter(|rest| rest.is_empty() || rest.starts_with(char::is_whitespace))
+    {
+        return Ok(PerspectiveBlock {
+            note: Some(note_target(snapshot, target.trim())?),
+            title,
+            ..PerspectiveBlock::default()
+        });
+    }
     if let Some(view) = body.strip_prefix(':') {
         if !samu_core::blocks::known_view(view) {
             bail!(
@@ -369,6 +400,46 @@ fn parse_block(snapshot: &Snapshot, of: Option<Id>, line: &str) -> Result<Perspe
         title,
         ..PerspectiveBlock::default()
     })
+}
+
+/// The project or task a note block shows (ADR 0146 §4): `#Project` as
+/// the search writes it, or a full id, a `samu:` URI, or the start or end
+/// of the id of a project or task.
+fn note_target(snapshot: &Snapshot, target: &str) -> Result<Id> {
+    if target.is_empty() {
+        bail!(":note names no project or task: `:note #Project` or `:note <id>`");
+    }
+    if target.starts_with('#') {
+        let [word] = query::split_marked(target).try_into().map_err(|_| {
+            anyhow::anyhow!("{target:?}: one project, its name in quotes when it has spaces")
+        })?;
+        return match query::parse_chip(&word.text, &snapshot.core()) {
+            Ok(chip) if chip.kind == ScopeChipKind::Project && !chip.not => chip
+                .value
+                .parse::<Id>()
+                .map_err(|_| anyhow::anyhow!("{target:?} names no project")),
+            Ok(_) => bail!("{target:?} names no project"),
+            Err(e) => Err(refused(target, e)),
+        };
+    }
+    let wanted = target.to_ascii_lowercase();
+    let exact = target.parse::<Id>().ok().or_else(|| Id::from_uri(target));
+    let found: Vec<Id> = snapshot
+        .projects
+        .iter()
+        .map(|p| p.id)
+        .chain(snapshot.tasks.iter().copied())
+        .filter(|id| exact.map_or_else(|| crate::id_matches(id, &wanted), |e| *id == e))
+        .collect();
+    match found.as_slice() {
+        [id] => Ok(*id),
+        [] => Err(Failure::NotFound(format!("no project or task {target:?}")).into()),
+        many => bail!(
+            "{target:?} names {} projects and tasks: {}",
+            many.len(),
+            many.iter().map(short).collect::<Vec<_>>().join(", ")
+        ),
+    }
 }
 
 /// The n-th block of a block perspective, 1 the first.

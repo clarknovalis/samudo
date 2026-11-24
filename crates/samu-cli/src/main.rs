@@ -1252,7 +1252,9 @@ fn note_of(text: &str) -> Result<String> {
 
 /// The sections of a block perspective (ADR 0116 §7): in plain a heading
 /// before each block's rows, in tsv the heading as the first column, in
-/// json and jsonl the sections with their tasks.
+/// json and jsonl the sections with their tasks. A note block (ADR 0146
+/// §6) prints its note as written, indented, under a heading without a
+/// count; tsv has no row for it.
 fn print_blocks(
     client: &Client,
     format: Format,
@@ -1288,6 +1290,17 @@ fn print_blocks(
                     .map(|i| format!("{i} "))
                     .unwrap_or_default();
                 let missing = if section.missing { " — missing" } else { "" };
+                if let Some(note) = &section.note {
+                    println!("▸ {icon}{}{missing}", section.title);
+                    for line in note.lines() {
+                        println!("{}", format!("  {line}").trim_end());
+                    }
+                    continue;
+                }
+                if section.block.as_ref().is_some_and(|b| b.note.is_some()) {
+                    println!("▸ {icon}{}{missing}", section.title);
+                    continue;
+                }
                 println!("▸ {icon}{} ({}){missing}", section.title, records.len());
                 emit(format, &records, &COLUMNS)?;
             }
@@ -1305,6 +1318,7 @@ fn print_blocks(
                 "icon": section.icon,
                 "block": section.block,
                 "missing": section.missing,
+                "note": section.note,
                 "tasks": records,
             })),
         }

@@ -173,6 +173,8 @@ pub(crate) struct Snapshot {
     pub(crate) tags: Vec<Tag>,
     /// ADR 0090.
     pub(crate) perspectives: Vec<samu_api::Perspective>,
+    /// The ids of the tasks, for a note block (ADR 0146 §4).
+    pub(crate) tasks: Vec<Id>,
 }
 
 impl Snapshot {
@@ -197,6 +199,7 @@ pub(crate) fn snapshot(client: &Client) -> Result<Snapshot> {
         projects: Vec::new(),
         tags: Vec::new(),
         perspectives: Vec::new(),
+        tasks: Vec::new(),
     };
     for object in page.objects {
         match object {
@@ -205,6 +208,7 @@ pub(crate) fn snapshot(client: &Client) -> Result<Snapshot> {
             AnyObject::Project(p) => snapshot.projects.push(p),
             AnyObject::Tag(t) => snapshot.tags.push(t),
             AnyObject::Perspective(p) => snapshot.perspectives.push(p),
+            AnyObject::Task(t) => snapshot.tasks.push(t.id),
             _ => {}
         }
     }

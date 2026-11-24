@@ -5109,6 +5109,111 @@ fn a_block_carries_a_search_of_its_own() {
     assert_eq!(angebote["search"], "angebot");
 }
 
+/// ADR 0146 §4, §6: a block shows the note of a project or task, written
+/// `:note #Project` or `:note <id>`; plain prints the note under its
+/// heading, json carries it, and a line that names nothing is refused.
+#[test]
+fn a_block_shows_a_note() {
+    let server = signed_in_server();
+    let ok = |out: Output| {
+        assert_eq!(code(&out), 0, "{}", String::from_utf8_lossy(&out.stderr));
+        out
+    };
+    let project = json_out(&ok(server.samu(
+        &["project", "add", "Wochen Rückblick", "--format", "json"],
+        None,
+    )))[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    ok(server.samu(
+        &[
+            "set",
+            &project,
+            "note",
+            "--",
+            "- [ ] Eingang leeren\n\nDann Projekte",
+        ],
+        None,
+    ));
+    let task = json_out(&ok(
+        server.samu(&["add", "Tagesfokus", "--format", "json"], None)
+    ))[0]["short"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    ok(server.samu(
+        &[
+            "perspective",
+            "add",
+            "Rückblick",
+            "--blocks",
+            ":note #\"Wochen Rückblick\" | Checkliste",
+            &format!(":note {task}"),
+            ":inbox",
+        ],
+        None,
+    ));
+    let blocks = json_out(&ok(server.samu(
+        &["perspective", "blocks", "Rückblick", "--format", "json"],
+        None,
+    )));
+    let lines: Vec<&str> = blocks
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["block"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        lines,
+        [
+            ":note #\"Wochen Rückblick\" | Checkliste",
+            &format!(":note {task}"),
+            ":inbox"
+        ]
+    );
+
+    let shown = json_out(&ok(server.samu(
+        &["list", "--perspective", "Rückblick", "--format", "json"],
+        None,
+    )));
+    assert_eq!(shown[0]["title"], "Checkliste");
+    assert_eq!(shown[0]["note"], "- [ ] Eingang leeren\n\nDann Projekte");
+    assert_eq!(shown[0]["tasks"].as_array().unwrap().len(), 0);
+    assert_eq!(shown[1]["title"], "Tagesfokus");
+    assert_eq!(shown[1]["note"], "");
+    assert_eq!(shown[2]["tasks"].as_array().unwrap().len(), 1, "the inbox");
+    let plain = stdout(&ok(
+        server.samu(&["list", "--perspective", "Rückblick"], None)
+    ));
+    assert!(
+        plain.starts_with(
+            "▸ Checkliste\n  - [ ] Eingang leeren\n\n  Dann Projekte\n\n▸ Tagesfokus\n"
+        ),
+        "{plain}"
+    );
+
+    for refused in [
+        ":note",
+        ":note #Nirgends",
+        ":note @Rückblick",
+        ":notes",
+        ":note 0000",
+    ] {
+        let out = server.samu(&["perspective", "blocks", "Rückblick", refused], None);
+        assert_ne!(code(&out), 0, "{refused}");
+    }
+    assert_eq!(
+        code(&server.samu(&["perspective", "blocks", "Rückblick", ":note 0000"], None)),
+        3,
+        "nothing found"
+    );
+    assert_eq!(
+        code(&server.samu(&["perspective", "detach", "Rückblick", "1"], None)),
+        1
+    );
+}
+
 /// ae5a3206: `samu block` lets a task wait for another, the server's
 /// availability says so, and `samu unblock` takes it back. Itself, twice
 /// and a circle are refused.
