@@ -95,8 +95,19 @@ Leiste.
   Filter wie im Web; ihre Chips stehen unter dem Titel, zum Ansehen.
   Ändern bleibt im Web und auf der [Kommandozeile](cli.md). In der Leiste
   trägt sie ihr Emoji, ohne eines einen Trichter.
+- Eine **Block-Perspektive** zeigt ihre Blöcke einzeln, wie im Web: jeder
+  mit Überschrift und Anzahl, seine Aufgaben in seiner eigenen Anordnung,
+  eine Aufgabe nur im ersten Block, der sie zeigt. Ein Notiz-Block zeigt
+  die Notiz seines Projekts oder seiner Aufgabe; Checkboxen lassen sich
+  abhaken, ✎ macht ein Feld daraus. Ein Tipp auf die Überschrift klappt
+  den Block zu, ↗ rechts öffnet, worauf er verweist; ein leerer Block
+  beginnt zugeklappt.
 - Ein **Projekt** öffnet wie aus dem Baum, ein **Tag** zeigt die
   verfügbaren Aufgaben mit ihm.
+
+Jede Gruppenüberschrift einer Liste klappt mit einem Tipp zu; langes
+Drücken lässt nur diese offen. Das Handy merkt sich, was zugeklappt ist,
+je Liste.
 
 ## Suche
 

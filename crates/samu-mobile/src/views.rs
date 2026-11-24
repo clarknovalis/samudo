@@ -57,6 +57,8 @@ pub struct PerspectiveRow {
     pub group: String,
     /// `position`, `due`, `planned`, …
     pub sort: String,
+    /// A block perspective (ADR 0116), shown block by block (ADR 0147).
+    pub blocks: bool,
 }
 
 /// One block of a block perspective as the app shows it (ADR 0147 §1):
@@ -218,6 +220,7 @@ impl Samu {
                         PerspectiveSort::Unknown => PerspectiveSort::Position,
                         s => s,
                     })),
+                    blocks: !p.blocks.is_empty(),
                 }
             })
             .collect())

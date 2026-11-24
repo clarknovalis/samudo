@@ -362,9 +362,14 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                 place.project != null || (view !in setOf("projects", "search", "stuck", "review") &&
                     !(view == "forecast" && forecastMode != ForecastMode.LIST))
                 )
+            // A block perspective is shown block by block, each in its own
+            // arrangement, so it has no Anordnen of its own (ADR 0147 §1).
+            val (perspectiveRows, _) = loaded(tick, "perspectives") { it.perspectives() }
+            val blockPerspective = view == "perspective" && perspectiveRows?.find { it.id == place.entry.key }?.blocks == true
             // The list's key for Anordnen (ADR 0125 §1); none where there is no button.
             val arrangeKey: String? = when {
                 place.settings || place.task != null -> null
+                blockPerspective -> null
                 place.project != null -> "project:${place.project!!.first}"
                 view in setOf("inbox", "available", "today", "flagged", "search") -> view
                 view == "perspective" || view == "tag" -> "$view:${place.entry.key}"
@@ -492,7 +497,12 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
                     )
                     view == "perspective" -> {
                         val id = place.entry.key
-                        TaskList(tick, "perspective-$id" to tag, { it.perspective(id, tag) }, changed, open = openTask, head = chips)
+                        // Block by block (ADR 0147 §1); a plain perspective is one block.
+                        if (blockPerspective) {
+                            BlockList(tick, id, tag, changed, openTask, go = { place = Place(it) }, head = chips)
+                        } else {
+                            TaskList(tick, "perspective-$id" to tag, { it.perspective(id, tag) }, changed, open = openTask, head = chips)
+                        }
                     }
                     view == "tag" -> {
                         val id = place.entry.key

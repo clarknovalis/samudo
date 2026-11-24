@@ -242,29 +242,25 @@ fun TaskList(
     error?.let { Text(it, color = t.overdue, modifier = Modifier.padding(16.dp)) }
     val list = sections ?: return
     LaunchedEffect(list) { Picks.refresh(list.flatMap { it.rows }) }
+    val context = LocalContext.current
+    // What the list's folds are kept under: what it shows, without the tag.
+    val name = ((key as? Pair<*, *>)?.first ?: key).toString()
     // A list, even an empty one, so that pulling down refreshes it (ADR 0102 §6).
     LazyColumn(Modifier.fillMaxSize()) {
         // At least 1 dp: a head of zero height is not the first visible item,
         // so chips loaded after the rows would land above the top.
         head?.let { item(key = "list-head") { Box(Modifier.heightIn(min = 1.dp)) { it() } } }
         if (list.isEmpty()) item(key = "empty") { Text(empty, color = t.muted, modifier = Modifier.padding(16.dp)) }
-        // Keyed by the section too: a grouping by tag shows a task in each
-        // of its tags, and groups that are no project have no id (ADR 0125 §5).
-        list.forEachIndexed { index, section ->
-            if (section.title != null || list.size > 1) {
-                item(key = "head-$index-" + (section.projectId ?: section.title ?: "inbox")) {
-                    // The folder with its whole path next to the project (ADR 0026 §6).
-                    Row(Modifier.padding(16.dp, 18.dp, 16.dp, 6.dp), verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            (section.title ?: "Inbox").uppercase(),
-                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.7.sp, color = t.muted,
-                        )
-                        section.folder?.let { Text("  $it", fontSize = 12.sp, color = t.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    }
-                }
-            }
-            items(section.rows, key = { "$index:" + it.id }) { row -> SwipeRow(row, changed) { open(row.id) } }
-        }
+        // Every heading folds (ADR 0147 §4), kept per phone under the list
+        // and the group.
+        val keys = list.mapIndexed { index, section -> groupFold(name, index, section) }
+        groups(
+            list, "list", keys,
+            folded = { Folds.isFolded(context, it) },
+            toggle = { Folds.toggle(context, it) },
+            only = { Folds.only(context, it, keys) },
+            changed = changed, open = open,
+        )
         item { Spacer(Modifier.heightIn(min = 96.dp)) }
     }
 }

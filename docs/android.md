@@ -88,8 +88,17 @@ dropped leaves the bar by itself.
   as on the web; its chips stand under the title, to look at. Changing a
   perspective stays in the web and the [command line](cli.md). It shows
   its emoji in the bar, without one a funnel.
+- A **block perspective** shows its blocks one by one, as on the web:
+  each with its heading and count, its tasks in its own arrangement, a
+  task only in the first block that shows it. A note block shows the note
+  of its project or task; tick its checkboxes, or tap ✎ to edit it. Tap a
+  block's heading to fold it, ↗ at its right opens what it refers to; an
+  empty block starts folded.
 - A **project** opens as from the tree, a **tag** shows the available
   tasks with it.
+
+Every group heading of a list folds with a tap; a long press leaves only
+that one open. The phone remembers what is folded, per list.
 
 ## Search
 
