@@ -7,6 +7,8 @@
 //! through samu-core as the server's routes do (ADR 0006); grouping and
 //! sorting a perspective's hits is the list's own business.
 
+use std::collections::HashSet;
+
 use jiff::Timestamp;
 use samu_api::{
     Change, Id, ObjectKind, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, Task,
@@ -271,7 +273,8 @@ impl Samu {
 
     /// What a perspective shows, as `GET /available?perspective=` decides
     /// it, through the scope chosen here and, if given, only with `tag` or
-    /// below; as a list, never a board (ADR 0090 §9, ADR 0102 §4).
+    /// below; as a list, never a board (ADR 0090 §9, ADR 0102 §4). A block
+    /// perspective shows the union of its blocks (ADR 0116 §4).
     pub fn perspective(
         &self,
         id: String,
@@ -288,9 +291,29 @@ impl Samu {
             .iter()
             .find(|p| p.id == id)
             .ok_or_else(|| input(format!("no perspective {id}")))?;
+        let arrange = perspective.arrange.clone().unwrap_or_default();
+        if !perspective.blocks.is_empty() {
+            // A block perspective: every block's tasks once, as
+            // `/available?perspective=` answers it (ADR 0116 §4). The
+            // scope chosen here applies in `listed_as`, as for the rest.
+            let hits: HashSet<Id> = samu_core::blocks::union(
+                samu_core::views::blocks(&objects, &settings, Timestamp::now(), None, id)
+                    .map_err(|e| input(e.to_string()))?,
+            )
+            .into_iter()
+            .map(|s| s.task.id)
+            .collect();
+            let pick = |t: &Task, _: &samu_core::availability::TaskState| hits.contains(&t.id);
+            return self.listed_as(
+                &settled(arrange),
+                tag.as_deref(),
+                pick,
+                |_| true,
+                PerspectiveFilter::Remaining,
+            );
+        }
         let snapshot = objects.snapshot();
         let test = PerspectiveTest::new(perspective, &snapshot, Timestamp::now(), &settings.zone);
-        let arrange = perspective.arrange.clone().unwrap_or_default();
         let pick = |t: &Task, s: &samu_core::availability::TaskState| {
             (test.all || is_open(t)) && (!test.available || s.available) && test.task(t, s)
         };

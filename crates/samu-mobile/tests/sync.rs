@@ -4133,6 +4133,40 @@ fn a_perspective_shows_its_hits_as_a_list() {
     );
 }
 
+/// ADR 0102 §4, ADR 0116 §4: a block perspective shows every task of its
+/// blocks once, and nothing else; before, the phone ignored the blocks and
+/// showed every available task.
+#[test]
+fn a_block_perspective_shows_the_union_of_its_blocks() {
+    let server = Server::start();
+    let other = server.other_client();
+    let office = make_tag(&other, "Büro", None);
+    make_task(&other, "anrufen", tagged(&office));
+    let mut both = tagged(&office);
+    both["flagged"] = json!(true);
+    make_task(&other, "beides", both);
+    make_task(&other, "markiert", json!({"flagged": true, "position": 1}));
+    make_task(&other, "nichts davon", json!({"position": 2}));
+    let calls = make_perspective(
+        &other,
+        "Büro",
+        json!({"chips": [{"kind": "tag", "value": office}]}),
+    );
+    let blocks = make_perspective(
+        &other,
+        "Morgens",
+        json!({"blocks": [{"perspective": calls}, {"view": "flagged"}],
+               "arrange": {"group": "none", "sort": "title"}, "position": 1}),
+    );
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    assert_eq!(
+        section_titles(&samu.perspective(blocks, None).unwrap()),
+        [(None, vec!["anrufen", "beides", "markiert"])]
+    );
+}
+
 /// ADR 0103 §5: a search saved as a perspective offline, its chips and
 /// words apart, showing what the search showed, and on the server after
 /// the next sync.
