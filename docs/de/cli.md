@@ -235,7 +235,10 @@ samu bulk date due morgen -            # IDs von stdin
 ```
 
 `samu bulk` nimmt `done`, `drop`, `reopen`, `flag`, `unflag`, `move`,
-`tag`, `state`, `date` und `delete`.
+`tag`, `state`, `date` und `delete`. `samu bulk date` setzt `defer`, `due`
+oder `planned` mit den Datumswörtern der Schnellerfassung, wahlweise mit
+einer Uhrzeit dahinter in der Zone des Kontos: `fr`, `2026-11-25`,
+`"morgen 14:30"`; `none` löscht es. Ohne Uhrzeit bleibt es ein ganzer Tag.
 
 ### Orte und Tags
 

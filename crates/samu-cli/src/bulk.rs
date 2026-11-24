@@ -99,10 +99,13 @@ pub(crate) enum BulkCommand {
         #[command(flatten)]
         tasks: Tasks,
     },
-    /// Set a date of the tasks, all day (ADR 0007), or clear it.
+    /// Set a date of the tasks, a day or a day with a time (ADR 0144), or
+    /// clear it.
     Date {
         field: DateField,
-        /// `today`, `tomorrow`, `YYYY-MM-DD` or `none`.
+        /// The date words of quick capture with an optional time, read in
+        /// the account's zone: `fri`, `"tomorrow 14:30"`,
+        /// `"2026-11-25 9:30"`; or `none`.
         value: String,
         #[command(flatten)]
         tasks: Tasks,
@@ -294,7 +297,7 @@ pub(crate) fn run(config: &Config, format: Format, command: BulkCommand) -> Resu
             tasks,
         } => {
             let picked = pick(&snapshot, &tasks)?;
-            let value = day(&value, || crate::report::account_today(&client))?;
+            let value = day(&value, || crate::report::account_day_and_zone(&client))?;
             let changes = picked
                 .iter()
                 .map(|t| set(t.id, field.name(), value.clone()))
@@ -656,19 +659,23 @@ fn state_change(
     }))
 }
 
-/// `today`, `tomorrow`, a date or `none` as the value of a date field.
-/// `today` is the account's, asked only when the value needs it.
-fn day(value: &str, today: impl FnOnce() -> Result<jiff::civil::Date>) -> Result<Value> {
-    let date = match value.to_ascii_lowercase().as_str() {
-        "none" => return Ok(Value::Null),
-        "today" => today()?,
-        "tomorrow" => today()?.tomorrow()?,
-        other => match other.parse::<jiff::civil::Date>() {
-            Ok(date) => date,
-            Err(_) => bail!("{value:?} is no date: today, tomorrow, YYYY-MM-DD or none"),
-        },
-    };
-    Ok(json!({ "date": date.to_string() }))
+/// The value of a date field: `none`, or the date words of quick capture
+/// with an optional time (ADR 0144 §4), read with today and the zone of
+/// the account, asked only when the value needs them.
+fn day(
+    value: &str,
+    now: impl FnOnce() -> Result<(jiff::civil::Date, jiff::tz::TimeZone)>,
+) -> Result<Value> {
+    if value.trim().eq_ignore_ascii_case("none") {
+        return Ok(Value::Null);
+    }
+    let (today, zone) = now()?;
+    match samu_core::capture::when_of(value, today, &zone) {
+        Some(when) => Ok(serde_json::to_value(when)?),
+        None => {
+            bail!("{value:?} is no date: e.g. today, fri, 2026-11-25, \"tomorrow 14:30\" or none")
+        }
+    }
 }
 
 #[cfg(test)]
@@ -733,7 +740,12 @@ mod tests {
 
     #[test]
     fn days_are_words_dates_or_none() {
-        let today = || Ok(jiff::civil::date(2026, 11, 16));
+        let today = || {
+            Ok((
+                jiff::civil::date(2026, 11, 16),
+                jiff::tz::TimeZone::get("Europe/Berlin").unwrap(),
+            ))
+        };
         assert_eq!(day("none", today).unwrap(), Value::Null);
         assert_eq!(
             day("2026-11-20", today).unwrap(),
@@ -744,6 +756,27 @@ mod tests {
             day("Tomorrow", today).unwrap(),
             json!({"date": "2026-11-17"})
         );
-        assert!(day("morgen", today).is_err());
+        assert_eq!(day("fri", today).unwrap(), json!({"date": "2026-11-20"}));
+        assert!(day("soon", today).is_err());
+    }
+
+    /// ADR 0144 §2, §5: a time after the day is read in the account's zone.
+    #[test]
+    fn a_day_with_a_time_is_an_instant_in_the_accounts_zone() {
+        let now = || {
+            Ok((
+                jiff::civil::date(2026, 11, 16),
+                jiff::tz::TimeZone::get("Europe/Berlin").unwrap(),
+            ))
+        };
+        assert_eq!(
+            day("tomorrow 14:30", now).unwrap(),
+            json!({"at": "2026-11-17T14:30:00+01:00[Europe/Berlin]"})
+        );
+        assert_eq!(
+            day("2026-07-01 9:30", now).unwrap(),
+            json!({"at": "2026-07-01T09:30:00+02:00[Europe/Berlin]"})
+        );
+        assert!(day("tomorrow 14", now).is_err());
     }
 }

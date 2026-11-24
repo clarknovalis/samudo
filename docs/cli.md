@@ -229,7 +229,10 @@ samu bulk date due tomorrow -          # ids from stdin
 ```
 
 `samu bulk` takes `done`, `drop`, `reopen`, `flag`, `unflag`, `move`,
-`tag`, `state`, `date` and `delete`.
+`tag`, `state`, `date` and `delete`. `samu bulk date` sets `defer`, `due`
+or `planned` with the date words of quick capture, optionally followed by
+a time in the account's zone: `fri`, `2026-11-25`, `"tomorrow 14:30"`;
+`none` clears it. Without a time the date stays a whole day.
 
 ### Places and tags
 

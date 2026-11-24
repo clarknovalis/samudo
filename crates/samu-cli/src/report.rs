@@ -78,16 +78,24 @@ fn day(name: &str, text: &str) -> Result<Date> {
 /// after midnight in Berlin asked for yesterday). This computer's zone
 /// when the server names none or one unknown here.
 pub(crate) fn account_today(client: &Client) -> Result<Date> {
+    Ok(account_day_and_zone(client)?.0)
+}
+
+/// Today and the zone of the account (ADR 0007 §2), for reading a time.
+pub(crate) fn account_day_and_zone(client: &Client) -> Result<(Date, jiff::tz::TimeZone)> {
     let session: SessionInfo =
         serde_json::from_value(client.call("GET", "/session", None)?.json()?)?;
-    Ok(today_in(session.zone.as_deref(), jiff::Timestamp::now()))
+    let today = today_in(session.zone.as_deref(), jiff::Timestamp::now());
+    Ok((today, zone_of(session.zone.as_deref())))
+}
+
+fn zone_of(zone: Option<&str>) -> jiff::tz::TimeZone {
+    zone.and_then(|z| jiff::tz::TimeZone::get(z).ok())
+        .unwrap_or_else(jiff::tz::TimeZone::system)
 }
 
 fn today_in(zone: Option<&str>, now: jiff::Timestamp) -> Date {
-    zone.and_then(|z| jiff::tz::TimeZone::get(z).ok())
-        .unwrap_or_else(jiff::tz::TimeZone::system)
-        .to_datetime(now)
-        .date()
+    zone_of(zone).to_datetime(now).date()
 }
 
 /// The query string: `from` and `to` always, the rest when given.

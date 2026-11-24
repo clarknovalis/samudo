@@ -1407,6 +1407,20 @@ fn parse_habit(value: &str) -> Option<Habit> {
     })
 }
 
+/// The value of a date field (ADR 0144 §4): the date words of quick
+/// capture with an optional time after them, `fri`, `tomorrow 14:30`,
+/// `2026-11-25 9:30`. A time is read in `zone`. `None` when the text is
+/// no such date or has words left over.
+#[must_use]
+pub fn when_of(text: &str, today: Date, zone: &TimeZone) -> Option<When> {
+    let words: Vec<(String, usize)> = text
+        .split_whitespace()
+        .map(|word| (word.to_lowercase(), 0))
+        .collect();
+    let (when, used) = parse_when(&words, today, zone)?;
+    (used == words.len()).then_some(when)
+}
+
 /// A date, optionally followed by a time of day; returns how many words it
 /// took.
 fn parse_when(words: &[(String, usize)], today: Date, zone: &TimeZone) -> Option<(When, usize)> {
@@ -1741,6 +1755,34 @@ fn repeat_rule(word: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, reason = "tests may unwrap")]
+
+    /// ADR 0144 §4: a date field reads the date words of quick capture,
+    /// with an optional time in the given zone, and nothing more.
+    #[test]
+    fn when_of_reads_a_day_or_a_day_with_a_time() {
+        let today: Date = "2026-11-24".parse().unwrap(); // a Tuesday
+        let zone = TimeZone::get("Europe/Berlin").unwrap();
+        let day = |s: &str| Some(When::Date(s.parse().unwrap()));
+        let at = |s: &str| Some(When::At(s.parse().unwrap()));
+        assert_eq!(when_of("fri", today, &zone), day("2026-11-27"));
+        assert_eq!(when_of("  Tomorrow ", today, &zone), day("2026-11-25"));
+        assert_eq!(
+            when_of("tomorrow 14:30", today, &zone),
+            at("2026-11-25T14:30:00+01:00[Europe/Berlin]")
+        );
+        assert_eq!(
+            when_of("2026-07-01 9:30", today, &zone),
+            at("2026-07-01T09:30:00+02:00[Europe/Berlin]")
+        );
+        assert_eq!(
+            when_of("morgen 9h", today, &zone),
+            at("2026-11-25T09:00:00+01:00[Europe/Berlin]")
+        );
+        assert_eq!(when_of("tomorrow lunch", today, &zone), None);
+        assert_eq!(when_of("tomorrow 25:00", today, &zone), None);
+        assert_eq!(when_of("", today, &zone), None);
+        assert_eq!(when_of("soon", today, &zone), None);
+    }
 
     /// ADR 0129 §1, §2: markers go, blank lines drop, indentation nests.
     #[test]
