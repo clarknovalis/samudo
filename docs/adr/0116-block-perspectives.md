@@ -91,6 +91,16 @@ evaluated in `samu-core`.
    the union of §4);
    appointments and forecast as blocks; blocks carrying a search of their
    own, without a perspective.
+9. **One filter for all blocks, for the moment.** Above a block
+   perspective web and app offer "Per block", "Available", "Remaining"
+   and "All". "Per block" is the default: each block its own filter
+   (§1, §5). Any other choice holds for every block in place of its own,
+   the fixed views included, and is lifted by a block's chips as the
+   block's own filter would be (ADR 0042 §4). Nothing keeps the choice:
+   it is not written to the perspective, and leaving the perspective ends
+   it. `GET /blocks` takes it as `filter=`, `samu list --perspective
+   <block>` as `--available`, `--remaining` or `--all`. `/available` and
+   the count in the sidebar keep each block's own filter.
 
 ## Consequences
 
@@ -106,6 +116,10 @@ evaluated in `samu-core`.
   but do no harm.
 
 ## Changes
+
+- 2026-11-24: §9 added. Until then a block perspective could be
+  filtered only block by block, by editing each block's perspective or
+  search; §1 and §5 still hold for what is saved.
 
 - 2026-11-24 (ADR 0147): §8 left block perspectives in the app open;
   the app showed the union of §4.
