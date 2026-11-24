@@ -206,6 +206,7 @@ wanted in a block agenda needs no perspective. Written as text, a block
 agenda is one line per block, much like org-super-agenda:
 
 ```
+:note #"Weekly review" | Checklist
 :today | Today
 Waiting
 @Office ~<15m | Short at the office
@@ -216,6 +217,12 @@ Waiting
 line a search; a heading follows ` | `. A block that points at a
 perspective can be detached into a copy of its search, and a block's
 search saved as a perspective of its own.
+
+A block can also show the **note of a project or task** instead of
+tasks: `:note #Project`, or `:note` with the end of a task's id. That is
+the place for the text that belongs before the lists, like the focus of
+the day or the checklist of a review. It shows in every scope, and its
+note is edited right there.
 
 ## Scopes
 

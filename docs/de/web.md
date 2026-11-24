@@ -79,7 +79,8 @@ ausgeblendet. Die Anordnung gilt nur in diesem Browser.
 „+“ bei Perspektiven legt eine Perspektive oder eine
 [Block-Perspektive](concepts.md#perspektiven) an; „Blöcke …“ im Menü
 einer Block-Perspektive listet ihre Blöcke: Perspektiven, die Ansichten
-Inbox, Heute und Markiert oder eine eigene Suche hinzufügen, einem eine
+Inbox, Heute und Markiert, eine eigene Suche oder die Notiz eines
+Projekts hinzufügen, einem eine
 eigene Überschrift geben, per Ziehen oder ↑ ↓ ordnen, entfernen, und
 „Doppelte nur einmal“ schalten. Eine eigene Suche wird in ihrer Zeile
 bearbeitet: die Suche, der Filter, Gruppieren, Sortieren und Liste oder
@@ -100,7 +101,10 @@ Zeilen sind angeordnet wie in dieser Perspektive, als Liste oder Tabelle
 wie sie es sagt, und „⋯“ in ihrer Überschrift sichert sie als
 Perspektive. Das Suchfeld sucht dort über alles. Eine Suche in der
 Suchleiste kommt mit „Als Block in …“ direkt in eine Block-Perspektive
-oder in eine neue.
+oder in eine neue. Ein Notiz-Block zeigt die Notiz gerendert; seine
+Überschrift öffnet das Projekt oder die Aufgabe, eine Checkbox wird
+gleich dort abgehakt, und der Stift oder ein Doppelklick bearbeitet die
+Notiz an Ort und Stelle.
 
 ### Liste
 

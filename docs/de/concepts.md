@@ -226,6 +226,7 @@ aus. Als Text ist eine Block-Agenda eine Zeile je Block, ähnlich wie bei
 org-super-agenda:
 
 ```
+:note #Wochenrückblick | Checkliste
 :today | Heute
 Wartet
 @Büro ~<15m | Kurz im Büro
@@ -236,6 +237,12 @@ Wartet
 andere Zeile eine Suche; nach ` | ` steht die Überschrift. Ein Block, der
 auf eine Perspektive verweist, lässt sich in eine Kopie ihrer Suche
 lösen, und die Suche eines Blocks als eigene Perspektive sichern.
+
+Ein Block kann statt Aufgaben auch die **Notiz eines Projekts oder einer
+Aufgabe** zeigen: `:note #Projekt`, oder `:note` mit dem Ende der ID
+einer Aufgabe. Dort steht der Text, der vor die Listen gehört, etwa der
+Fokus des Tages oder die Checkliste für den Rückblick. Er erscheint in
+jedem Scope, und die Notiz wird gleich dort bearbeitet.
 
 ## Scopes
 

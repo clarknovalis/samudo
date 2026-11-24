@@ -175,8 +175,11 @@ code 2).
 A block perspective prints a heading before each block (`▸ Title (n)`), in
 tsv the heading as the first column, in json the blocks with their tasks.
 Each argument of `samu perspective blocks` is one block: `:today`,
-`:inbox` or `:flagged`, the name of a plain perspective, or else a
-search of the block's own; ` | Heading` gives it a heading.
+`:inbox` or `:flagged`, `:note #Project` or `:note <id>` for the note of
+a project or task, the name of a plain perspective, or else a search of
+the block's own; ` | Heading` gives it a heading. A note block prints its
+heading without a count and the note as written, indented; json carries
+it as `note`, tsv has no row for it.
 
 ## Changing
 

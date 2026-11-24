@@ -180,9 +180,12 @@ Jedes andere Kommando, `--bare` und eine Block-Perspektive lehnen sie ab
 Eine Block-Perspektive bekommt vor jedem Block eine Überschrift
 (`▸ Titel (n)`), in tsv die Überschrift als erste Spalte, in json die
 Blöcke mit ihren Aufgaben. Jedes Argument von `samu perspective blocks`
-ist ein Block: `:today`, `:inbox` oder `:flagged`, der Name einer
-einfachen Perspektive, sonst eine eigene Suche des Blocks; ` | Überschrift`
-gibt ihm eine Überschrift.
+ist ein Block: `:today`, `:inbox` oder `:flagged`, `:note #Projekt` oder
+`:note <id>` für die Notiz eines Projekts oder einer Aufgabe, der Name
+einer einfachen Perspektive, sonst eine eigene Suche des Blocks;
+` | Überschrift` gibt ihm eine Überschrift. Ein Notiz-Block druckt seine
+Überschrift ohne Zahl und die Notiz, wie sie geschrieben ist, eingerückt;
+in json steht sie als `note`, in tsv hat er keine Zeile.
 
 ## Ändern
 

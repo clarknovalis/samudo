@@ -74,7 +74,7 @@ arrangement is kept in this browser only.
 "+" at Perspectives makes a perspective or a
 [block perspective](concepts.md#perspectives); "Blocks …" in a block
 perspective's menu lists its blocks: add perspectives, the views Inbox,
-Today and Flagged, or a search of its own; give one a heading of its
+Today and Flagged, a search of its own, or a project's note; give one a heading of its
 own, order them by dragging or ↑ ↓, remove them, and switch "Duplicates
 once". A search of its own is edited in its row: the search, the filter,
 grouping, sorting, and list or table. "Detach" turns a block that points
@@ -92,7 +92,10 @@ perspective arranges them, as a list or a table (a board shows as a
 list). A block's own search is arranged as it says, and "⋯" in its
 heading saves it as a perspective. The search field there searches
 everything. A search in the search bar can go straight into a block
-perspective with "As a block in …", or into a new one.
+perspective with "As a block in …", or into a new one. A note block
+shows the note rendered; its heading opens the project or task, a
+checkbox is ticked right there, and the pencil or a double click edits
+the note in place.
 
 ### List
 
