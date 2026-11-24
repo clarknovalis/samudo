@@ -34,6 +34,28 @@ function depths(rows) {
   });
 }
 
+// Tasks in outline order: each right after its parent when that is among
+// them, the rest at the top; siblings keep the order given. As
+// `list_text::outline` in the CLI, for what `GET /available` gives flat.
+export function outline(tasks) {
+  const ids = new Set(tasks.map((t) => t.id));
+  const children = new Map();
+  const roots = [];
+  for (const t of tasks) {
+    if (t.parent && ids.has(t.parent)) {
+      if (!children.has(t.parent)) children.set(t.parent, []);
+      children.get(t.parent).push(t);
+    } else roots.push(t);
+  }
+  const out = [];
+  const walk = (t) => {
+    out.push(t);
+    for (const c of children.get(t.id) ?? []) walk(c);
+  };
+  roots.forEach(walk);
+  return out;
+}
+
 // Rows from tasks as the API sends them, in the order given; `tagTitle`
 // gives the title of a tag by id, and the tags keep their own order.
 export function taskRows(tasks, tagTitle) {

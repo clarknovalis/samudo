@@ -10,7 +10,7 @@
 process.env.TZ = "UTC";
 
 const root = new URL("../../", import.meta.url);
-const { dateText, fileName, ids, json, org, orgActive, orgTag, render, taskRows, text, tsv } = await import(new URL("web/lib/exporttext.js", root));
+const { dateText, fileName, ids, json, org, orgActive, orgTag, outline, render, taskRows, text, tsv } = await import(new URL("web/lib/exporttext.js", root));
 
 let failed = 0;
 let checks = 0;
@@ -57,6 +57,11 @@ const titles = new Map(cases.tags.map((t) => [t.id, t.title]));
 const sharedRows = taskRows(cases.tasks, (id) => titles.get(id));
 same("there are shared cases", sharedRows.length, 4);
 same("markdown as samu list --format md writes it", `${text(sharedRows)}\n`, shared("tasks.md"));
+{
+  const t = cases.tasks;
+  const flat = [t[2], t[3], t[1], t[0]];
+  same("outline puts children after their parent", outline(flat).map((x) => x.id).join(" "), [t[3], t[0], t[1], t[2]].map((x) => x.id).join(" "));
+}
 same("org as samu list --format org writes it", `${org(sharedRows)}\n`, shared("tasks.org"));
 
 same("an org date with a time", orgActive({ at: "2026-11-20T09:00:00+01:00" }), "<2026-11-20 Fri 09:00>");

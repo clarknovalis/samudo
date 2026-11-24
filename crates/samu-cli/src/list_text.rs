@@ -14,6 +14,31 @@ use samu_api::{Id, Task};
 
 use crate::export_org::one_line;
 
+/// The tasks in outline order: each one right after its parent when that
+/// is in the list, the rest at the top; siblings keep the order given.
+/// The server orders `GET /available` flat (overdue first, then by
+/// project and position), where a child may come before its parent.
+pub(crate) fn outline<'a>(tasks: &[&'a Task]) -> Vec<&'a Task> {
+    let ids: std::collections::HashSet<Id> = tasks.iter().map(|t| t.id).collect();
+    let mut children: HashMap<Id, Vec<&'a Task>> = HashMap::new();
+    let mut roots = Vec::new();
+    for task in tasks {
+        match task.parent.filter(|p| ids.contains(p)) {
+            Some(parent) => children.entry(parent).or_default().push(task),
+            None => roots.push(*task),
+        }
+    }
+    let mut out = Vec::with_capacity(tasks.len());
+    let mut stack: Vec<&'a Task> = roots.into_iter().rev().collect();
+    while let Some(task) = stack.pop() {
+        out.push(task);
+        if let Some(below) = children.get(&task.id) {
+            stack.extend(below.iter().rev());
+        }
+    }
+    out
+}
+
 /// How deep each task stands: one below its parent when that is in the
 /// list before it, else at the top.
 pub(crate) fn depths(tasks: &[&Task]) -> Vec<usize> {
@@ -47,6 +72,8 @@ pub(crate) fn markdown(tasks: &[&Task]) -> String {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, reason = "tests may unwrap")]
+
     use std::collections::HashMap;
 
     use jiff::tz::TimeZone;
@@ -87,6 +114,17 @@ mod tests {
             crate::export_org::task_list(&tasks, &tags, zone),
             include_str!("../../../testdata/export/tasks.org")
         );
+    }
+
+    #[test]
+    fn outline_puts_children_after_their_parent() {
+        let cases = cases();
+        let t = &cases.tasks;
+        // As the server may give them: the grandchild first, the parent last.
+        let flat: Vec<&Task> = vec![&t[2], &t[3], &t[1], &t[0]];
+        let ordered: Vec<samu_api::Id> = super::outline(&flat).iter().map(|t| t.id).collect();
+        assert_eq!(ordered, vec![t[3].id, t[0].id, t[1].id, t[2].id]);
+        assert_eq!(super::depths(&super::outline(&flat)), vec![0, 0, 1, 2]);
     }
 
     #[test]

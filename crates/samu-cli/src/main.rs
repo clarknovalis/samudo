@@ -2432,7 +2432,8 @@ fn run(args: Args) -> Result<()> {
                 eprintln!("{line}");
             }
             if matches!(args.format, Format::Md | Format::Org) {
-                let tasks: Vec<&samu_api::Task> = statuses.iter().map(|s| &s.task).collect();
+                let flat: Vec<&samu_api::Task> = statuses.iter().map(|s| &s.task).collect();
+                let tasks = list_text::outline(&flat);
                 let text = if args.format == Format::Md {
                     list_text::markdown(&tasks)
                 } else {
