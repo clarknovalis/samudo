@@ -58,7 +58,7 @@ pub struct BarItem {
     pub hidden: bool,
 }
 
-fn view(key: &str, lang: Lang) -> Option<BarEntry> {
+pub(crate) fn view(key: &str, lang: Lang) -> Option<BarEntry> {
     VIEWS
         .iter()
         .find(|(k, _, _)| *k == key)

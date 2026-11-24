@@ -11,12 +11,14 @@ use std::collections::HashSet;
 
 use jiff::Timestamp;
 use samu_api::{
-    Change, Id, ObjectKind, PerspectiveFilter, PerspectiveGroup, PerspectiveSort, Task,
+    BlockSection, Change, Id, ObjectKind, PerspectiveArrange, PerspectiveFilter, PerspectiveGroup,
+    PerspectiveSort, Task,
 };
 use samu_core::views::{PerspectiveTest, ProjectsFilter};
 use serde_json::json;
 
 use crate::arrange::{settled, wire_name};
+use crate::bar::BarEntry;
 use crate::search::{self, SearchChip};
 use crate::{MobileError, Samu, Section, TaskRow, input, is_open, parse_id};
 
@@ -55,6 +57,30 @@ pub struct PerspectiveRow {
     pub group: String,
     /// `position`, `due`, `planned`, …
     pub sort: String,
+}
+
+/// One block of a block perspective as the app shows it (ADR 0147 §1):
+/// its heading and, below, its tasks in its own arrangement.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct ShownBlock {
+    /// The block's own heading, else the name of its perspective or view,
+    /// or the words of its search (ADR 0143 §2).
+    pub title: String,
+    pub icon: Option<String>,
+    /// It points at nothing this phone can show (ADR 0116 §2).
+    pub missing: bool,
+    /// What its heading opens (ADR 0147 §3): the perspective or view it
+    /// refers to; none for a search of its own, a note or a missing block.
+    pub opens: Option<BarEntry>,
+    /// A note block (ADR 0146): the project or task whose note it shows;
+    /// its heading opens that one.
+    pub object: Option<String>,
+    /// A note block's note as written, empty when there is none; none for
+    /// a block of tasks.
+    pub note: Option<String>,
+    /// Its tasks, each once, after the tag chosen here.
+    pub count: u32,
+    pub sections: Vec<Section>,
 }
 
 impl Samu {
@@ -326,5 +352,120 @@ impl Samu {
             PerspectiveFilter::Remaining
         };
         self.listed_as(&settled(arrange), tag.as_deref(), pick, |_| true, show)
+    }
+
+    /// A block perspective block by block, as the web shows it (ADR 0147
+    /// §1, ADR 0116 §5): with `dedupe` a task only in the first block that
+    /// shows it, each block's tasks in the arrangement of its perspective
+    /// or search, a fixed view's as this phone keeps it. Through the scope
+    /// chosen here and, if given, only with `tag` or below; a note block
+    /// in every scope (ADR 0146 §2). A plain perspective is one block.
+    pub fn blocks(&self, id: String, tag: Option<String>) -> Result<Vec<ShownBlock>, MobileError> {
+        let id = parse_id(&id)?;
+        let scope = self.chosen_id()?;
+        let (settings, objects) = {
+            let cache = self.cache()?;
+            (Self::settings(&cache)?.0, Self::view(&cache)?.0)
+        };
+        let lang = self.ui_lang();
+        let found = samu_core::views::blocks(&objects, &settings, Timestamp::now(), scope, id)
+            .map_err(|e| input(e.to_string()))?;
+        let own = objects
+            .perspectives
+            .iter()
+            .find(|p| p.id == id)
+            .and_then(|p| p.arrange.clone())
+            .unwrap_or_default();
+        found
+            .into_iter()
+            .map(|section| self.block(section, &objects.perspectives, &own, tag.as_deref(), lang))
+            .collect()
+    }
+}
+
+impl Samu {
+    /// One section of `/blocks` as the app shows it.
+    fn block(
+        &self,
+        section: BlockSection,
+        perspectives: &[samu_api::Perspective],
+        own: &PerspectiveArrange,
+        tag: Option<&str>,
+        lang: samu_core::query::Lang,
+    ) -> Result<ShownBlock, MobileError> {
+        let block = section.block.clone().unwrap_or_default();
+        let target = block
+            .perspective
+            .and_then(|id| perspectives.iter().find(|p| p.id == id));
+        let view = block
+            .view
+            .as_deref()
+            .and_then(|v| crate::bar::view(v, lang));
+        let title = match (&block.title, &view) {
+            (None, Some(v)) => v.title.clone(),
+            _ => section.title.clone(),
+        };
+        let opens = if section.missing {
+            None
+        } else if let Some(p) = target {
+            Some(BarEntry {
+                kind: "perspective".into(),
+                key: p.id.to_string(),
+                title: p.title.clone(),
+                icon: p.icon.clone(),
+                hidden: false,
+            })
+        } else {
+            view
+        };
+        if let Some(object) = block.note {
+            return Ok(ShownBlock {
+                title,
+                icon: section.icon,
+                missing: section.missing,
+                opens: None,
+                object: (!section.missing).then(|| object.to_string()),
+                note: Some(section.note.unwrap_or_default()),
+                count: 0,
+                sections: Vec::new(),
+            });
+        }
+        let hits: HashSet<Id> = section.tasks.iter().map(|s| s.task.id).collect();
+        let arrange: PerspectiveArrange = match (&block.query, target, &block.view) {
+            (Some(query), _, _) => query.arrange.clone().unwrap_or_default(),
+            (None, Some(p), _) => p.arrange.clone().unwrap_or_default(),
+            (None, None, Some(name)) => self.arrangement(name).unwrap_or_default(),
+            // A plain perspective is one block of its own.
+            _ => own.clone(),
+        };
+        let sections = if hits.is_empty() {
+            Vec::new()
+        } else {
+            let pick = |t: &Task, _: &samu_core::availability::TaskState| hits.contains(&t.id);
+            self.listed_as(
+                &settled(arrange),
+                tag,
+                pick,
+                |_| true,
+                PerspectiveFilter::Remaining,
+            )?
+        };
+        let count = sections
+            .iter()
+            .flat_map(|s| &s.rows)
+            .filter_map(|r| r.id.parse::<Id>().ok())
+            .filter(|id| hits.contains(id))
+            .collect::<HashSet<_>>()
+            .len();
+        Ok(ShownBlock {
+            title,
+            icon: section.icon,
+            missing: section.missing,
+            opens,
+            object: None,
+            note: None,
+            count: u32::try_from(count).unwrap_or(u32::MAX),
+            sections,
+        })
     }
 }

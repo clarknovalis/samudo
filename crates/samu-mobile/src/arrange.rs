@@ -312,7 +312,7 @@ fn flat_groups<K: Eq + std::hash::Hash + Clone, R: Ord>(
 impl Samu {
     /// A list's arrangement: a perspective's from the perspective, a
     /// view's as this phone keeps it, else Projekt, Ordnung ↑.
-    fn arrangement(&self, key: &str) -> Result<PerspectiveArrange, MobileError> {
+    pub(crate) fn arrangement(&self, key: &str) -> Result<PerspectiveArrange, MobileError> {
         let cache = self.cache()?;
         let found = match perspective_of(key)? {
             Some(id) => {

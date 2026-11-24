@@ -361,10 +361,34 @@ impl Samu {
         self.set_field(&id, "title", json!(title))
     }
 
-    /// An empty note takes the note away.
+    /// The note of a task or, for a note block (ADR 0147 §2), of a
+    /// project. An empty note takes the note away.
     pub fn set_note(&self, id: String, note: Option<String>) -> Result<(), MobileError> {
-        let note = note.filter(|n| !n.trim().is_empty());
-        self.set_field(&id, "note", note.map_or(Value::Null, Value::String))
+        let value = note
+            .filter(|n| !n.trim().is_empty())
+            .map_or(Value::Null, Value::String);
+        let object = parse_id(&id)?;
+        let project = {
+            let cache = self.cache()?;
+            Self::view(&cache)?
+                .0
+                .projects
+                .iter()
+                .any(|p| p.id == object)
+        };
+        if !project {
+            return self.set_field(&id, "note", value);
+        }
+        self.queue_numbered(|_, stamp| {
+            Ok(vec![Change::Set {
+                object,
+                field: "note".into(),
+                value,
+                note: None,
+                hlc: stamp(),
+            }])
+        })
+        .map(|_| ())
     }
 
     /// `which` is `defer`, `due` or `planned`; the date is `2026-11-20`,

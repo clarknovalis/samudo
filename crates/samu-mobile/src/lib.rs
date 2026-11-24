@@ -43,7 +43,7 @@ pub use notes::{AttachmentRow, CommentRow};
 pub use remind::{AlarmRow, Anchor, Notice, ReminderRow};
 pub use rowfields::RowFields;
 pub use search::{SearchChip, SearchOffer, SearchSplit};
-pub use views::{PerspectiveRow, ProjectView};
+pub use views::{PerspectiveRow, ProjectView, ShownBlock};
 
 use std::collections::HashSet;
 use std::path::PathBuf;

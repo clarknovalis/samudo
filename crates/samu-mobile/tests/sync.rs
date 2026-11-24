@@ -4167,6 +4167,79 @@ fn a_block_perspective_shows_the_union_of_its_blocks() {
     );
 }
 
+/// ADR 0147 §1, §2: a block perspective block by block: each block with
+/// its heading, its tasks in its own arrangement, a task only in the first
+/// block that shows it, a note block with the note of its project, which
+/// the phone can write.
+#[test]
+fn a_block_perspective_shows_its_blocks_one_by_one() {
+    let server = Server::start();
+    let other = server.other_client();
+    let office = make_tag(&other, "Büro", None);
+    let garden = make_project(&other, "Garten");
+    make_task(&other, "anrufen", tagged(&office));
+    let mut both = tagged(&office);
+    both["flagged"] = json!(true);
+    make_task(&other, "beides", both);
+    make_task(&other, "markiert", json!({"flagged": true, "position": 1}));
+    make_task(&other, "nichts davon", json!({"position": 2}));
+    let calls = make_perspective(
+        &other,
+        "Büro",
+        json!({"chips": [{"kind": "tag", "value": office}],
+               "arrange": {"group": "none", "sort": "title", "desc": true}}),
+    );
+    let morning = make_perspective(
+        &other,
+        "Morgens",
+        json!({"blocks": [{"note": garden}, {"perspective": calls},
+                          {"view": "flagged", "title": "Wichtig"}],
+               "position": 1}),
+    );
+    let samu = phone(&server);
+    samu.sync().unwrap();
+
+    let blocks = samu.blocks(morning.clone(), None).unwrap();
+    let shown: Vec<_> = blocks
+        .iter()
+        .map(|b| (b.title.as_str(), b.count, section_titles(&b.sections)))
+        .collect();
+    assert_eq!(
+        shown,
+        [
+            ("Garten", 0, vec![]),
+            ("Büro", 2, vec![(None, vec!["beides", "anrufen"])]),
+            ("Wichtig", 1, vec![(None, vec!["markiert"])]),
+        ]
+    );
+    assert_eq!(blocks[0].object.as_deref(), Some(garden.as_str()));
+    assert_eq!(blocks[0].note.as_deref(), Some(""));
+    let opens = blocks[1].opens.as_ref().unwrap();
+    assert_eq!(
+        (opens.kind.as_str(), opens.key.as_str()),
+        ("perspective", calls.as_str())
+    );
+    assert_eq!(blocks[2].opens.as_ref().unwrap().key, "flagged");
+    assert!(blocks[1].note.is_none() && blocks[1].object.is_none());
+
+    // Only what carries the tag, and the count with it.
+    let tagged_only = samu.blocks(morning.clone(), Some(office.clone())).unwrap();
+    assert_eq!(
+        tagged_only.iter().map(|b| b.count).collect::<Vec<_>>(),
+        [0, 2, 0]
+    );
+
+    // The note block's note is written through the phone, to the project.
+    samu.set_note(garden.clone(), Some("- [ ] Beete".into()))
+        .unwrap();
+    assert_eq!(
+        samu.blocks(morning, None).unwrap()[0].note.as_deref(),
+        Some("- [ ] Beete")
+    );
+    samu.sync().unwrap();
+    assert_eq!(stored(&other, &garden)["note"], "- [ ] Beete");
+}
+
 /// ADR 0103 §5: a search saved as a perspective offline, its chips and
 /// words apart, showing what the search showed, and on the server after
 /// the next sync.
