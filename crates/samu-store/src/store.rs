@@ -2395,8 +2395,9 @@ fn check_search(
 
 /// The blocks of a block perspective (ADR 0116 §2): each shows exactly one
 /// of a live plain perspective other than this one, a fixed view this
-/// server knows, or a search of its own checked as a perspective's
-/// (ADR 0143 §5), under a heading that is not blank when given; and no
+/// server knows, a search of its own checked as a perspective's
+/// (ADR 0143 §5), or the note of a live project or task (ADR 0146 §5),
+/// under a heading that is not blank when given; and no
 /// block of another live perspective shows this one, which would make it
 /// a block in a block.
 fn check_blocks(
@@ -2406,6 +2407,19 @@ fn check_blocks(
     for block in &perspective.blocks {
         if block.title.as_ref().is_some_and(|t| t.trim().is_empty()) {
             return Ok(Err("a block's heading is not blank".into()));
+        }
+        if let Some(id) = block.note {
+            if block.perspective.is_some() || block.view.is_some() || block.query.is_some() {
+                return Ok(Err(
+                    "a block shows one perspective, one view, one search or one note".into(),
+                ));
+            }
+            if !head(tx, id)?.is_some_and(|h| {
+                !h.deleted && matches!(h.kind, ObjectKind::Project | ObjectKind::Task)
+            }) {
+                return Ok(Err(format!("no project or task {id} for a note block")));
+            }
+            continue;
         }
         match (&block.perspective, &block.view) {
             (Some(id), None) if block.query.is_none() => {
@@ -2445,7 +2459,7 @@ fn check_blocks(
             }
             _ => {
                 return Ok(Err(
-                    "a block shows one perspective, one view or one search".into()
+                    "a block shows one perspective, one view, one search or one note".into(),
                 ));
             }
         }

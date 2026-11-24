@@ -302,6 +302,27 @@ pub fn blocks(
     blocks_of(objects, settings, now, scope, chosen)
 }
 
+/// What a note block shows of a live project or task (ADR 0146 §2),
+/// whatever the scope.
+fn note_source(objects: &Objects, id: Id) -> Option<crate::blocks::NoteSource> {
+    if let Some(p) = objects.projects.iter().find(|p| p.id == id) {
+        return Some(crate::blocks::NoteSource {
+            title: p.title.clone(),
+            icon: p.icon.clone(),
+            note: p.note.clone().unwrap_or_default(),
+        });
+    }
+    objects
+        .tasks
+        .iter()
+        .find(|t| t.id == id)
+        .map(|t| crate::blocks::NoteSource {
+            title: t.title.clone(),
+            icon: None,
+            note: t.note.clone().unwrap_or_default(),
+        })
+}
+
 fn blocks_of(
     objects: &Objects,
     settings: &Settings,
@@ -345,6 +366,7 @@ fn blocks_of(
             test.zip(state).is_some_and(|(t, s)| t.shows(status, s))
         },
         |query| crate::blocks::query_name(query, &view),
+        |id| note_source(objects, id),
     ))
 }
 

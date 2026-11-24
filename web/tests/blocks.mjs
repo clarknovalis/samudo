@@ -32,11 +32,11 @@ let found = 0;
 for (const c of doc.cases) {
   const p = { ...doc.perspectives.find((o) => o.title === c.perspective) };
   if (typeof c.dedupe === "boolean") p.dedupe = c.dedupe;
-  const got = assemble(p, doc.perspectives, doc.statuses, shows);
+  const got = assemble(p, doc.perspectives, doc.statuses, shows, undefined, (id) => doc.notes[id] ?? null);
   found += got.reduce((n, s) => n + s.tasks.length, 0);
   check(
     c.about,
-    got.map((s) => ({ title: s.title, missing: s.missing, tasks: s.tasks.map((t) => t.task.id) })),
+    got.map((s) => ({ title: s.title, missing: s.missing, ...(s.note === null ? {} : { note: s.note }), tasks: s.tasks.map((t) => t.task.id) })),
     c.sections,
   );
   check(`${c.about}: union`, union(got).map((s) => s.task.id), c.union);

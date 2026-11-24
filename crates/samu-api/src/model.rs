@@ -1016,9 +1016,9 @@ pub struct Perspective {
     pub position: i64,
 }
 
-/// One block of a block perspective (ADR 0116 §2, ADR 0143 §1): another
-/// perspective, a fixed view or a search of its own, exactly one of the
-/// three.
+/// One block of a block perspective (ADR 0116 §2, ADR 0143 §1, ADR 0146
+/// §1): another perspective, a fixed view, a search of its own or the note
+/// of a project or task, exactly one of the four.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PerspectiveBlock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1034,6 +1034,11 @@ pub struct PerspectiveBlock {
     /// missing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub query: Option<BlockQuery>,
+    /// Since samu-api 0.1.66: the project or task whose note the block
+    /// shows (ADR 0146 §1), in every scope and without tasks. An older
+    /// reader shows it as missing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<Id>,
     /// A heading of its own; none = the name of the perspective or view.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,

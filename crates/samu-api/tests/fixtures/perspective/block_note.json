@@ -1,0 +1,18 @@
+{
+  "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6e95",
+  "created": "2026-11-24T08:00:00Z",
+  "modified": "2026-11-24T09:30:00Z",
+  "title": "Wochenrückblick",
+  "filter": "available",
+  "view": "list",
+  "blocks": [
+    {
+      "note": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b6f01",
+      "title": "Checkliste"
+    },
+    {
+      "view": "flagged"
+    }
+  ],
+  "position": 6
+}

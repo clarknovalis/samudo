@@ -8,13 +8,14 @@
 //! What a single perspective shows is computed elsewhere
 //! ([`crate::views::PerspectiveTest`]); here the blocks are put together:
 //! headings, blocks that show nothing because what they point at is gone,
-//! and a task that several blocks match. The web does the same in
+//! a task that several blocks match, and a block that shows the note of a
+//! project or task instead of tasks (ADR 0146). The web does the same in
 //! `web/lib/blocks.js`; the cases in `testdata/blocks/sections.json` hold
 //! the two to the same answers.
 
 use std::collections::HashSet;
 
-use crate::api::{BlockQuery, BlockSection, Perspective, PerspectiveBlock, TaskStatus};
+use crate::api::{BlockQuery, BlockSection, Id, Perspective, PerspectiveBlock, TaskStatus};
 
 /// The fixed views a block may show (ADR 0116 §2): the ones whose hits
 /// this crate already computes per task.
@@ -48,6 +49,16 @@ pub enum Shown<'a> {
     Query(usize),
 }
 
+/// What a note block shows of its project or task (ADR 0146 §2), as the
+/// caller finds it: every live project and task, whatever the scope.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NoteSource {
+    pub title: String,
+    pub icon: Option<String>,
+    /// The note as written, empty when there is none.
+    pub note: String,
+}
+
 /// The plain perspective each block with a search of its own shows as
 /// (ADR 0143 §2), by the block's index: the caller builds its test once
 /// per block, not once per task. It carries the block perspective's id,
@@ -62,6 +73,7 @@ pub fn queries(perspective: &Perspective) -> Vec<(usize, Perspective)> {
                 perspective: None,
                 view: None,
                 query: Some(query),
+                note: None,
                 ..
             } => Some((
                 i,
@@ -101,13 +113,15 @@ pub fn query_name(query: &BlockQuery, snapshot: &crate::availability::Snapshot<'
 /// block that points at a perspective that is not among `perspectives`, at
 /// a block perspective or at an unknown view, and a block of no form, is
 /// `missing` and empty. With `dedupe` a task stands only in the first
-/// block that shows it.
+/// block that shows it. A note block (ADR 0146 §2) has no tasks and the
+/// note that `note_of` finds for its object, or is missing without one.
 pub fn assemble(
     perspective: &Perspective,
     perspectives: &[Perspective],
     statuses: &[TaskStatus],
     shows: impl Fn(Shown<'_>, &TaskStatus) -> bool,
     name: impl Fn(&BlockQuery) -> String,
+    note_of: impl Fn(Id) -> Option<NoteSource>,
 ) -> Vec<BlockSection> {
     if perspective.blocks.is_empty() {
         return vec![BlockSection {
@@ -115,6 +129,7 @@ pub fn assemble(
             icon: perspective.icon.clone(),
             block: None,
             missing: false,
+            note: None,
             tasks: statuses
                 .iter()
                 .filter(|s| shows(Shown::Perspective(perspective), s))
@@ -128,6 +143,28 @@ pub fn assemble(
         .iter()
         .enumerate()
         .map(|(i, block)| {
+            if let PerspectiveBlock {
+                perspective: None,
+                view: None,
+                query: None,
+                note: Some(id),
+                ..
+            } = block
+            {
+                let found = note_of(*id);
+                return BlockSection {
+                    title: block.title.clone().unwrap_or_else(|| {
+                        found
+                            .as_ref()
+                            .map_or_else(|| id.to_string(), |f| f.title.clone())
+                    }),
+                    icon: found.as_ref().and_then(|f| f.icon.clone()),
+                    block: Some(block.clone()),
+                    missing: found.is_none(),
+                    note: found.map(|f| f.note),
+                    tasks: Vec::new(),
+                };
+            }
             let (title, icon, hits) = hits_of(i, block, perspectives, statuses, &shows, &name);
             let missing = hits.is_none();
             let tasks: Vec<TaskStatus> = hits
@@ -140,6 +177,7 @@ pub fn assemble(
                 icon,
                 block: Some(block.clone()),
                 missing,
+                note: None,
                 tasks,
             }
         })
@@ -163,6 +201,9 @@ fn hits_of(
             .cloned()
             .collect()
     };
+    if block.note.is_some() {
+        return (String::new(), None, None);
+    }
     match (&block.perspective, &block.view, &block.query) {
         (Some(id), None, None) => match perspectives.iter().find(|p| p.id == *id) {
             Some(p) if p.blocks.is_empty() => (
@@ -231,6 +272,15 @@ mod tests {
         let shown: HashMap<Id, Vec<Id>> = serde_json::from_value(doc["shows"].clone()).unwrap();
         let by_query: HashMap<String, Vec<Id>> =
             serde_json::from_value(doc["queries"].clone()).unwrap();
+        let notes: HashMap<Id, serde_json::Value> =
+            serde_json::from_value(doc["notes"].clone()).unwrap();
+        let note_of = |id: Id| {
+            notes.get(&id).map(|n| NoteSource {
+                title: n["title"].as_str().unwrap().to_owned(),
+                icon: n["icon"].as_str().map(str::to_owned),
+                note: n["note"].as_str().unwrap_or_default().to_owned(),
+            })
+        };
         let cases = doc["cases"].as_array().unwrap();
         assert!(cases.len() >= 4, "the cases are there");
         let mut found = 0;
@@ -256,12 +306,18 @@ mod tests {
                 ids.is_some_and(|ids| ids.contains(&s.task.id))
             };
             let name = |q: &BlockQuery| q.text.clone();
-            let got = assemble(&perspective, &perspectives, &statuses, shows, name);
+            let got = assemble(&perspective, &perspectives, &statuses, shows, name, note_of);
             let want = case["sections"].as_array().unwrap();
             assert_eq!(got.len(), want.len(), "{about}");
             for (got, want) in got.iter().zip(want) {
                 assert_eq!(got.title, want["title"].as_str().unwrap(), "{about}");
                 assert_eq!(got.missing, want["missing"].as_bool().unwrap(), "{about}");
+                assert_eq!(
+                    got.note.as_deref(),
+                    want["note"].as_str(),
+                    "{about}: {}",
+                    got.title
+                );
                 let ids: Vec<String> = got.tasks.iter().map(|s| s.task.id.to_string()).collect();
                 let want_ids: Vec<String> = serde_json::from_value(want["tasks"].clone()).unwrap();
                 assert_eq!(ids, want_ids, "{about}: {}", got.title);

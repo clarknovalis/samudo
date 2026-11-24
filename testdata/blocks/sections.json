@@ -1,5 +1,5 @@
 {
- "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included, `queries` the same for a block's own search (ADR 0143), by its text, which is also its name without a heading; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden, and gives the sections in order and the union `/available` answers with.",
+ "about": "Shared cases for block perspectives (ADR 0116 §2-4): samu_core::blocks::assemble and the web's blocks.js must give these. Synthetic data. `shows` stands for what each plain perspective shows of `statuses`, its filter included, `queries` the same for a block's own search (ADR 0143), by its text, which is also its name without a heading, and `notes` the projects and tasks a note block (ADR 0146) may show, by id; the views are computed from the statuses' flags. Each case names a perspective by title, optionally with `dedupe` overridden, and gives the sections in order and the union `/available` answers with.",
  "perspectives": [
   {
    "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01",
@@ -92,6 +92,32 @@
       "text": "anruf"
      },
      "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01"
+    }
+   ]
+  },
+  {
+   "id": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a06",
+   "created": "2026-11-24T08:00:00Z",
+   "modified": "2026-11-24T08:00:00Z",
+   "title": "Mit Notizen",
+   "position": 6,
+   "blocks": [
+    {
+     "note": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c01",
+     "title": "Checkliste"
+    },
+    {
+     "perspective": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7a01"
+    },
+    {
+     "note": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c02"
+    },
+    {
+     "note": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7cff"
+    },
+    {
+     "note": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c01",
+     "view": "today"
     }
    ]
   }
@@ -378,6 +404,48 @@
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
     "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
    ]
+  },
+  {
+   "about": "a note block shows the note of its project or task under its heading or the object's title, with no tasks and nothing in the union; an empty note is no gap; an unknown object, and a note block of two forms, are missing",
+   "perspective": "Mit Notizen",
+   "sections": [
+    {
+     "title": "Checkliste",
+     "missing": false,
+     "note": "- [ ] Eingang leeren\n- [ ] Projekte durchsehen\n",
+     "tasks": []
+    },
+    {
+     "title": "Büro",
+     "missing": false,
+     "tasks": [
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+      "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+     ]
+    },
+    {
+     "title": "Tagesfokus",
+     "missing": false,
+     "note": "",
+     "tasks": []
+    },
+    {
+     "title": "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7cff",
+     "missing": true,
+     "tasks": []
+    },
+    {
+     "title": "",
+     "missing": true,
+     "tasks": []
+    }
+   ],
+   "union": [
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b01",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02",
+    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b03"
+   ]
   }
  ],
  "queries": {
@@ -388,5 +456,16 @@
    "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7b02"
   ],
   "nichts": []
+ },
+ "notes": {
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c01": {
+   "title": "Wochenrückblick",
+   "icon": "🗓",
+   "note": "- [ ] Eingang leeren\n- [ ] Projekte durchsehen\n"
+  },
+  "01936f5e-8a00-7c3e-9b1a-3f2d4c5b7c02": {
+   "title": "Tagesfokus",
+   "note": ""
+  }
  }
 }

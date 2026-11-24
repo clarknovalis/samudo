@@ -279,6 +279,10 @@ pub struct BlockSection {
     /// view this server does not know, and shows nothing.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub missing: bool,
+    /// Since samu-api 0.1.66: for a note block (ADR 0146 §2), the note of
+    /// its project or task as written, empty when it has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
     #[serde(default)]
     pub tasks: Vec<TaskStatus>,
 }

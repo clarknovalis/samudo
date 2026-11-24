@@ -723,6 +723,82 @@ fn a_block_carries_a_search_of_its_own() {
     }
 }
 
+/// ADR 0146 §1, §5: a note block names a live project or task, and only
+/// that; a deleted one, a perspective or a note beside another form is
+/// refused.
+#[test]
+fn a_block_shows_the_note_of_a_project_or_task() {
+    let mut store = AccountStore::open_in_memory().unwrap();
+    let mut wall = 1_000;
+    let mut next = || {
+        wall += 1;
+        stamp(wall, "laptop")
+    };
+    let project = json!({
+        "id": Id::new().to_string(),
+        "created": "2026-11-24T08:00:00Z",
+        "modified": "2026-11-24T08:00:00Z",
+        "title": "Wochenrückblick",
+        "kind": "parallel",
+        "status": "active",
+        "position": 0
+    });
+    let task = new_task("Tagesfokus");
+    let gone = new_task("Weg");
+    let review = json!({
+        "id": Id::new().to_string(),
+        "created": "2026-11-24T08:00:00Z",
+        "modified": "2026-11-24T08:00:00Z",
+        "title": "Rückblick",
+        "position": 0
+    });
+    for (kind, value) in [
+        (ObjectKind::Project, &project),
+        (ObjectKind::Task, &task),
+        (ObjectKind::Task, &gone),
+        (ObjectKind::Perspective, &review),
+    ] {
+        let outcome = create(&mut store, kind, value.clone(), next());
+        assert!(is_applied(&outcome), "{kind:?}: {outcome:?}");
+    }
+    let (project, task, gone, review) =
+        (id_of(&project), id_of(&task), id_of(&gone), id_of(&review));
+    let deleted = Change::Delete {
+        object: gone,
+        hlc: next(),
+    };
+    assert!(is_applied(
+        &store.apply(&deleted, &person(), now()).unwrap()
+    ));
+
+    let blocks = json!([
+        {"note": project.to_string(), "title": "Checkliste"},
+        {"note": task.to_string()},
+        {"view": "today"}
+    ]);
+    let outcome = set(&mut store, review, "blocks", blocks, next());
+    assert!(is_applied(&outcome), "{outcome:?}");
+    match store.get(review).unwrap() {
+        Some(Object::Perspective(p)) => {
+            assert_eq!(p.blocks[0].note, Some(project));
+            assert_eq!(p.blocks[0].title.as_deref(), Some("Checkliste"));
+            assert_eq!(p.blocks[1].note, Some(task));
+        }
+        other => panic!("not a perspective: {other:?}"),
+    }
+    for bad in [
+        json!([{"note": Id::new().to_string()}]),
+        json!([{"note": gone.to_string()}]),
+        json!([{"note": review.to_string()}]),
+        json!([{"note": project.to_string(), "view": "today"}]),
+        json!([{"note": project.to_string(), "query": {}}]),
+        json!([{"note": project.to_string(), "title": " "}]),
+    ] {
+        let outcome = set(&mut store, review, "blocks", bad.clone(), next());
+        assert!(is_rejected(&outcome), "{bad}: {outcome:?}");
+    }
+}
+
 /// ADR 0084 §1: a template's key is one letter or digit, no other live
 /// template's; `h` and `H` are two keys, and a deleted template frees its.
 #[test]

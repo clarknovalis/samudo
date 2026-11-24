@@ -56,7 +56,7 @@ export const queryOf = (p, i) => ({ id: `${p.id}:block:${i}`, title: "", ...p.bl
 // samu can show.
 function hitsOf(p, i, perspectives, statuses, shows, name) {
   const block = p.blocks[i];
-  const forms = ["perspective", "view", "query"].filter((k) => block[k]);
+  const forms = ["perspective", "view", "query", "note"].filter((k) => block[k]);
   if (forms.length !== 1) return { name: "", icon: null, hits: null, target: null };
   if (block.perspective) {
     const target = perspectives.find((o) => o.id === block.perspective);
@@ -76,15 +76,23 @@ function hitsOf(p, i, perspectives, statuses, shows, name) {
 // order; `shows(perspective, status)` says whether a plain perspective
 // (or a block's own search, as `queryOf` makes it) shows a task, its
 // filter included, and `name(query)` what a search without a heading is
-// called. Each section: { title, icon, block, missing, tasks, target,
-// query } (target: the block's perspective, query: its own search).
-export function assemble(p, perspectives, statuses, shows, name = (q) => q.text ?? "") {
+// called. A note block (ADR 0146 §2) has no tasks and the note that
+// `noteOf(id)` ({ title, icon, note } or null) finds for its project or
+// task, or is missing without one. Each section: { title, icon, block,
+// missing, tasks, target, query, note } (target: the block's perspective,
+// query: its own search, note: the note's text, for a note block).
+export function assemble(p, perspectives, statuses, shows, name = (q) => q.text ?? "", noteOf = () => null) {
   if (!isBlocks(p)) {
-    return [{ title: p.title, icon: p.icon ?? null, block: null, missing: false, tasks: statuses.filter((s) => shows(p, s)), target: p, query: null }];
+    return [{ title: p.title, icon: p.icon ?? null, block: null, missing: false, tasks: statuses.filter((s) => shows(p, s)), target: p, query: null, note: null }];
   }
   const dedupe = p.dedupe !== false;
   const seen = new Set();
   return p.blocks.map((block, i) => {
+    const forms = ["perspective", "view", "query", "note"].filter((k) => block[k]);
+    if (block.note && forms.length === 1) {
+      const found = noteOf(block.note);
+      return { title: block.title ?? found?.title ?? block.note, icon: found?.icon ?? null, block, missing: !found, tasks: [], target: null, query: null, note: found ? found.note ?? "" : null };
+    }
     const { name: called, icon, hits, target, query = null } = hitsOf(p, i, perspectives, statuses, shows, name);
     const tasks = (hits ?? []).filter((s) => {
       if (!dedupe) return true;
@@ -92,7 +100,7 @@ export function assemble(p, perspectives, statuses, shows, name = (q) => q.text 
       seen.add(s.task.id);
       return true;
     });
-    return { title: block.title ?? called, icon, block, missing: hits === null, tasks, target, query };
+    return { title: block.title ?? called, icon, block, missing: hits === null, tasks, target, query, note: null };
   });
 }
 
