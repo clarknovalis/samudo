@@ -13,20 +13,24 @@ use std::collections::HashSet;
 use anyhow::{Result, bail};
 use samu_api::{
     AnyObject, ChangesPage, HabitStatus, Id, LogEntry, RenderRequest, RenderResponse, RenderText,
-    TaskStatus,
+    Task, TaskStatus,
 };
 use serde_json::{Value, json};
 
 use crate::client::Client;
+use crate::export_org::{self, Hanging};
 use crate::output::{Format, emit};
-use crate::{Names, checklist, comments, habits, object_record, props, remind, status_record};
+use crate::{
+    Names, checklist, comments, habits, list_text, object_record, props, remind, status_record,
+};
 use samu_client::Error as Failure;
 
-/// The open tasks below a task, or in a project, in the order of `statuses`.
-fn below<'a>(object: &AnyObject, statuses: &'a [TaskStatus]) -> Vec<&'a TaskStatus> {
+/// The tasks below a task, or in a project, in the order of `statuses`:
+/// the open ones, with `all` the completed and dropped ones too.
+fn below<'a>(object: &AnyObject, statuses: &'a [TaskStatus], all: bool) -> Vec<&'a TaskStatus> {
     let open: Vec<&TaskStatus> = statuses
         .iter()
-        .filter(|s| s.task.completed_at.is_none() && s.task.dropped_at.is_none())
+        .filter(|s| all || (s.task.completed_at.is_none() && s.task.dropped_at.is_none()))
         .collect();
     let mut ids: HashSet<Id> = match object {
         AnyObject::Project(p) => open
@@ -81,7 +85,43 @@ fn formats(client: &Client, texts: &[&str]) -> Result<Vec<Value>> {
         .collect())
 }
 
-pub(crate) fn show(client: &Client, format: Format, id: Id, log: bool) -> Result<()> {
+/// `samu show <id> --format md|org`: the task with everything below it,
+/// or the project with its tasks, each with note, comments and
+/// attachments, as `samu list --full` writes them.
+pub(crate) fn text(client: &Client, format: Format, id: Id, all: bool) -> Result<()> {
+    let page: ChangesPage =
+        serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
+    let Some(object) = page.objects.iter().find(|o| o.id() == Some(id)) else {
+        return Err(Failure::NotFound(format!("nothing has the id {id}")).into());
+    };
+    let mut statuses: Vec<TaskStatus> =
+        serde_json::from_value(client.call("GET", "/available?all=true", None)?.json()?)?;
+    statuses.retain(|s| !s.outside);
+    let below = below(object, &statuses, all);
+    let mut flat: Vec<&Task> = Vec::new();
+    let project = match object {
+        AnyObject::Task(task) => {
+            flat.push(task);
+            None
+        }
+        AnyObject::Project(project) => Some(project),
+        _ => bail!("{id} is neither a task nor a project: --format md and org show only those"),
+    };
+    flat.extend(below.iter().map(|s| &s.task));
+    let tasks = list_text::outline(&flat);
+    let names = Names::new(&page, &statuses);
+    let zone = crate::account_zone(client)?;
+    let hanging = Hanging::of(&page.objects);
+    let text = if format == Format::Md {
+        list_text::markdown_full(&tasks, &hanging, &zone, project)
+    } else {
+        export_org::task_list_full(&tasks, &names.tags, zone, hanging, project)
+    };
+    print!("{text}");
+    Ok(())
+}
+
+pub(crate) fn show(client: &Client, format: Format, id: Id, log: bool, all: bool) -> Result<()> {
     let page: ChangesPage =
         serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
     let Some(object) = page.objects.iter().find(|o| o.id() == Some(id)) else {
@@ -99,7 +139,7 @@ pub(crate) fn show(client: &Client, format: Format, id: Id, log: bool) -> Result
         .iter()
         .find(|s| s.task.id == id)
         .map(|s| status_record(s, &names));
-    let below = below(object, &statuses);
+    let below = below(object, &statuses, all);
 
     // The habits among the tasks below, and the task's own.
     let habits_below: Vec<Value> = if below.iter().any(|s| s.task.habit.is_some()) {

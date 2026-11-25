@@ -169,6 +169,16 @@ samu list --perspective "This week" --format org > week.org
 samu list --project Garden --all --format md
 ```
 
+`--full` adds each task's note, comments and attachments below it.
+`samu show <id> --format md|org` writes one task with everything below
+it, or a project with its tasks, in the same full form; `--all` brings
+the completed and dropped ones too:
+
+```sh
+samu show 4f2a91c3 --format md
+samu list --project Garden --format org --full > garden.org
+```
+
 Any other command, `--bare` and a block perspective refuse them (exit
 code 2).
 

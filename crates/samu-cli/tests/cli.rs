@@ -1292,7 +1292,77 @@ fn list_writes_markdown_and_org_and_nothing_else_does() {
         assert_eq!(code(&refused), 2, "{args:?}");
         assert!(stdout(&refused).is_empty(), "{args:?}");
         let said = String::from_utf8_lossy(&refused.stderr).to_string();
-        assert!(said.contains("for `samu list` only"), "{args:?}: {said}");
+        assert!(
+            said.contains("for `samu list` and `samu show` only"),
+            "{args:?}: {said}"
+        );
+    }
+}
+
+#[test]
+fn show_writes_a_task_with_note_comments_and_subtasks() {
+    let server = signed_in_server();
+    let id_of = |args: &[&str]| {
+        let made = json_out(&server.samu(&[args, &["--format", "json"]].concat(), None));
+        made[0]["id"].as_str().unwrap().to_string()
+    };
+    let umzug = id_of(&["project", "add", "Umzug"]);
+    let task = id_of(&["add", "Kisten holen #umzug", "--note", "vom Baumarkt"]);
+    let open = id_of(&["add", "Klebeband", "--parent", &task]);
+    let closed = id_of(&["add", "Auto leihen", "--parent", &task]);
+    assert_eq!(code(&server.samu(&["done", &closed], None)), 0);
+    assert_eq!(
+        code(&server.samu(&["comment", &task, "zwanzig Stück"], None)),
+        0
+    );
+
+    let md = server.samu(&["show", &task, "--format", "md"], None);
+    assert_eq!(code(&md), 0);
+    let md = stdout(&md);
+    assert!(
+        md.starts_with("- [ ] Kisten holen\n\n  vom Baumarkt\n\n  > **"),
+        "{md}"
+    );
+    assert!(md.contains("):** zwanzig Stück\n"), "{md}");
+    assert!(md.contains("\n  - [ ] Klebeband\n"), "{md}");
+    // Open ones only, unless --all.
+    assert!(!md.contains("Auto leihen"), "{md}");
+    let all = stdout(&server.samu(&["show", &task, "--format", "md", "--all"], None));
+    assert!(all.contains("\n  - [x] Auto leihen\n"), "{all}");
+
+    let org = stdout(&server.samu(&["show", &task, "--format", "org", "--all"], None));
+    assert!(org.starts_with("* TODO Kisten holen\n"), "{org}");
+    assert!(org.contains(&format!(":ID: {open}\n")), "{org}");
+    assert!(org.contains("\nvom Baumarkt\n- ["), "{org}");
+    assert!(org.contains(": zwanzig Stück\n"), "{org}");
+    assert!(org.contains("\n** DONE Auto leihen\n"), "{org}");
+
+    // A project: its title as the heading, its tasks below.
+    let project = stdout(&server.samu(&["show", &umzug, "--format", "md"], None));
+    assert!(
+        project.starts_with("# Umzug\n\n- [ ] Kisten holen\n"),
+        "{project}"
+    );
+    let project = stdout(&server.samu(&["show", &umzug, "--format", "org"], None));
+    assert!(project.starts_with("* Umzug :project:\n"), "{project}");
+    assert!(project.contains("\n** TODO Kisten holen\n"), "{project}");
+    assert!(project.contains("\n*** TODO Klebeband\n"), "{project}");
+
+    // The list writes the same with --full, and only in a text form.
+    let list = stdout(&server.samu(
+        &["list", "--project", "Umzug", "--format", "md", "--full"],
+        None,
+    ));
+    assert_eq!(list, md);
+    for args in [
+        &["list", "--full"][..],
+        &["list", "--full", "--format", "json"][..],
+        &["show", &task, "--all"][..],
+        &["show", &task, "--full", "--log", "--format", "md"][..],
+    ] {
+        let refused = server.samu(args, None);
+        assert_eq!(code(&refused), 2, "{args:?}");
+        assert!(stdout(&refused).is_empty(), "{args:?}");
     }
 }
 

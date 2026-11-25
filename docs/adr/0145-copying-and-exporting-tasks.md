@@ -95,3 +95,14 @@ many tasks (`samu bulk …`) take IDs.
   Rust; the shared cases keep them alike.
 - TSV, JSON and Org are for programs; the Markdown text is for people
   and may change its look without notice.
+
+## Changes
+
+- 2026-11-25: §8 gained a full text form. `samu list --format md|org
+  --full` writes each task's note, comments and attachments below it,
+  and `samu show <id> --format md|org` writes a task with the tasks
+  below it, or a project with its tasks, in the same way (`--all` adds
+  the completed and dropped ones). The full form is the CLI's alone; the
+  short form without `--full` stays the one the web writes and the
+  shared cases hold. Attachments are named, not linked, because there is
+  no `files/` folder next to the output.

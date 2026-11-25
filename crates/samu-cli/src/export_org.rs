@@ -26,19 +26,54 @@ struct Index<'a> {
     tags: HashMap<Id, &'a Tag>,
     comments: HashMap<Id, Vec<&'a Comment>>,
     attachments: HashMap<Id, Vec<&'a Attachment>>,
+    /// Attachments as links into the export's `files/`; elsewhere there
+    /// is no such folder, and they are named only.
+    links: bool,
+}
+
+/// The comments and attachments of a set of objects, by owner, oldest
+/// first: what the full text forms hang below a task or project.
+#[derive(Default)]
+pub(crate) struct Hanging<'a> {
+    pub(crate) comments: HashMap<Id, Vec<&'a Comment>>,
+    pub(crate) attachments: HashMap<Id, Vec<&'a Attachment>>,
+}
+
+impl<'a> Hanging<'a> {
+    pub(crate) fn of(objects: impl IntoIterator<Item = &'a AnyObject>) -> Self {
+        let mut hanging = Self::default();
+        for object in objects {
+            match object {
+                AnyObject::Comment(c) => hanging.comments.entry(c.owner).or_default().push(c),
+                AnyObject::Attachment(a) => {
+                    hanging.attachments.entry(a.owner).or_default().push(a);
+                }
+                _ => {}
+            }
+        }
+        for comments in hanging.comments.values_mut() {
+            comments.sort_by_key(|c| (c.created, c.id));
+        }
+        for attachments in hanging.attachments.values_mut() {
+            attachments.sort_by_key(|a| (a.created, a.id));
+        }
+        hanging
+    }
 }
 
 impl<'a> Index<'a> {
     fn new(export: &'a Export) -> Self {
         let zone = TimeZone::get(&export.manifest.zone).unwrap_or(TimeZone::UTC);
+        let hanging = Hanging::of(export.objects.iter().map(|e| &e.object));
         let mut index = Self {
             zone,
             folders: Vec::new(),
             projects: Vec::new(),
             tasks: Vec::new(),
             tags: HashMap::new(),
-            comments: HashMap::new(),
-            attachments: HashMap::new(),
+            comments: hanging.comments,
+            attachments: hanging.attachments,
+            links: true,
         };
         for exported in &export.objects {
             match &exported.object {
@@ -48,22 +83,12 @@ impl<'a> Index<'a> {
                 AnyObject::Tag(t) => {
                     index.tags.insert(t.id, t);
                 }
-                AnyObject::Comment(c) => index.comments.entry(c.owner).or_default().push(c),
-                AnyObject::Attachment(a) => {
-                    index.attachments.entry(a.owner).or_default().push(a);
-                }
                 _ => {}
             }
         }
         index.folders.sort_by_key(|f| (f.position, f.id));
         index.projects.sort_by_key(|p| (p.position, p.id));
         index.tasks.sort_by_key(|t| (t.position, t.id));
-        for comments in index.comments.values_mut() {
-            comments.sort_by_key(|c| (c.created, c.id));
-        }
-        for attachments in index.attachments.values_mut() {
-            attachments.sort_by_key(|a| (a.created, a.id));
-        }
         index
     }
 
@@ -241,18 +266,22 @@ fn hanging(out: &mut String, index: &Index<'_>, owner: Id) {
 fn hanging_files(out: &mut String, index: &Index<'_>, owner: Id, indent: &str) {
     if let Some(attachments) = index.attachments.get(&owner) {
         for a in attachments {
-            let _ = writeln!(
-                out,
-                "{indent}- [[file:{EXPORT_BLOBS}/{}][{}]] ({})",
-                a.blob,
-                one_line(&a.name),
-                a.media_type
-            );
+            if index.links {
+                let _ = writeln!(
+                    out,
+                    "{indent}- [[file:{EXPORT_BLOBS}/{}][{}]] ({})",
+                    a.blob,
+                    one_line(&a.name),
+                    a.media_type
+                );
+            } else {
+                let _ = writeln!(out, "{indent}- {} ({})", one_line(&a.name), a.media_type);
+            }
         }
     }
 }
 
-fn author_kind(kind: samu_api::AuthorKind) -> &'static str {
+pub(crate) fn author_kind(kind: samu_api::AuthorKind) -> &'static str {
     match kind {
         samu_api::AuthorKind::Agent => "agent",
         _ => "human",
@@ -325,6 +354,7 @@ pub(crate) fn task_list(tasks: &[&Task], tags: &HashMap<Id, Tag>, zone: TimeZone
         tags: tags.iter().map(|(id, tag)| (*id, tag)).collect(),
         comments: HashMap::new(),
         attachments: HashMap::new(),
+        links: false,
     };
     let mut out = String::new();
     for (task, depth) in tasks.iter().zip(crate::list_text::depths(tasks)) {
@@ -333,7 +363,56 @@ pub(crate) fn task_list(tasks: &[&Task], tags: &HashMap<Id, Tag>, zone: TimeZone
     out
 }
 
+/// The full Org form (`samu list --full`, `samu show --format org`): as
+/// [`task_list`], with each task's comments and attachments below its
+/// note. With a project, its heading comes first and the tasks one level
+/// below it.
+pub(crate) fn task_list_full(
+    tasks: &[&Task],
+    tags: &HashMap<Id, Tag>,
+    zone: TimeZone,
+    below: Hanging<'_>,
+    project: Option<&Project>,
+) -> String {
+    let index = Index {
+        zone,
+        folders: Vec::new(),
+        projects: Vec::new(),
+        tasks: Vec::new(),
+        tags: tags.iter().map(|(id, tag)| (*id, tag)).collect(),
+        comments: below.comments,
+        attachments: below.attachments,
+        links: false,
+    };
+    let mut out = String::new();
+    let top = match project {
+        Some(project) => {
+            write_project_alone(&mut out, &index, project, 1);
+            2
+        }
+        None => 1,
+    };
+    for (task, depth) in tasks.iter().zip(crate::list_text::depths(tasks)) {
+        write_task_alone(&mut out, &index, task, depth + top);
+        hanging(&mut out, &index, task.id);
+    }
+    out
+}
+
 fn write_project(out: &mut String, index: &Index<'_>, project: &Project, level: usize) {
+    write_project_alone(out, index, project, level);
+    for task in index
+        .tasks
+        .iter()
+        .filter(|t| t.project == Some(project.id) && t.parent.is_none())
+    {
+        write_task(out, index, task, level + 1);
+    }
+}
+
+/// A project's heading, planning, drawer, note, comments and
+/// attachments; no tasks.
+fn write_project_alone(out: &mut String, index: &Index<'_>, project: &Project, level: usize) {
     let keyword = match project.status {
         ProjectStatus::Completed => Some("DONE"),
         ProjectStatus::Dropped => Some("CANCELLED"),
@@ -374,13 +453,6 @@ fn write_project(out: &mut String, index: &Index<'_>, project: &Project, level: 
         body(out, note);
     }
     hanging(out, index, project.id);
-    for task in index
-        .tasks
-        .iter()
-        .filter(|t| t.project == Some(project.id) && t.parent.is_none())
-    {
-        write_task(out, index, task, level + 1);
-    }
 }
 
 fn write_folder(out: &mut String, index: &Index<'_>, folder: &Folder, level: usize) {

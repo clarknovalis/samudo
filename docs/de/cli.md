@@ -174,6 +174,16 @@ samu list --perspective "Diese Woche" --format org > woche.org
 samu list --project Garten --all --format md
 ```
 
+`--full` hängt an jede Aufgabe ihre Notiz, Kommentare und Anhänge.
+`samu show <id> --format md|org` schreibt eine Aufgabe mit allem darunter
+oder ein Projekt mit seinen Aufgaben in derselben ausführlichen Form;
+`--all` nimmt die erledigten und verworfenen dazu:
+
+```sh
+samu show 4f2a91c3 --format md
+samu list --project Garten --format org --full > garten.org
+```
+
 Jedes andere Kommando, `--bare` und eine Block-Perspektive lehnen sie ab
 (Exit-Code 2).
 

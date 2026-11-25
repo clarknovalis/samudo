@@ -20,9 +20,9 @@ pub(crate) enum Format {
     Jsonl,
     /// Tab-separated columns, no header.
     Tsv,
-    /// Only `samu list`: a Markdown task list (ADR 0145 §8).
+    /// Only `samu list` and `samu show`: a Markdown task list (ADR 0145 §8).
     Md,
-    /// Only `samu list`: Org headings, as `samu export-org` writes a task.
+    /// Only `samu list` and `samu show`: Org headings, as `samu export-org` writes a task.
     Org,
 }
 
@@ -35,13 +35,25 @@ impl std::fmt::Display for TextFormatElsewhere {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "--format md and --format org are for `samu list` only, \
+            "--format md and --format org are for `samu list` and `samu show` only, \
              and not with --bare or a block perspective"
         )
     }
 }
 
 impl std::error::Error for TextFormatElsewhere {}
+
+/// Switches that do not go together, found after clap. Exit code 2.
+#[derive(Debug)]
+pub(crate) struct Usage(pub(crate) String);
+
+impl std::fmt::Display for Usage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for Usage {}
 
 fn cell(value: Option<&Value>) -> String {
     match value {

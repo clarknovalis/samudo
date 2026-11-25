@@ -483,6 +483,10 @@ enum Command {
         /// With --full: the logbook too, as `samu log` has it.
         #[arg(long, requires = "full")]
         log: bool,
+        /// With --full or --format md|org: the completed and dropped tasks
+        /// below too, not only the open ones.
+        #[arg(long)]
+        all: bool,
     },
     /// What changed after a change number (GET /changes).
     Changes {
@@ -545,6 +549,10 @@ enum Command {
         /// its own.
         #[arg(long, num_args = 0..=1, default_missing_value = "")]
         columns: Option<String>,
+        /// With --format md|org: each task's note, comments and
+        /// attachments too, as `samu show --format md|org` writes them.
+        #[arg(long)]
+        full: bool,
     },
     /// Projects with their availability (GET /available/projects).
     Projects {
@@ -1588,9 +1596,9 @@ fn read_changes(file: &str) -> Result<Vec<Change>> {
 }
 
 fn run(args: Args) -> Result<()> {
-    // Only the list has a text form of its tasks (ADR 0145 §8).
+    // Only the list and one task or project have a text form (ADR 0145 §8).
     if matches!(args.format, Format::Md | Format::Org)
-        && !matches!(args.command, Command::List { .. })
+        && !matches!(args.command, Command::List { .. } | Command::Show { .. })
     {
         return Err(output::TextFormatElsewhere.into());
     }
@@ -2295,11 +2303,21 @@ fn run(args: Args) -> Result<()> {
         Command::OpenUri { uri, print, notify } => {
             props::open_uri(&config, args.format, &uri, print, notify)?;
         }
-        Command::Show { id, full, log } => {
+        Command::Show { id, full, log, all } => {
             let client = signed_in(&config)?;
+            let text = matches!(args.format, Format::Md | Format::Org);
+            if all && !full && !text {
+                return Err(output::Usage("--all is for --full or --format md|org".into()).into());
+            }
+            if text && log {
+                return Err(output::Usage("--log has no text form: --format json".into()).into());
+            }
             let id = resolve(&client, &id)?;
+            if text {
+                return full::text(&client, args.format, id, all);
+            }
             if full {
-                return full::show(&client, args.format, id, log);
+                return full::show(&client, args.format, id, log, all);
             }
             let answer = client.call("GET", &format!("/objects/{id}"), None)?;
             let object: AnyObject = serde_json::from_value(answer.json()?)?;
@@ -2341,7 +2359,11 @@ fn run(args: Args) -> Result<()> {
             perspective,
             bare,
             columns,
+            full,
         } => {
+            if full && !matches!(args.format, Format::Md | Format::Org) {
+                return Err(output::Usage("--full is for --format md or org".into()).into());
+            }
             let client = signed_in(&config)?;
             if let Some(search) = search.as_deref() {
                 words_only(&client, search)?;
@@ -2473,17 +2495,22 @@ fn run(args: Args) -> Result<()> {
             if matches!(args.format, Format::Md | Format::Org) {
                 let flat: Vec<&samu_api::Task> = statuses.iter().map(|s| &s.task).collect();
                 let tasks = list_text::outline(&flat);
-                let text = if args.format == Format::Md {
-                    list_text::markdown(&tasks)
-                } else {
-                    let session: SessionInfo =
-                        serde_json::from_value(client.call("GET", "/session", None)?.json()?)?;
-                    let zone = session
-                        .zone
-                        .as_deref()
-                        .and_then(|z| jiff::tz::TimeZone::get(z).ok())
-                        .unwrap_or_else(jiff::tz::TimeZone::system);
-                    export_org::task_list(&tasks, &names.tags, zone)
+                let text = match (args.format, full) {
+                    (Format::Md, false) => list_text::markdown(&tasks),
+                    (Format::Md, true) => {
+                        let hanging = export_org::Hanging::of(&page.objects);
+                        list_text::markdown_full(&tasks, &hanging, &account_zone(&client)?, None)
+                    }
+                    (_, false) => {
+                        export_org::task_list(&tasks, &names.tags, account_zone(&client)?)
+                    }
+                    (_, true) => export_org::task_list_full(
+                        &tasks,
+                        &names.tags,
+                        account_zone(&client)?,
+                        export_org::Hanging::of(&page.objects),
+                        None,
+                    ),
                 };
                 print!("{text}");
                 return Ok(());
@@ -2802,8 +2829,22 @@ fn api_has_properties(version: &str) -> bool {
     }
 }
 
+/// The account's zone, as the session tells it; the computer's without.
+fn account_zone(client: &Client) -> Result<jiff::tz::TimeZone> {
+    let session: SessionInfo =
+        serde_json::from_value(client.call("GET", "/session", None)?.json()?)?;
+    Ok(session
+        .zone
+        .as_deref()
+        .and_then(|z| jiff::tz::TimeZone::get(z).ok())
+        .unwrap_or_else(jiff::tz::TimeZone::system))
+}
+
 /// The exit code for a failure, from its cause rather than its message.
 fn exit_code(error: &anyhow::Error) -> u8 {
+    if error.downcast_ref::<output::Usage>().is_some() {
+        return exit::USAGE;
+    }
     // A profile that is not there or not well written (ADR 0086).
     if error
         .downcast_ref::<samu_client::profile::ProfileError>()
