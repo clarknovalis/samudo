@@ -225,7 +225,10 @@ fn sort_of(text: &str) -> Result<PerspectiveSort> {
 /// Words as chips and free text, names resolved to ids: a word samu-core
 /// takes for no chip at all stays text, a chip that does not hold (an
 /// unknown tag, a wrong value) is refused.
-fn split_search(snapshot: &Snapshot, words: &[String]) -> Result<(Vec<ScopeChip>, String)> {
+pub(crate) fn split_search(
+    snapshot: &Snapshot,
+    words: &[String],
+) -> Result<(Vec<ScopeChip>, String)> {
     let mut groups = query::Groups::default();
     let mut text = Vec::new();
     for word in words.iter().flat_map(|w| query::split_marked(w)) {

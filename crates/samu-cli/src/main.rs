@@ -529,6 +529,13 @@ enum Command {
         /// refused (exit 2) unless it stands in quotes.
         #[arg(long, allow_hyphen_values = true)]
         search: Option<String>,
+        /// Only tasks the search language finds, as the web's search field
+        /// reads it: chips (`#project`, `@tag`, `is:flagged`, `due:today`,
+        /// `-#project`, `oder` between groups) and free words, without
+        /// saving a perspective. A chip that asks for closed tasks
+        /// (`is:completed`) brings them.
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["search", "bare"])]
+        query: Option<String>,
         /// Through this scope instead of the one chosen here (ADR 0035).
         #[arg(long, conflicts_with = "no_scope")]
         scope: Option<String>,
@@ -541,7 +548,7 @@ enum Command {
         perspective: Option<String>,
         /// Only the id and what the server computed, not the task itself
         /// (GET /available?bare=true, ADR 0065).
-        #[arg(long, conflicts_with_all = ["inbox", "tag", "flagged", "search", "columns"])]
+        #[arg(long, conflicts_with_all = ["inbox", "tag", "flagged", "search", "query", "columns"])]
         bare: bool,
         /// As a table (ADR 0115 §8): the columns after the title, by the
         /// names of the web, like `state,due,estimate,worked,prop:jira`.
@@ -1174,14 +1181,30 @@ pub(crate) fn when_text(when: &samu_api::When) -> String {
 /// One line of `list`.
 /// What `samu list` narrows on this side: the inbox, a tag and those
 /// below it, flagged, and words in title, note or id.
+#[derive(Clone, Copy)]
+struct Narrowing<'a> {
+    inbox: bool,
+    tag: Option<&'a str>,
+    flagged: bool,
+    search: Option<&'a str>,
+}
+
+/// Narrows `statuses` by `by`, and by the search of `--query`.
 fn narrow(
     statuses: &mut Vec<TaskStatus>,
     names: &Names,
-    inbox: bool,
-    tag: Option<&str>,
-    flagged: bool,
-    search: Option<&str>,
+    by: &Narrowing<'_>,
+    query: Option<&Query<'_>>,
 ) -> Result<()> {
+    let Narrowing {
+        inbox,
+        tag,
+        flagged,
+        search,
+    } = *by;
+    if let Some(query) = query {
+        statuses.retain(|s| query.keeps(s));
+    }
     if inbox {
         // As the server computes it, not `task.project` (ADR 0036 §6).
         statuses.retain(|s| s.inbox);
@@ -1215,6 +1238,32 @@ fn narrow(
     Ok(())
 }
 
+/// `samu list --query` read against the account: the chips as samu-core
+/// reads them, against the state the server computed, and the free words.
+struct Query<'a> {
+    filter: samu_core::query::Filter<'a>,
+    free: &'a str,
+}
+
+impl<'a> Query<'a> {
+    fn new(
+        (chips, free): &'a (Vec<samu_api::ScopeChip>, String),
+        objects: &'a samu_core::overlay::Objects,
+        zone: &jiff::tz::TimeZone,
+    ) -> Self {
+        let filter =
+            samu_core::query::Filter::new(chips, &objects.snapshot(), jiff::Timestamp::now(), zone);
+        Self { filter, free }
+    }
+
+    fn keeps(&self, status: &TaskStatus) -> bool {
+        self.filter.matches(
+            &status.task,
+            &samu_core::availability::TaskState::from(status),
+        ) && samu_core::query::text_matches(self.free, &status.task)
+    }
+}
+
 /// A word of `samu list --search` that the search language reads as a
 /// chip. `--search` meets words against title, note and id only, so
 /// `#project` or `is:flagged` found nothing and said nothing. Exit code
@@ -1227,7 +1276,7 @@ impl std::fmt::Display for ChipInSearch {
         write!(
             f,
             "{:?} is a chip of the search language, and --search takes words only: \
-             use --project, --tag, --flagged or --perspective, \
+             use --query, --project, --tag, --flagged or --perspective, \
              or put it in double quotes to search for the text itself",
             self.0
         )
@@ -1272,21 +1321,25 @@ fn print_blocks(
     client: &Client,
     format: Format,
     sections: Vec<BlockSection>,
-    inbox: bool,
-    tag: Option<&str>,
-    flagged: bool,
-    search: Option<&str>,
+    by: &Narrowing<'_>,
+    query: Option<&(Vec<samu_api::ScopeChip>, String)>,
 ) -> Result<()> {
     let page: ChangesPage =
         serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
     let every: Vec<TaskStatus> = sections.iter().flat_map(|s| s.tasks.clone()).collect();
     let names = Names::new(&page, &every);
+    let objects = samu_core::overlay::Objects::from_any(page.objects.clone());
+    let zone = match query {
+        Some(_) => account_zone(client)?,
+        None => jiff::tz::TimeZone::UTC,
+    };
+    let query = query.map(|q| Query::new(q, &objects, &zone));
     const COLUMNS: [&str; 8] = [
         "short", "st", "flag", "due_text", "project", "title", "tags", "why",
     ];
     let mut out = Vec::new();
     for (n, mut section) in sections.into_iter().enumerate() {
-        narrow(&mut section.tasks, &names, inbox, tag, flagged, search)?;
+        narrow(&mut section.tasks, &names, by, query.as_ref())?;
         let mut records: Vec<Value> = section
             .tasks
             .iter()
@@ -2354,6 +2407,7 @@ fn run(args: Args) -> Result<()> {
             tag,
             flagged,
             search,
+            query: asked,
             scope,
             no_scope,
             perspective,
@@ -2368,6 +2422,13 @@ fn run(args: Args) -> Result<()> {
             if let Some(search) = search.as_deref() {
                 words_only(&client, search)?;
             }
+            let asked = match asked {
+                Some(text) => Some(perspectives::split_search(
+                    &scopes::snapshot(&client)?,
+                    &[text],
+                )?),
+                None => None,
+            };
             let mut query = vec![];
             let mut columns = columns.as_deref().map(table::parse).transpose()?;
             let scoped = scopes::query_scope(&client, &config, scope.as_deref(), no_scope)?;
@@ -2400,15 +2461,13 @@ fn run(args: Args) -> Result<()> {
                     }
                     let sections: Vec<BlockSection> =
                         serde_json::from_value(client.call("GET", &path, None)?.json()?)?;
-                    return print_blocks(
-                        &client,
-                        args.format,
-                        sections,
+                    let by = Narrowing {
                         inbox,
-                        tag.as_deref(),
+                        tag: tag.as_deref(),
                         flagged,
-                        search.as_deref(),
-                    );
+                        search: search.as_deref(),
+                    };
+                    return print_blocks(&client, args.format, sections, &by, asked.as_ref());
                 }
                 if columns.is_none() && found.view == samu_api::PerspectiveView::Table {
                     columns = Some(found.table.map(|t| t.columns).unwrap_or_default());
@@ -2424,14 +2483,21 @@ fn run(args: Args) -> Result<()> {
             if today {
                 query.push("today=true".to_string());
             }
-            if all {
+            // A chip that asks for closed tasks brings them (ADR 0042 §4).
+            if all
+                || asked
+                    .as_ref()
+                    .is_some_and(|(chips, _)| samu_core::query::asks_for_closed(chips))
+            {
                 query.push("all=true".to_string());
             }
             if let Some(project) = project {
                 query.push(format!("project={}", resolve_project(&client, &project)?));
             }
             // A search names what another own scope hides (ADR 0124 §3).
-            if search.is_some() && !bare {
+            let words =
+                search.is_some() || asked.as_ref().is_some_and(|(_, free)| !free.is_empty());
+            if words && !bare {
                 query.push("elsewhere=true".to_string());
             }
             let path = if query.is_empty() {
@@ -2473,22 +2539,20 @@ fn run(args: Args) -> Result<()> {
             let page: ChangesPage =
                 serde_json::from_value(client.call("GET", "/changes?after=0", None)?.json()?)?;
             let names = Names::new(&page, &statuses);
-            narrow(
-                &mut statuses,
-                &names,
+            let objects = samu_core::overlay::Objects::from_any(page.objects.clone());
+            let zone = match asked {
+                Some(_) => account_zone(&client)?,
+                None => jiff::tz::TimeZone::UTC,
+            };
+            let asked = asked.as_ref().map(|q| Query::new(q, &objects, &zone));
+            let by = Narrowing {
                 inbox,
-                tag.as_deref(),
+                tag: tag.as_deref(),
                 flagged,
-                search.as_deref(),
-            )?;
-            narrow(
-                &mut elsewhere,
-                &names,
-                inbox,
-                tag.as_deref(),
-                flagged,
-                search.as_deref(),
-            )?;
+                search: search.as_deref(),
+            };
+            narrow(&mut statuses, &names, &by, asked.as_ref())?;
+            narrow(&mut elsewhere, &names, &by, asked.as_ref())?;
             for line in elsewhere_hint(&elsewhere, &page) {
                 eprintln!("{line}");
             }

@@ -9,7 +9,10 @@ speaks; this page uses the English ones (see
 
 On the command line, `samu list --search <words>` takes free text only
 and refuses a chip (exit 2); in double quotes (`--search '"#bath"'`) a
-chip is searched for as text. Chips go into scopes (`samu scope filter`) and perspectives
+chip is searched for as text. `samu list --query <search>` takes the
+whole language, chips and free text, as the search field does, without
+saving anything; a chip whose name nothing has is refused (exit 3). Chips
+also go into scopes (`samu scope filter`) and perspectives
 (`samu perspective add`), and `samu list --perspective <name>` shows one.
 
 ## Free text

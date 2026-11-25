@@ -137,6 +137,7 @@ samu list --flagged
 samu list --inbox              # Aufgaben ohne Projekt
 samu list --project Bad --all
 samu list --search fliesen     # Wörter in Titel, Notiz oder ID, keine Chips
+samu list --query "#Bad ist:markiert fliesen"   # die ganze Suchsprache
 samu list --perspective "Kurze Anrufe"
 samu list --columns state,due,estimate,worked,prop:jira   # als Tabelle
 samu projects                  # Projekte mit ihrer Verfügbarkeit

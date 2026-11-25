@@ -9,8 +9,12 @@ welche Sprache die Oberfläche spricht (siehe
 
 Auf der Kommandozeile nimmt `samu list --search <wörter>` nur freien Text
 und lehnt einen Chip ab (Exit 2); in doppelten Anführungszeichen
-(`--search '"#bad"'`) wird er als Text gesucht. Chips gehören in Scopes (`samu scope filter`) und Perspektiven
-(`samu perspective add`), und `samu list --perspective <name>` zeigt eine.
+(`--search '"#bad"'`) wird er als Text gesucht. `samu list --query <suche>`
+nimmt die ganze Sprache, Chips und freien Text, wie das Suchfeld, ohne
+etwas zu speichern; ein Chip mit einem Namen, den nichts trägt, wird
+abgelehnt (Exit 3). Chips gehören außerdem in Scopes (`samu scope filter`)
+und Perspektiven (`samu perspective add`), und
+`samu list --perspective <name>` zeigt eine.
 
 ## Freier Text
 

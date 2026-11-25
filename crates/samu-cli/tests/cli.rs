@@ -1264,6 +1264,85 @@ fn list_search_refuses_a_chip() {
 }
 
 #[test]
+fn list_query_takes_the_whole_search_language() {
+    let server = signed_in_server();
+    let id_of = |args: &[&str]| {
+        let made = json_out(&server.samu(&[args, &["--format", "json"]].concat(), None));
+        made[0]["id"].as_str().unwrap().to_string()
+    };
+    id_of(&["project", "add", "Garten"]);
+    id_of(&["project", "add", "Keller"]);
+    let rosen = id_of(&["add", "Rosen schneiden #garten"]);
+    id_of(&["add", "Hecke schneiden #garten"]);
+    let regal = id_of(&["add", "Regal schneiden #keller"]);
+    let laub = id_of(&["add", "Laub rechen #garten"]);
+    for id in [&rosen, &regal] {
+        assert_eq!(code(&server.samu(&["set", id, "flagged", "true"], None)), 0);
+    }
+    assert_eq!(code(&server.samu(&["done", &laub], None)), 0);
+    let titles = |query: &str| -> Vec<String> {
+        let out = server.samu(&["list", "--query", query, "--format", "json"], None);
+        assert_eq!(
+            code(&out),
+            0,
+            "{query}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let mut titles: Vec<String> = json_out(&out)
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["title"].as_str().unwrap().to_string())
+            .collect();
+        titles.sort();
+        titles
+    };
+    // Chips and words together, each must hold.
+    assert_eq!(titles("#garten is:flagged schneiden"), ["Rosen schneiden"]);
+    assert_eq!(
+        titles("ist:markiert"),
+        ["Regal schneiden", "Rosen schneiden"]
+    );
+    // A chip with a minus leaves out what it names.
+    assert_eq!(titles("schneiden -#garten"), ["Regal schneiden"]);
+    // `oder` between two groups.
+    assert_eq!(
+        titles("#keller oder ist:markiert"),
+        ["Regal schneiden", "Rosen schneiden"]
+    );
+    // A chip that asks for closed tasks brings them, without --all.
+    assert_eq!(titles("#garten ist:erledigt"), ["Laub rechen"]);
+    // The end of an id is a word that finds its task.
+    assert_eq!(titles(&rosen[rosen.len() - 8..]), ["Rosen schneiden"]);
+    // With the switches too, and in the text forms.
+    let md = server.samu(
+        &[
+            "list",
+            "--query",
+            "ist:markiert",
+            "--project",
+            "Keller",
+            "--format",
+            "md",
+        ],
+        None,
+    );
+    assert_eq!(stdout(&md), "- [ ] Regal schneiden\n");
+
+    // A name nothing has is not found, rather than finding nothing.
+    let unknown = server.samu(&["list", "--query", "#nirgends"], None);
+    assert_eq!(code(&unknown), 3);
+    assert!(stdout(&unknown).is_empty());
+    // --query holds the words already: not with --search or --bare.
+    for args in [
+        &["list", "--query", "#garten", "--search", "rosen"][..],
+        &["list", "--query", "#garten", "--bare"][..],
+    ] {
+        assert_eq!(code(&server.samu(args, None)), 2, "{args:?}");
+    }
+}
+
+#[test]
 fn list_writes_markdown_and_org_and_nothing_else_does() {
     let server = signed_in_server();
     assert_eq!(code(&server.samu(&["project", "add", "Reise"], None)), 0);

@@ -598,6 +598,49 @@ impl From<DueState> for crate::api::DueState {
     }
 }
 
+impl From<&crate::api::Reason> for Reason {
+    /// The way back, for a client that has the server's reasons
+    /// (`GET /available`) and reads a search against them; a reason from
+    /// a newer samu counts as an unknown value.
+    fn from(reason: &crate::api::Reason) -> Self {
+        use crate::api::Reason as Api;
+        match reason.clone() {
+            Api::Completed => Self::Completed,
+            Api::Dropped => Self::Dropped,
+            Api::Deferred { until } => Self::Deferred { until },
+            Api::ProjectNotActive { project } => Self::ProjectNotActive { project },
+            Api::FolderDropped { folder } => Self::FolderDropped { folder },
+            Api::TagNotActive { tag } => Self::TagNotActive { tag },
+            Api::WaitingInSequence { first } => Self::WaitingInSequence { first },
+            Api::HasOpenChildren => Self::HasOpenChildren,
+            Api::ContainerUnavailable { id } => Self::ContainerUnavailable { id },
+            Api::BlockedBy { task } => Self::BlockedBy { task },
+            Api::Cycle => Self::Cycle,
+            Api::UnknownValue | Api::Unknown => Self::UnknownValue,
+        }
+    }
+}
+
+impl From<&crate::api::TaskStatus> for TaskState {
+    /// The state the server computed, as [`crate::query::Filter`] reads
+    /// it: a client that filters what `GET /available` sent does not
+    /// compute availability a second time. A due state from a newer
+    /// samu counts as none.
+    fn from(status: &crate::api::TaskStatus) -> Self {
+        Self {
+            available: status.available,
+            reasons: status.reasons.iter().map(Reason::from).collect(),
+            due: match status.due {
+                crate::api::DueState::Soon => DueState::Soon,
+                crate::api::DueState::Overdue => DueState::Overdue,
+                _ => DueState::None,
+            },
+            today: status.today,
+            inbox: status.inbox,
+        }
+    }
+}
+
 /// What a folded action group shows (ADR 0021 §3): its direct children
 /// open and done, how many are available, and for a sequential group the
 /// first open child by position. `None` for a task without children.
@@ -1543,5 +1586,51 @@ mod tests {
             group_summary(&tasks, &evaluation, &group).unwrap().next,
             None
         );
+    }
+
+    /// What the server sends for a task reads back as the state it
+    /// computed, so a client filters what `GET /available` gave.
+    #[test]
+    fn the_status_the_server_sends_reads_back_as_its_state() {
+        let mut deferred = task(0);
+        deferred.schedule.defer = Some(date("2026-11-20"));
+        deferred.schedule.due = Some(date("2026-11-06"));
+        let mut planned = task(1);
+        planned.schedule.planned = Some(date("2026-11-07"));
+        let mut group = task(2);
+        group.sequential = true;
+        let mut first = task(3);
+        first.parent = Some(group.id);
+        let mut second = task(4);
+        second.parent = Some(group.id);
+        let mut done = task(5);
+        done.completed_at = Some(ts("2026-11-02T00:00:00Z"));
+        let tasks = vec![deferred, planned, group, first, second, done];
+        let snapshot = Snapshot {
+            tasks: &tasks,
+            ..Default::default()
+        };
+        let evaluation = evaluate(&snapshot, ts(NOW), &berlin());
+        let mut reasons = 0;
+        for task in &tasks {
+            let state = &evaluation.tasks[&task.id];
+            reasons += state.reasons.len();
+            let sent: crate::api::TaskStatus = serde_json::from_value(serde_json::json!({
+                "task": task,
+                "available": state.available,
+                "reasons": state.reasons.iter().map(crate::api::Reason::from).collect::<Vec<_>>(),
+                "due": crate::api::DueState::from(state.due),
+                "today": state.today,
+                "inbox": state.inbox,
+            }))
+            .unwrap();
+            assert_eq!(&TaskState::from(&sent), state, "{}", task.title);
+        }
+        // The probe holds something: deferred, waiting, a group, done.
+        assert!(reasons >= 4, "{reasons}");
+        // A reason from a newer samu is an unknown value, not an error.
+        let newer: crate::api::Reason =
+            serde_json::from_value(serde_json::json!({"reason": "from_the_future"})).unwrap();
+        assert_eq!(Reason::from(&newer), Reason::UnknownValue);
     }
 }
