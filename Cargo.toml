@@ -12,7 +12,7 @@ edition = "2024"
 rust-version = "1.89"
 # One version for the application, inherited by every crate except samu-api,
 # which has a semver of its own because others depend on it (ADR 0003 §1).
-version = "0.1.11"
+version = "0.1.12"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/clarknovalis/samudo"
 
