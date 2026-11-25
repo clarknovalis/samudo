@@ -5,13 +5,19 @@
 package de.samudo.app
 
 import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import de.samudo.app.mobile.Samu
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +51,11 @@ object Undo {
     fun count(n: Int, one: String, many: String): String = if (n == 1) one else "$n $many"
 }
 
-/** The bar itself, in the scaffold; [changed] draws and syncs once it is gone. */
+/**
+ * The bar itself, in the scaffold; [changed] draws and syncs once it is gone.
+ * It may stand over a row: a swipe either way or a tap beside the button
+ * puts it away, as if its time were up.
+ */
 @Composable
 fun UndoHost(changed: () -> Unit) {
     val context = LocalContext.current
@@ -70,5 +80,15 @@ fun UndoHost(changed: () -> Unit) {
             }
         }
     }
-    SnackbarHost(Undo.host)
+    SnackbarHost(Undo.host) { data ->
+        val state = rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                if (value != SwipeToDismissBoxValue.Settled) data.dismiss()
+                true
+            },
+        )
+        SwipeToDismissBox(state = state, backgroundContent = {}) {
+            Snackbar(data, modifier = Modifier.clickable { data.dismiss() })
+        }
+    }
 }
