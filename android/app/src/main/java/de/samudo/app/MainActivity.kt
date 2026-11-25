@@ -37,6 +37,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -554,19 +555,35 @@ private fun Main(status: Status, tick: Int, accounts: List<AccountLine>) {
 /**
  * The last error of the sync and a zone the server does not name. A full
  * outbox is a dot at the title and its count in the menu (ADR 0102 §6).
+ * A tap closes the error: a refused change is said until the next push
+ * otherwise, and without a change there is none.
  */
 @Composable
 private fun Banner(status: Status) {
     val t = LocalTokens.current
-    val lines = buildList {
-        status.lastError?.let { add(it) }
-        if (!status.zoneFromServer) add(tr("Zone des Handys ({zone}); der Server nennt keine", "zone" to status.zone))
-    }
-    if (lines.isEmpty()) return
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val error = status.lastError
+    val zone = if (status.zoneFromServer) null else tr("Zone des Handys ({zone}); der Server nennt keine", "zone" to status.zone)
+    if (error == null && zone == null) return
     Column(
         Modifier.fillMaxWidth().padding(16.dp, 4.dp, 16.dp, 8.dp)
             .background(t.waitBg, RoundedCornerShape(8.dp)).padding(12.dp, 8.dp),
     ) {
-        lines.forEach { Text(it, color = t.wait, fontSize = 13.sp) }
+        if (error != null) {
+            Row(
+                Modifier.fillMaxWidth().clickable {
+                    scope.launch {
+                        withContext(Dispatchers.IO) { runCatching { Store.get(context).forgetError() } }
+                        refresh.intValue++
+                    }
+                },
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(error, color = t.wait, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                Text("✕", color = t.wait, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+        zone?.let { Text(it, color = t.wait, fontSize = 13.sp) }
     }
 }

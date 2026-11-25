@@ -719,6 +719,11 @@ fn a_refused_change_leaves_the_outbox_and_is_said() {
         samu.inbox(None).unwrap().is_empty(),
         "the pull brings the deletion"
     );
+    // It stays over a sync without a push, until closed by hand.
+    samu.sync().unwrap();
+    assert!(samu.status().unwrap().last_error.is_some());
+    samu.forget_error().unwrap();
+    assert_eq!(samu.status().unwrap().last_error, None);
 }
 
 /// ADR 0045: the phone's Forecast is samu-core's, sections in order, each

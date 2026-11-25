@@ -1624,6 +1624,14 @@ impl Samu {
         self.signed_in(&uri.server, &session)
     }
 
+    /// Forgets the error the app shows, when it is closed by hand: a
+    /// refused change stays said until the next push otherwise, and
+    /// without a change there is none. The next failure says it again.
+    pub fn forget_error(&self) -> Result<(), MobileError> {
+        self.cache()?.set_meta("last_error", None)?;
+        Ok(())
+    }
+
     /// Forgets the session; mirror and outbox stay for the next sign-in to
     /// the same account.
     pub fn logout(&self) -> Result<(), MobileError> {
