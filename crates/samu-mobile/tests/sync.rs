@@ -45,6 +45,48 @@ fn server_binary() -> PathBuf {
         })
 }
 
+/// `samu-server serve` on `dir`, and the URL it listens at.
+fn serve(dir: &std::path::Path, listen: &str, env: &[(&str, &str)]) -> (Child, String) {
+    let mut child = Command::new(server_binary())
+        .arg("--data")
+        .arg(dir.join("data"))
+        .args(["serve", "--listen", listen])
+        // 32 bytes of 3: seals calendar sources (ADR 0047 §3).
+        .env(
+            "SAMU_SECRET_KEY",
+            "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
+        )
+        .envs(env.iter().copied())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut line = String::new();
+    BufReader::new(child.stderr.take().unwrap())
+        .read_line(&mut line)
+        .unwrap();
+    let address = line.trim().rsplit(' ').next().unwrap().to_string();
+    (child, format!("http://{address}"))
+}
+
+/// `samu-server account add <name>` with [`PASSWORD`].
+fn add_account(data: &std::path::Path, name: &str) {
+    let mut add = Command::new(server_binary())
+        .arg("--data")
+        .arg(data)
+        .args(["account", "add", name, "--password-stdin"])
+        .stdin(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    writeln!(add.stdin.take().unwrap(), "{PASSWORD}").unwrap();
+    let added = add.wait_with_output().unwrap();
+    assert!(
+        added.status.success(),
+        "account add: {}",
+        String::from_utf8_lossy(&added.stderr)
+    );
+}
+
 struct Server {
     child: Child,
     url: String,
@@ -61,44 +103,18 @@ impl Server {
         let dir =
             std::env::temp_dir().join(format!("samu-mobile-{}-{}", std::process::id(), unique()));
         std::fs::create_dir_all(&dir).unwrap();
-        let mut add = Command::new(server_binary())
-            .arg("--data")
-            .arg(dir.join("data"))
-            .args(["account", "add", "privat", "--password-stdin"])
-            .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        writeln!(add.stdin.take().unwrap(), "{PASSWORD}").unwrap();
-        let added = add.wait_with_output().unwrap();
-        assert!(
-            added.status.success(),
-            "account add: {}",
-            String::from_utf8_lossy(&added.stderr)
-        );
-        let mut child = Command::new(server_binary())
-            .arg("--data")
-            .arg(dir.join("data"))
-            .args(["serve", "--listen", "127.0.0.1:0"])
-            // 32 bytes of 3: seals calendar sources (ADR 0047 §3).
-            .env(
-                "SAMU_SECRET_KEY",
-                "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM=",
-            )
-            .envs(env.iter().copied())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        let mut line = String::new();
-        BufReader::new(child.stderr.take().unwrap())
-            .read_line(&mut line)
-            .unwrap();
-        let address = line.trim().rsplit(' ').next().unwrap().to_string();
-        Self {
-            child,
-            url: format!("http://{address}"),
-            dir,
-        }
+        add_account(&dir.join("data"), "privat");
+        let (child, url) = serve(&dir, "127.0.0.1:0", env);
+        Self { child, url, dir }
+    }
+
+    /// Stops the server, has the admin command run on its data, and
+    /// starts it again at the same address.
+    fn while_stopped(&mut self, admin: impl FnOnce(&std::path::Path)) {
+        self.stop();
+        admin(&self.dir.join("data"));
+        let listen = self.url.trim_start_matches("http://").to_string();
+        self.child = serve(&self.dir, &listen, &[]).0;
     }
 
     /// A second session, as the web UI or the CLI would have it.
@@ -538,6 +554,45 @@ fn a_lost_session_signs_out_and_keeps_the_outbox() {
     .unwrap();
     assert_eq!(samu.outbox_count().unwrap(), 1);
     assert_eq!(samu.sync().unwrap().pushed, 1);
+}
+
+#[test]
+fn signing_in_again_to_an_account_made_anew_loads_it_anew() {
+    // The public demo deletes its accounts every hour and makes them again
+    // with new ids and about the same change number: a mirror kept over
+    // the sign-in showed the old ones, and the server refused every change
+    // to them.
+    let mut server = Server::start();
+    let other = server.other_client();
+    make_task(&other, "Altes", json!({}));
+    let samu = phone(&server);
+    samu.sync().unwrap();
+    assert_eq!(titles(&samu.available(None).unwrap()[0].rows), ["Altes"]);
+
+    server.while_stopped(|data| {
+        let deleted = Command::new(server_binary())
+            .arg("--data")
+            .arg(data)
+            .args(["account", "delete", "privat"])
+            .stderr(Stdio::null())
+            .status()
+            .unwrap();
+        assert!(deleted.success());
+        add_account(data, "privat");
+    });
+    let other = server.other_client();
+    make_task(&other, "Neues", json!({}));
+    assert!(matches!(samu.sync(), Err(MobileError::SignedOut { .. })));
+
+    samu.login(
+        server.url.clone(),
+        "privat".into(),
+        PASSWORD.into(),
+        "pixel".into(),
+    )
+    .unwrap();
+    samu.sync().unwrap();
+    assert_eq!(titles(&samu.available(None).unwrap()[0].rows), ["Neues"]);
 }
 
 #[test]

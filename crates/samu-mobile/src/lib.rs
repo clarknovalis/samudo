@@ -857,6 +857,14 @@ impl Samu {
                 }
                 // The files of the other account go with its mirror.
                 let _ = std::fs::remove_dir_all(self.dir.join("blobs"));
+            } else if cache.outbox_len()? == 0 {
+                // Signed out means the session ended: perhaps the account
+                // was deleted and made anew, as the public demo's every
+                // hour, with new ids and about the same change number, so
+                // a kept mirror would never hear of it. With nothing
+                // waiting, the mirror loads once more; files stay, they
+                // are named by their content.
+                cache.clear(false)?;
             }
             cache.set_meta("server", Some(server))?;
             cache.set_meta("account", Some(&session.account))?;
