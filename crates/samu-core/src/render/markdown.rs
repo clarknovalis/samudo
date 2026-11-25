@@ -9,7 +9,9 @@
 
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, Options, Parser, Tag};
 
-use super::{Align, Block, Inline, ListItem, Positions, Span, TableRow, inline_at, link_class};
+use super::{
+    Align, Block, Inline, ListItem, Positions, Span, TableRow, bare_url, inline_at, link_class,
+};
 
 /// Open frames at most, the root among them. Each is about two levels of
 /// JSON.
@@ -229,7 +231,7 @@ impl Frame {
         if self.inlines.is_empty() {
             return;
         }
-        let content = std::mem::take(&mut self.inlines);
+        let content = bare_links(std::mem::take(&mut self.inlines));
         let at = Span {
             start: content.first().map_or(0, |inline| inline_at(inline).start),
             end: content.last().map_or(0, |inline| inline_at(inline).end),
@@ -247,6 +249,11 @@ impl Frame {
 
     fn close(mut self, parent: &mut Frame) {
         let at = self.at;
+        // A link's own words stay as they are; everywhere else a URL in the
+        // text becomes a link, as in Org (ADR 0058 §3).
+        if !matches!(self.kind, Kind::Link(_) | Kind::Image(_)) {
+            self.inlines = bare_links(std::mem::take(&mut self.inlines));
+        }
         if matches!(self.kind, Kind::Quote | Kind::Item | Kind::Footnote(_)) {
             self.flush();
         }
@@ -362,6 +369,76 @@ impl Frame {
     }
 }
 
+/// Text with its bare URLs as links. CommonMark only knows `<https://…>`;
+/// a URL pasted as it is was plain text.
+///
+/// A text's range covers its source, which is longer than the text where an
+/// escape or entity was read. Only where both are the same length does each
+/// piece get its own range; otherwise every piece keeps the whole one.
+fn bare_links(inlines: Vec<Inline>) -> Vec<Inline> {
+    let mut out = Vec::with_capacity(inlines.len());
+    for inline in inlines {
+        let Inline::Text { at, text } = inline else {
+            out.push(inline);
+            continue;
+        };
+        let exact = text.chars().count() == at.end.saturating_sub(at.start);
+        let span = |start: usize, end: usize| {
+            if exact {
+                Span {
+                    start: at.start + text[..start].chars().count(),
+                    end: at.start + text[..end].chars().count(),
+                }
+            } else {
+                at
+            }
+        };
+        let bytes = text.as_bytes();
+        let mut plain = 0;
+        let mut index = 0;
+        while index < bytes.len() {
+            // Both schemes start with an ASCII byte, never inside a wider
+            // character, so every slice is on a boundary.
+            let url = matches!(bytes[index], b'h' | b'm')
+                .then(|| bare_url(&text[..index], &text[index..]))
+                .flatten();
+            let Some(url) = url else {
+                index += 1;
+                continue;
+            };
+            if plain < index {
+                out.push(Inline::Text {
+                    at: span(plain, index),
+                    text: text[plain..index].to_string(),
+                });
+            }
+            let end = index + url.len();
+            out.push(Inline::Link {
+                at: span(index, end),
+                class: link_class(url),
+                target: url.to_string(),
+                task: None,
+                object: None,
+                content: vec![Inline::Text {
+                    at: span(index, end),
+                    text: url.to_string(),
+                }],
+            });
+            index = end;
+            plain = end;
+        }
+        if plain == 0 {
+            out.push(Inline::Text { at, text });
+        } else if plain < bytes.len() {
+            out.push(Inline::Text {
+                at: span(plain, bytes.len()),
+                text: text[plain..].to_string(),
+            });
+        }
+    }
+    out
+}
+
 /// The text of inlines without their markup, for an image's `alt`.
 pub(super) fn plain(inlines: &[Inline]) -> String {
     let mut out = String::new();
@@ -465,5 +542,127 @@ mod tests {
         assert!(
             matches!(&found[1], Block::Code { language: None, text, .. } if text == "indented")
         );
+    }
+
+    /// The bare links of inlines, with where they are, one level down too.
+    fn links(inlines: &[Inline]) -> Vec<(String, Span)> {
+        inlines
+            .iter()
+            .flat_map(|inline| match inline {
+                Inline::Link {
+                    target,
+                    at,
+                    class: LinkClass::Web,
+                    ..
+                } => vec![(target.clone(), *at)],
+                Inline::Strong { content, .. } | Inline::Emphasis { content, .. } => links(content),
+                _ => Vec::new(),
+            })
+            .collect()
+    }
+
+    fn paragraph(block: &Block) -> &[Inline] {
+        match block {
+            Block::Paragraph { content, .. } => content,
+            Block::List { items, .. } => paragraph(&items[0].blocks[0]),
+            other => panic!("not a paragraph: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn bare_urls_become_links() {
+        let text = "Siehe https://x.org/a_b?c=1. Und **mailto:a@b.c** oder (https://y.org).";
+        let found = blocks(text);
+        let content = paragraph(&found[0]);
+        let found = links(content);
+        let at = |needle: &str| {
+            let start = text[..text.find(needle).unwrap()].chars().count();
+            Span {
+                start,
+                end: start + needle.chars().count(),
+            }
+        };
+        assert_eq!(
+            found,
+            [
+                (
+                    "https://x.org/a_b?c=1".to_string(),
+                    at("https://x.org/a_b?c=1")
+                ),
+                ("mailto:a@b.c".to_string(), at("mailto:a@b.c")),
+                ("https://y.org".to_string(), at("https://y.org")),
+            ]
+        );
+        assert!(matches!(&content[0], Inline::Text { text, .. } if text == "Siehe "));
+        assert!(matches!(&content[2], Inline::Text { text, .. } if text == ". Und "));
+    }
+
+    #[test]
+    fn bare_urls_after_wide_characters_and_in_lists_keep_their_place() {
+        let text = "- [ ] Grüße: https://ä.example/x\n- b";
+        let found = blocks(text);
+        let start = "- [ ] Grüße: ".chars().count();
+        assert_eq!(
+            links(paragraph(&found[0])),
+            [(
+                "https://ä.example/x".to_string(),
+                Span {
+                    start,
+                    end: start + "https://ä.example/x".chars().count()
+                }
+            )]
+        );
+    }
+
+    #[test]
+    fn only_bare_urls_become_links() {
+        // Written as a link, in code, mid-word, or a scheme alone: as before.
+        for text in [
+            "[https://x.org](https://y.org)",
+            "<https://x.org>",
+            "`https://x.org`",
+            "xhttps://x.org",
+            "nur https:// und mailto:",
+        ] {
+            let found = blocks(text);
+            let content = paragraph(&found[0]);
+            let bare: Vec<_> = links(content)
+                .into_iter()
+                .filter(|(target, _)| target == "https://x.org")
+                .collect();
+            let expected = usize::from(text.starts_with('<'));
+            assert_eq!(bare.len(), expected, "{text}: {content:?}");
+            assert!(
+                !content.iter().any(|inline| matches!(
+                    inline,
+                    Inline::Link { content, .. } if content.iter().any(|i| matches!(i, Inline::Link { .. }))
+                )),
+                "{text}"
+            );
+        }
+        assert!(matches!(
+            paragraph(&blocks("[https://x.org](https://y.org)")[0])[0],
+            Inline::Link { ref target, .. } if target == "https://y.org"
+        ));
+    }
+
+    #[test]
+    fn a_bare_url_in_text_read_from_an_escape_spans_the_whole_text() {
+        // `\*` is two characters in the text and one in the tree.
+        let text = "a\\* https://x.org";
+        let found = blocks(text);
+        let content = paragraph(&found[0]);
+        let whole = Span {
+            start: 0,
+            end: text.chars().count(),
+        };
+        assert!(content.iter().any(
+            |inline| matches!(inline, Inline::Link { target, .. } if target == "https://x.org")
+        ));
+        // Pieces of a text whose length changed carry no wrong positions.
+        for inline in content {
+            let at = inline_at(inline);
+            assert!(at.start >= whole.start && at.end <= whole.end, "{inline:?}");
+        }
     }
 }

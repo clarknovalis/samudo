@@ -16,7 +16,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use super::{Block, Inline, ListItem, Positions, Property, Span, TableRow, link_class};
+use super::{Block, Inline, ListItem, Positions, Property, Span, TableRow, bare_url, link_class};
 
 pub(super) fn render(text: &str, positions: &Positions) -> Vec<Block> {
     let context = Context::new(text, positions);
@@ -48,10 +48,6 @@ static TIMESTAMP: LazyLock<Regex> = LazyLock::new(|| {
         r"^[<\[]\d{4}-\d{2}-\d{2}[^\]>\n]{0,64}[>\]](?:--[<\[]\d{4}-\d{2}-\d{2}[^\]>\n]{0,64}[>\]])?",
     )
     .expect("a fixed pattern that compiles")
-});
-#[allow(clippy::expect_used, reason = "a fixed pattern, covered by the tests")]
-static URL: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"^(?:https?://|mailto:)[^\s<>\[\]"]+"#).expect("a fixed pattern that compiles")
 });
 
 /// How far emphasis and a link may reach, in bytes. Without a bound, text
@@ -692,19 +688,7 @@ impl<'a> Context<'a> {
                 ))
             }
             b'h' | b'm' => {
-                if text[..index]
-                    .chars()
-                    .next_back()
-                    .is_some_and(char::is_alphanumeric)
-                {
-                    return None;
-                }
-                let found = URL.find(rest)?;
-                let url = rest[..found.end()]
-                    .trim_end_matches(['.', ',', ';', ':', '!', '?', ')', '\'', '"']);
-                if url.ends_with("://") || url.ends_with(':') {
-                    return None;
-                }
+                let url = bare_url(&text[..index], rest)?;
                 Some((
                     Inline::Link {
                         at: self.span(url),

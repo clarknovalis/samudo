@@ -16,6 +16,10 @@
 mod markdown;
 mod org;
 
+use std::sync::LazyLock;
+
+use regex::Regex;
+
 use crate::api::{
     Align, Block, Document, DocumentFormat, Id, Inline, LinkClass, LinkedObject, ListItem,
     ObjectKind, Property, Span, TableRow,
@@ -246,6 +250,30 @@ pub fn toggle_checkbox(text: &str, checkbox: Span) -> Option<String> {
     let mut chars = chars;
     chars[checkbox.start + 1] = new;
     Some(chars.into_iter().collect())
+}
+
+#[allow(clippy::expect_used, reason = "a fixed pattern, covered by the tests")]
+static URL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"^(?:https?://|mailto:)[^\s<>\[\]"]+"#).expect("a fixed pattern that compiles")
+});
+
+/// The bare URL `rest` starts with, written without link markup, in both
+/// formats: not after a letter or digit, and without the punctuation that
+/// ends the sentence around it.
+fn bare_url<'a>(before: &str, rest: &'a str) -> Option<&'a str> {
+    if before
+        .chars()
+        .next_back()
+        .is_some_and(char::is_alphanumeric)
+    {
+        return None;
+    }
+    let found = URL.find(rest)?;
+    let url = rest[..found.end()].trim_end_matches(['.', ',', ';', ':', '!', '?', ')', '\'', '"']);
+    if url.ends_with("://") || url.ends_with(':') {
+        return None;
+    }
+    Some(url)
 }
 
 /// Where an inline is.

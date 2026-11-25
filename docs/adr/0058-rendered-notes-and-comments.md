@@ -51,6 +51,9 @@ links to tasks.
      (an address another app on the device opens; for now only `catastr:`,
      ADR 0075 §5) and `inert` (everything else, explicitly `elisp:`,
      `shell:`, `javascript:`, `data:`, `file:`).
+   - A bare `http`, `https` or `mailto` URL in the text is a `web` link in
+     both formats, without the punctuation that ends the sentence around
+     it.
    - `samu:<uuid>` and `id:<x>` are resolved while rendering (server: in
      the account's database; app: in its cache): `samu:` by id against
      every live task, project, folder and tag; `id:` by `org_id` on tasks
@@ -103,3 +106,5 @@ links to tasks.
 - 2026-11-11 (ADR 0075): §3 had no link class `app`; `catastr:` was
   inert.
 - 2026-11-11 (ADR 0077): §3 resolved `samu:` only against tasks.
+- 2026-11-25: §3 made bare URLs links in Org only; in Markdown they
+  needed `<…>` or `[…](…)`.
