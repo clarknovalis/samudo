@@ -12,7 +12,8 @@
 
 import { keepAddress, resolveAddress } from "./lib/address.js";
 import { applyTheme, hideGate, renderAccount, showGate, wireSignIn } from "./lib/account.js";
-import { api, holding, onWritten } from "./lib/api.js";
+import { api, holding, onWriting, onWritten } from "./lib/api.js";
+import { applyLocal, drawsAtOnce } from "./lib/local.js";
 import { refreshAlarms, stopAlarms } from "./lib/alarms.js";
 import { renderBulk } from "./lib/bulk.js";
 import { renderCapture, wireCapture } from "./lib/capture.js";
@@ -148,11 +149,16 @@ function merge(page) {
   loadedSeq = page.seq;
 }
 
+// What the server computed at the last load, kept so a write can be drawn
+// over it before the next load (web/lib/local.js).
+let served = null;
+
 // All of them from the start: signed in anew, or the server said `reset`.
 // An answer still on the way from before belongs to nothing here any more.
 let epoch = 0;
 function forget() {
   objects.clear();
+  served = null;
   loadedSeq = 0;
   epoch += 1;
 }
@@ -198,6 +204,10 @@ async function loadNow() {
   // A change may have moved a window of the schedule (ADR 0043 §7).
   refreshSchedule();
   const scope = state.scope;
+  // The project each task has as this load sets out: what the statuses on
+  // the way are computed with, unless a write drawn later moves it.
+  const projectThen = new Map();
+  for (const [id, entry] of objects) if (entry.kind === "task") projectThen.set(id, entry.object.project ?? null);
   try {
     const [, bare, projectStatuses, shownFolders, forecast, habits] = await Promise.all([
       changes(),
@@ -207,57 +217,17 @@ async function loadNow() {
       api.forecast(scope),
       api.habits(scope, historyFrom(today())),
     ]);
-    const live = [...objects.values()];
-    const of = (kind) => live.filter((o) => o.kind === kind).map((o) => o.object);
     // A change may have added to the open task's logbook: asked again.
     state.logbook = { ...state.logbook, id: null };
     // The scope changed while this was on the way: the next load counts.
     if (state.scope !== scope) return;
-    // A status comes without its task (ADR 0065) and gets it from here. One
-    // whose task is not here yet was computed a change later; the notice
-    // of that change loads again.
-    const all = bare.flatMap(({ id, ...computed }) => {
-      const task = objects.get(id)?.object;
-      return task ? [{ task, ...computed }] : [];
-    });
-    update({
-      folders: of("folder"),
-      projects: of("project"),
-      tasks: of("task"),
-      tags: of("tag"),
-      links: of("link"),
-      clocks: of("clock"),
-      reminders: of("reminder"),
-      comments: of("comment"),
-      checklist: of("checklist_item"),
-      attachments: of("attachment"),
-      scopes: of("scope"),
-      templates: of("template"),
-      perspectives: of("perspective"),
-      calendars: of("calendar"),
-      appointments: of("appointment"),
-      accountSettings: of("settings")[0] ?? null,
-      forecast,
-      // Due outside the scope is counted for the header, never listed
-      // (ADR 0035 §6).
-      // What another own scope alone shows: only for the search's hint and
-      // the project choice (ADR 0124 §3, §4).
-      statuses: all.filter((s) => !s.outside && !s.elsewhere),
-      outside: all.filter((s) => s.outside),
-      elsewhere: all.filter((s) => s.elsewhere),
-      projectStatuses: projectStatuses.filter((p) => !p.elsewhere),
-      elsewhereProjects: projectStatuses.filter((p) => p.elsewhere),
-      habits,
-      shownFolders: shownFolders.map((f) => f.id),
-    });
-    // The perspective on screen was deleted elsewhere: back to the inbox.
-    if (state.view.kind === "perspective" && !currentPerspective()) {
-      $("search-input").value = "";
-      update({ view: { kind: "inbox", project: null }, search: "", searchChips: [], selected: null });
-    }
-    resolveAddress();
-    // What goes off may have changed with it (ADR 0101 §8).
-    refreshAlarms();
+    // The project each status was computed with, to see a move drawn
+    // before the next load; a task new to this load as it came.
+    const projectAt = new Map(
+      bare.map((s) => [s.id, projectThen.has(s.id) ? projectThen.get(s.id) : (objects.get(s.id)?.object.project ?? null)]),
+    );
+    served = { scope, bare, projectAt, projectStatuses, shownFolders, forecast, habits };
+    derive(served, true);
   } catch (error) {
     if (error.status === 404 && scope) {
       // The scope chosen here is gone: it counts as none (ADR 0035 §4).
@@ -270,11 +240,83 @@ async function loadNow() {
   }
 }
 
+// The views from the objects here and what the server computed for them.
+// `loaded` after a load; a drawn write leaves the alarms to the reload.
+function derive({ bare, projectAt, projectStatuses, shownFolders, forecast, habits }, loaded = false) {
+  const live = [...objects.values()];
+  const of = (kind) => live.filter((o) => o.kind === kind).map((o) => o.object);
+  // A status comes without its task (ADR 0065) and gets it from here. One
+  // whose task is not here yet was computed a change later; the notice
+  // of that change loads again.
+  const all = bare.flatMap(({ id, ...computed }) => {
+    const task = objects.get(id)?.object;
+    if (!task) return [];
+    // Moved here before the server computed it anew: in the inbox as the
+    // status defines it, without a project or with one that is not there
+    // (ADR 0036 §6); everything else stays as computed until the reload.
+    const project = task.project ?? null;
+    if (project !== projectAt.get(id)) computed.inbox = !project || objects.get(project)?.kind !== "project";
+    return [{ task, ...computed }];
+  });
+  update({
+    folders: of("folder"),
+    projects: of("project"),
+    tasks: of("task"),
+    tags: of("tag"),
+    links: of("link"),
+    clocks: of("clock"),
+    reminders: of("reminder"),
+    comments: of("comment"),
+    checklist: of("checklist_item"),
+    attachments: of("attachment"),
+    scopes: of("scope"),
+    templates: of("template"),
+    perspectives: of("perspective"),
+    calendars: of("calendar"),
+    appointments: of("appointment"),
+    accountSettings: of("settings")[0] ?? null,
+    forecast,
+    // Due outside the scope is counted for the header, never listed
+    // (ADR 0035 §6).
+    // What another own scope alone shows: only for the search's hint and
+    // the project choice (ADR 0124 §3, §4).
+    statuses: all.filter((s) => !s.outside && !s.elsewhere),
+    outside: all.filter((s) => s.outside),
+    elsewhere: all.filter((s) => s.elsewhere),
+    projectStatuses: projectStatuses.filter((p) => !p.elsewhere),
+    elsewhereProjects: projectStatuses.filter((p) => p.elsewhere),
+    habits,
+    shownFolders: shownFolders.map((f) => f.id),
+  });
+  // The perspective on screen was deleted elsewhere: back to the inbox.
+  if (state.view.kind === "perspective" && !currentPerspective()) {
+    $("search-input").value = "";
+    update({ view: { kind: "inbox", project: null }, search: "", searchChips: [], selected: null });
+  }
+  resolveAddress();
+  // What goes off may have changed with it (ADR 0101 §8).
+  if (loaded) refreshAlarms();
+}
+
+// A write drawn before it goes out: on the objects here, over what the
+// server last computed. Nothing drawn before the first load, or for what
+// needs the server first; that waits for the reload.
+function drawWrite(changes) {
+  if (!served || served.scope !== state.scope || !drawsAtOnce(objects, changes)) return null;
+  const undo = applyLocal(objects, changes);
+  derive(served);
+  return () => {
+    undo();
+    derive(served);
+  };
+}
+
 function start() {
   forget();
   load();
   listen(reloadFor);
   onWritten(load);
+  onWriting(drawWrite);
 }
 
 // A new scope draws the views through it at once.

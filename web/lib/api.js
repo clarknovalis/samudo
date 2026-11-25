@@ -59,6 +59,29 @@ export function onWritten(callback) {
   reload = callback;
 }
 
+// Draws changes before the server has them (web/lib/local.js), so a move,
+// a delete or a note shows at once and not after the reload of every view.
+// The callback answers how to take them back, or null when it drew
+// nothing; then the write waits for the reload as before.
+let draw = () => null;
+export function onWriting(callback) {
+  draw = callback;
+}
+// A drawing that fails never keeps a write from going out: it then waits
+// for the reload as before.
+function drawing(changes) {
+  try {
+    return draw(changes);
+  } catch (error) {
+    console.error("drawing a write failed", error);
+    return null;
+  }
+}
+
+// After a write the server applied: the reload follows in the background
+// when what it wrote is drawn already, and is waited for when not.
+const after = (undo) => (undo ? void written() : written());
+
 // Several writes with one reload at the end (bulk actions): each write
 // used to wait for its own reload of every view before the next one went
 // out, which made twenty tasks take twenty reloads.
@@ -239,30 +262,60 @@ export const api = {
   blobUrl: (hash) => `/blobs/${encodeURIComponent(hash)}`,
   // Deletes with what hangs on it (ADR 0036); with `preview`, the counts.
   async deleteObject(id, body) {
-    const answer = await post(`/objects/${encodeURIComponent(id)}/delete`, body);
-    if (!body.preview) await written();
+    const undo = body.preview ? null : drawing([{ op: "delete", object: id, below: true }]);
+    let answer;
+    try {
+      answer = await post(`/objects/${encodeURIComponent(id)}/delete`, body);
+    } catch (error) {
+      undo?.();
+      throw error;
+    }
+    if (!body.preview) await after(undo);
     return answer;
   },
 
   // Completes or drops a task, with what is open below it closed along,
   // lifted out, or with `ask` not yet (ADR 0128 §3).
   async closeObject(id, body) {
-    const answer = await post(`/objects/${encodeURIComponent(id)}/close`, body);
-    if (answer.seq != null) await written();
+    const undo = body.preview
+      ? null
+      : drawing([{ op: "close", object: id, field: body.field, children: body.children ?? "ask" }]);
+    let answer;
+    try {
+      answer = await post(`/objects/${encodeURIComponent(id)}/close`, body);
+    } catch (error) {
+      undo?.();
+      throw error;
+    }
+    // Nothing written: open ones below on the server though not here.
+    if (answer.seq == null) undo?.();
+    else await after(undo);
     return answer;
   },
 
-  // Sends changes and fails unless every one was applied.
+  // Sends changes and fails unless every one was applied. What they change
+  // is drawn before they go out; the reload brings what the server
+  // computes from them (ADR 0065) a moment later.
   async write(changes) {
-    const outcomes = await post("/changes?stamp=server", changes);
-    for (const outcome of outcomes) {
-      if (outcome.outcome === "rejected") throw new ApiError(outcome.reason, 422, "rejected");
-      if (outcome.outcome !== "applied") {
-        throw new ApiError(`not applied: ${JSON.stringify(outcome)}`, 409, outcome.outcome);
+    const undo = drawing(changes);
+    let outcomes;
+    try {
+      outcomes = await post("/changes?stamp=server", changes);
+      for (const outcome of outcomes) {
+        if (outcome.outcome === "rejected") throw new ApiError(outcome.reason, 422, "rejected");
+        if (outcome.outcome !== "applied") {
+          throw new ApiError(`not applied: ${JSON.stringify(outcome)}`, 409, outcome.outcome);
+        }
       }
+    } catch (error) {
+      undo?.();
+      // Those before the refused one may be applied: the reload shows them.
+      if (outcomes) written();
+      throw error;
     }
-    // Waits for the reload, so what was written is drawn when this returns.
-    await written();
+    // Without a drawing, waits for the reload, so what was written is drawn
+    // when this returns.
+    await after(undo);
     return outcomes;
   },
 };

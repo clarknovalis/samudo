@@ -80,6 +80,8 @@ web-check:
 	node web/tests/close.mjs
 	node web/tests/zoned.mjs
 	node web/tests/together.mjs
+	node web/tests/local.mjs
+	node web/tests/drawn.mjs
 	node web/tests/checklist.mjs
 	node web/tests/text.mjs
 	node web/tests/groups.mjs
